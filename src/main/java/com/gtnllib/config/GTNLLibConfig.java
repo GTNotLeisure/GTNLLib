@@ -33,8 +33,6 @@ public class GTNLLibConfig {
     private static final String THEME = "theme";
     @Config.Ignore
     public static final int DEFAULT_MAX_WORLD_MOTES = 1024;
-    @Config.Ignore
-    private static String[] themes = {};
 
     @Comment("Show every HUD element; arrange them with Edit HUD")
     @LangKey("gtnllib.gui.config.client.enable_hud")
@@ -59,7 +57,7 @@ public class GTNLLibConfig {
     public static int maxWorldMotes = DEFAULT_MAX_WORLD_MOTES;
 
     @Comment("Render animated text effects; when disabled, styled text is shown as ordinary text")
-    @LangKey("gtnl.gui.config.general.client.enable_text_effects")
+    @LangKey("gtnllib.gui.config.client.enable_text_effects")
     @DefaultBoolean(true)
     public static boolean enableTextEffects = true;
 
@@ -71,16 +69,11 @@ public class GTNLLibConfig {
         }
     }
 
-    public static String[] themes() {
-        return themes.clone();
-    }
-
     public static void listThemes(Collection<String> ids) {
-        themes = ids.toArray(new String[0]);
         Configuration config = ConfigurationManager.getConfig(GTNLLibConfig.class);
-        Property property = config == null ? null
-            : config.getCategory(CATEGORY)
-                .get(THEME);
-        if (property != null) property.setValidValues(themes.clone());
+        if (config == null) return;
+        Property property = config.getCategory(CATEGORY)
+            .get(THEME);
+        if (property != null) property.setValidValues(ids.toArray(new String[0]));
     }
 }
