@@ -17,7 +17,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import com.gtnewhorizons.angelica.client.font.BatchingFontRenderer;
 import com.gtnewhorizons.angelica.config.FontConfig;
-import com.gtnewhorizons.angelica.glsm.GLStateManager;
+import com.gtnewhorizons.angelica.glsm.GLSMPrograms;
+import com.gtnewhorizons.angelica.glsm.GLSMQueries;
 import com.gtnllib.client.text.DeferredTextEffects;
 import com.gtnllib.client.text.EffectTextRenderer;
 import com.gtnllib.client.text.compat.AngelicaTextAdapter;
@@ -103,7 +104,7 @@ public abstract class MixinFontBatchTextEffects implements FontBatchBridge {
         method = { "flushBatchInner", "setupFontDrawState" },
         at = @At(
             value = "INVOKE",
-            target = "Lcom/gtnewhorizons/angelica/glsm/GLStateManager;tryBlendFuncSeparate(IIII)V",
+            target = "Lcom/gtnewhorizons/angelica/glsm/GLSMBlend;tryBlendFuncSeparate(IIII)V",
             ordinal = 0),
         index = 3,
         remap = false,
@@ -114,15 +115,15 @@ public abstract class MixinFontBatchTextEffects implements FontBatchBridge {
     }
 
     @Redirect(
-        method = { "flushBatchInner", "setupFontDrawState" },
+        method = { "flushBatchInner", "setupFontDrawState", "pushTexRect" },
         at = @At(
             value = "FIELD",
             target = "Lcom/gtnewhorizons/angelica/config/FontConfig;fontAAMode:I",
             opcode = Opcodes.GETSTATIC),
         remap = false,
-        require = 3)
+        require = 5)
     private int gtnl$sharpMaskCoverage() {
-        // Keep the comparison, cached mode and uniform consistent across both Angelica method layouts.
+        // Keep the glyph padding, comparison, cached mode and uniform consistent across both Angelica method layouts.
         return EffectTextRenderer.isCapturing() && !AngelicaTextAdapter.usesCustomFont(underlying) ? 0
             : FontConfig.fontAAMode;
     }
@@ -132,13 +133,13 @@ public abstract class MixinFontBatchTextEffects implements FontBatchBridge {
     private void gtnl$restoreFontAntialiasing(CallbackInfo ci) {
         int configuredMode = FontConfig.fontAAMode;
         if (!EffectTextRenderer.isCapturing() || fontAAModeLast == configuredMode) return;
-        int previousProgram = GLStateManager.glGetInteger(GL20.GL_CURRENT_PROGRAM);
-        GLStateManager.glUseProgram(fontShaderId);
+        int previousProgram = GLSMQueries.glGetInteger(GL20.GL_CURRENT_PROGRAM);
+        GLSMPrograms.glUseProgram(fontShaderId);
         try {
-            GLStateManager.glUniform1i(AAMode, configuredMode);
+            GLSMPrograms.glUniform1i(AAMode, configuredMode);
             fontAAModeLast = configuredMode;
         } finally {
-            GLStateManager.glUseProgram(previousProgram);
+            GLSMPrograms.glUseProgram(previousProgram);
         }
     }
 }
