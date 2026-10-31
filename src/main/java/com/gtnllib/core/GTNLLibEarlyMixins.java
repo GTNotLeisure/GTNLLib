@@ -1,4 +1,4 @@
-package com.gtnllib.mixins;
+package com.gtnllib.core;
 
 import java.util.List;
 import java.util.Set;

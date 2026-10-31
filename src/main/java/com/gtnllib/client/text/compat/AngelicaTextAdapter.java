@@ -15,12 +15,10 @@ import com.gtnllib.mod.ModList;
 
 import cpw.mods.fml.common.Optional;
 
-/** Optional references live only inside methods removed by Forge when Angelica is absent. */
 public class AngelicaTextAdapter {
 
     private static FontSettings currentSettings;
 
-    /** Reuses an immutable cache discriminator until native font configuration changes. */
     public static FontSettings fontSettings() {
         return ModList.Angelica.isModLoaded() ? angelicaFontSettings() : null;
     }

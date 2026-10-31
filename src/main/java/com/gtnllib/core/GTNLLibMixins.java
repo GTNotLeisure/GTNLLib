@@ -1,4 +1,4 @@
-package com.gtnllib.mixins;
+package com.gtnllib.core;
 
 import com.gtnewhorizon.gtnhmixins.builders.IMixins;
 import com.gtnewhorizon.gtnhmixins.builders.MixinBuilder;
