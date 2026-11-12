@@ -26,7 +26,7 @@ public enum ModList implements IMod, ITargetMod {
     NHUtilities("NHUtilities", "NH-Utilities", "com.xir.NHUtilities.main.NHUtilitiesCore"),
     AE2Thing("ae2thing", "AE2 Things"),
     QzMiner("qz_miner", "Qz Miner", false),
-    OTHTechnology("123Technology", "123Technology"),
+    OTHTechnology("123technology", "123Technology"),
     Baubles("Baubles", "Baubles", false),
     Overpowered("Overpowered", "Overpowered"),
     ThinkTech("thinktech", "Think Tech"),
