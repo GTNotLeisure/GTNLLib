@@ -61,6 +61,11 @@ public class GTNLLibConfig {
     @DefaultBoolean(true)
     public static boolean enableTextEffects = true;
 
+    @Comment("Type marked text one character at a time when it appears; when disabled, it shows in full at once")
+    @LangKey("gtnllib.gui.config.client.enable_typewriter")
+    @DefaultBoolean(true)
+    public static boolean enableTypewriter = true;
+
     public static void register() {
         try {
             ConfigurationManager.registerConfig(GTNLLibConfig.class);

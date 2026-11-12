@@ -7,9 +7,13 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.IntLists;
 
-/** Serializable visual parameters independent of client rendering classes. */
-public record TextEffectStyle(String rendererId, IntList colors, float speed) {
+/**
+ * Serializable visual parameters independent of client rendering classes. {@code typing} is the typewriter rate in
+ * glyphs per second; zero shows the whole span at once.
+ */
+public record TextEffectStyle(String rendererId, IntList colors, float speed, float typing) {
 
+    public static final float MAX_TYPING_RATE = 1000;
     private static final Pattern IDENTIFIER = Pattern.compile("[a-z0-9_.-]+:[a-z0-9_./-]+");
 
     public TextEffectStyle {
@@ -24,13 +28,24 @@ public record TextEffectStyle(String rendererId, IntList colors, float speed) {
         }
         if (!Float.isFinite(speed) || speed < 0)
             throw new IllegalArgumentException("Speed must be finite and nonnegative");
+        if (!Float.isFinite(typing) || typing < 0 || typing > MAX_TYPING_RATE)
+            throw new IllegalArgumentException("Typing rate must be between zero and " + MAX_TYPING_RATE);
+    }
+
+    public TextEffectStyle(String rendererId, IntList colors, float speed) {
+        this(rendererId, colors, speed, 0);
     }
 
     public TextEffectStyle withColors(int... palette) {
-        return new TextEffectStyle(rendererId, IntList.of(palette), speed);
+        return new TextEffectStyle(rendererId, IntList.of(palette), speed, typing);
     }
 
     public TextEffectStyle withSpeed(float value) {
-        return new TextEffectStyle(rendererId, colors, value);
+        return new TextEffectStyle(rendererId, colors, value, typing);
+    }
+
+    /** Reveals the span one glyph at a time at {@code glyphsPerSecond}; zero turns typing off. */
+    public TextEffectStyle withTyping(float glyphsPerSecond) {
+        return new TextEffectStyle(rendererId, colors, speed, glyphsPerSecond);
     }
 }

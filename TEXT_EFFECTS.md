@@ -46,6 +46,22 @@ The last example uses `#FFCC00` at twice the normal speed and occupies 14 charac
 
 Unknown inline renderer names remain ordinary input when drawn. They do not flush deferred text belonging to other signs. Available renderer names are resolved during layout creation, so register renderers and aliases before rendering starts.
 
+## Typewriter
+
+Any effect types its text one glyph at a time with `t=<glyphs per second>` (or `type=`), for example `&{ba;t=20}Gold`. Plain text uses `&{tw}`, which types 20 glyphs per second; `&{tw;40}` or `&{tw;t=40}` changes the rate. Rates run from 0 to 1000; zero shows the span at once.
+
+`&{p}` holds the typing for half a second before the next glyph and `&{p;800}` for 800 ms (at most 10000). A pause marker changes no style, so it can sit inside any effect.
+
+- Text types when it appears and starts over after it has not been drawn for a frame, so a tooltip types each time it opens.
+- Lines inside one string type one after another. So do strings drawn lower at the same x in the same frame, such as the lines of a tooltip; plain lines without typing still show at once.
+- The layout keeps the width of the whole text, so a tooltip does not grow while typing.
+- The caret `_` holds the slot of the next glyph, blinks during a pause, and disappears when typing ends. It is hidden when it would reach past the end of the text.
+- Typed text is revealed by the font's drawn advance. Vanilla measures unicode glyphs wider than it draws them, so measuring would drift right on CJK text. A partly typed effect run is drawn from a mask of its typed glyphs alone at the full run size, so hidden glyphs cannot bleed outlines in.
+- Text fields (chat input, NEI search) show their text in full while it is edited.
+- The client setting `enableTypewriter` turns typing off; marked text then shows in full at once.
+
+In code, use `TextEffects.TYPEWRITER`, `style.withTyping(rate)` and `TextEffects.pause(millis)`.
+
 ## Code entry points
 
 Use `TextEffects.format(style)` to open an inline effect and `TextEffects.apply(text, style)` for a closed, composable span. Existing `AnimatedTooltipHandler.renderedText` suppliers remain supported. Additional aliases can be registered during initialization with `TextEffectFormat.registerAlias(alias, namespacedRendererId)`.
@@ -61,6 +77,7 @@ Angelica defers sign text until its board geometry has rendered. Effect text fol
 ## Verification
 
 - `gradlew build -x test -x testClasses` passed, including formatting, compilation, checkstyle, packaging and JVM downgrading. No unit tests were added or run.
+- Typewriter: `TypewriterFormatTest` covers the rate, alias and pause syntax and both written forms; `TypewriterTimelineTest` covers line order, tooltip line chaining, pauses with the blinking caret, and starting over after the text reappears. Run them with `gradlew test`.
 - Both client variants loaded the input/NEI mixins. The no-Angelica variant skipped the Angelica mixin.
 - Both variants rendered adjacent signs containing `&{123}`, `PLAIN`, and `&{ba}GOLD`; all three texts remained visible. Captures are in `build/signcheck-angelica.png` and `build/signcheck-vanilla.png`.
 - The user confirmed the NEI search field and chat input fixes. Their injection sites were also verified in transformed classes.
@@ -97,3 +114,5 @@ Ordinary public classes remain non-final. Existing public constructors noted bel
 | `enum Mixins implements IMixins` | Separate `TEXT_EFFECTS_COMMON`, `TEXT_EFFECTS_CLIENT`, `TEXT_EFFECTS_ANGELICA`, `TEXT_EFFECTS_NEI` registrations; instance fields unchanged. |
 
 `TextEffectStyle(String rendererId, List<Integer> colors, float speed)`, `AnimatedText` preset field signatures, and `TextMaskCache` field signatures remain unchanged.
+
+The typewriter adds components with the old constructors retained: `TextEffectStyle.typing`, `EffectTextParser.Token.pause`, `EffectTextLayout.Glyph.pause`, `EffectTextLayout.DrawRun.glyphs` and `TextMaskCache.Mask.advance`. The scoped form written by `TextEffects.opening` gains a fourth field for the rate only when it is nonzero, and three-field text still parses. New types: `TypewriterTimeline` and its `Typing` record.

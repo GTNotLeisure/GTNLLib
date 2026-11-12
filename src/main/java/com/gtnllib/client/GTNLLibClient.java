@@ -11,12 +11,14 @@ import com.gtnllib.client.hud.HudLayout;
 import com.gtnllib.client.hud.HudOverlay;
 import com.gtnllib.client.shader.ShaderEffect;
 import com.gtnllib.client.text.EffectTextRenderer;
+import com.gtnllib.client.text.TypewriterTimeline;
 import com.gtnllib.client.text.effect.BuiltinTextEffects;
 import com.gtnllib.client.text.preview.TextEffectPreviewCommand;
 import com.gtnllib.config.GTNLLibConfig;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.PaletteThemes;
 
+import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
@@ -33,6 +35,9 @@ public class GTNLLibClient {
         MinecraftForge.EVENT_BUS.register(new ShaderEffect.Reloader());
         MinecraftForge.EVENT_BUS.register(new PaletteThemes.Reloader());
         MinecraftForge.EVENT_BUS.register(new AE2Theme.Reloader());
+        FMLCommonHandler.instance()
+            .bus()
+            .register(TypewriterTimeline.INSTANCE);
         ((IReloadableResourceManager) Minecraft.getMinecraft()
             .getResourceManager()).registerReloadListener(EffectTextRenderer.INSTANCE);
         ClientCommandHandler.instance.registerCommand(new TextEffectPreviewCommand());
@@ -44,5 +49,6 @@ public class GTNLLibClient {
         HudLayout.settings(() -> GTNLLibConfig.enableHud, () -> GTNLLibConfig.hudScale);
         FxMoteRenderer.limitWith(() -> GTNLLibConfig.maxWorldMotes);
         EffectTextRenderer.enabledWith(() -> GTNLLibConfig.enableTextEffects);
+        TypewriterTimeline.enabledWith(() -> GTNLLibConfig.enableTypewriter);
     }
 }

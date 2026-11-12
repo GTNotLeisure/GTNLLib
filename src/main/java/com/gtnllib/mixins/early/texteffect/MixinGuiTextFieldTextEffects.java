@@ -12,6 +12,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import com.gtnllib.client.text.EffectTextFieldView;
 import com.gtnllib.client.text.EffectTextLayout.Layout;
 import com.gtnllib.client.text.EffectTextRenderer;
+import com.gtnllib.client.text.TypewriterTimeline;
 import com.gtnllib.text.EffectTextParser;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
@@ -79,12 +80,24 @@ public abstract class MixinGuiTextFieldTextEffects {
     private int gtnl$drawBeforeCursor(FontRenderer font, String value, int x, int y, int color,
         Operation<Integer> original) {
         EffectTextFieldView view = gtnl$view();
-        return original.call(
+        return gtnl$drawStill(
+            original,
             font,
             view == null ? value : view.slice(lineScrollOffset, lineScrollOffset + value.length()),
             x,
             y,
             color);
+    }
+
+    @Unique
+    private static int gtnl$drawStill(Operation<Integer> original, FontRenderer font, String value, int x, int y,
+        int color) {
+        TypewriterTimeline.INSTANCE.beginStill();
+        try {
+            return original.call(font, value, x, y, color);
+        } finally {
+            TypewriterTimeline.INSTANCE.endStill();
+        }
     }
 
     @WrapOperation(
@@ -96,7 +109,8 @@ public abstract class MixinGuiTextFieldTextEffects {
     private int gtnl$drawAfterCursor(FontRenderer font, String value, int x, int y, int color,
         Operation<Integer> original) {
         EffectTextFieldView view = gtnl$view();
-        return original.call(
+        return gtnl$drawStill(
+            original,
             font,
             view == null ? value : view.slice(cursorPosition, cursorPosition + value.length()),
             x,

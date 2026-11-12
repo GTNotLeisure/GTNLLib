@@ -18,6 +18,7 @@ import com.gtnewhorizon.gtnhlib.util.font.IFontParameters;
 import com.gtnllib.client.text.EffectTextLayout.DrawRun;
 import com.gtnllib.client.text.EffectTextLayout.Layout;
 import com.gtnllib.client.text.TextMaskCache.Mask;
+import com.gtnllib.client.text.TypewriterTimeline.Typing;
 import com.gtnllib.client.text.compat.AngelicaTextAdapter;
 import com.gtnllib.client.text.compat.AngelicaTextAdapter.FontSettings;
 import com.gtnllib.client.text.compat.FontBatchBridge;
@@ -33,6 +34,7 @@ public class EffectTextRenderer implements IResourceManagerReloadListener {
     public static final EffectTextRenderer INSTANCE = new EffectTextRenderer();
     private static final Logger LOGGER = LogManager.getLogger("GTNLTextEffects");
     private static final long START_TIME = System.nanoTime();
+    private static final String CARET = "_";
     private static int captureDepth;
     private static BooleanSupplier enabled = () -> true;
     private static int nativeDepth;
@@ -125,7 +127,22 @@ public class EffectTextRenderer implements IResourceManagerReloadListener {
         }
         if (!styled || !enabled.getAsBoolean()) {
             // Plain rendering keeps parsed text visible without touching deferred font or model batches.
-            for (DrawRun run : layout.runs()) drawPlain(font, run.text(), x + run.x(), y + run.y(), color, shadow);
+            Typing typing = TypewriterTimeline.INSTANCE.plan(font, text, layout, x, y, seconds());
+            float[] advances = new float[layout.runs()
+                .size()];
+            for (int i = 0; i < advances.length; i++) {
+                DrawRun run = layout.runs()
+                    .get(i);
+                int count = typing == null ? -1 : typing.count(i);
+                if (count != 0) advances[i] = drawPlain(
+                    font,
+                    count < 0 ? run.text() : run.typedText(count),
+                    x + run.x(),
+                    y + run.y(),
+                    color,
+                    shadow);
+            }
+            drawCaret(font, layout, typing, advances, x, y, color, shadow);
             return endX(font, layout, x, shadow);
         }
         if (!DeferredTextEffects.isFlushing() && AngelicaTextAdapter.shouldDeferEffects()) {
@@ -136,7 +153,14 @@ public class EffectTextRenderer implements IResourceManagerReloadListener {
         int depth = bridge == null ? 0 : bridge.gtnl$suspendBatch();
         try {
             AngelicaTextAdapter.beginForeignDraw();
-            return drawLayout(font, layout, x, y, color, shadow);
+            return drawLayout(
+                font,
+                layout,
+                TypewriterTimeline.INSTANCE.plan(font, text, layout, x, y, seconds()),
+                x,
+                y,
+                color,
+                shadow);
         } finally {
             try {
                 AngelicaTextAdapter.endForeignDraw();
@@ -146,12 +170,20 @@ public class EffectTextRenderer implements IResourceManagerReloadListener {
         }
     }
 
-    private int drawLayout(FontRenderer font, Layout layout, float x, float y, int color, boolean shadow) {
+    private int drawLayout(FontRenderer font, Layout layout, Typing typing, float x, float y, int color,
+        boolean shadow) {
         try (TextRenderState ignored = new TextRenderState()) {
-            for (DrawRun run : layout.runs()) {
-                drawRun(
+            float[] advances = new float[layout.runs()
+                .size()];
+            for (int i = 0; i < advances.length; i++) {
+                DrawRun run = layout.runs()
+                    .get(i);
+                int count = typing == null ? -1 : typing.count(i);
+                if (count == 0) continue;
+                // A partly typed run uses a mask of its typed glyphs alone, so hidden glyphs cannot bleed outlines in.
+                advances[i] = drawRun(
                     font,
-                    run.text(),
+                    count < 0 ? run.text() : run.typedText(count),
                     run.style(),
                     x + run.x(),
                     y + run.y(),
@@ -160,15 +192,39 @@ public class EffectTextRenderer implements IResourceManagerReloadListener {
                     color,
                     shadow);
             }
+            drawCaret(font, layout, typing, advances, x, y, color, shadow);
         }
         return endX(font, layout, x, shadow);
+    }
+
+    // Vanilla measures unicode glyphs wider than it draws them, so the caret uses the drawn advance of the typed text.
+    private void drawCaret(FontRenderer font, Layout layout, Typing typing, float[] advances, float x, float y,
+        int color, boolean shadow) {
+        if (typing == null || typing.caretRun() < 0) return;
+        DrawRun run = layout.runs()
+            .get(typing.caretRun());
+        String formatting = run.glyphs()
+            .isEmpty() ? ""
+                : run.glyphs()
+                    .get(0)
+                    .formatting()
+                    .replace("§k", "")
+                    .replace("§K", "");
+        String caret = formatting + CARET;
+        float slot = run.x() + advances[typing.caretRun()];
+        if (slot + layout(font, caret).width() > layout.width()) return;
+        TextEffect effect = run.style() == null ? null
+            : TextEffectRegistry.get(
+                run.style()
+                    .rendererId());
+        drawPlain(font, caret, x + slot, y + run.y(), fallbackColor(run.style(), effect, color), shadow);
     }
 
     private static int endX(FontRenderer font, Layout layout, float x, boolean shadow) {
         return (int) Math.ceil(x + layout.width() + (shadow ? ((IFontParameters) font).getShadowOffset() : 0));
     }
 
-    private void drawRun(FontRenderer font, String text, TextEffectStyle style, float x, float y, float width,
+    private float drawRun(FontRenderer font, String text, TextEffectStyle style, float x, float y, float width,
         float height, int color, boolean shadow) {
         TextEffect effect = style == null ? null : TextEffectRegistry.get(style.rendererId());
         if (effect == null || width <= 0
@@ -176,27 +232,28 @@ public class EffectTextRenderer implements IResourceManagerReloadListener {
             || !AngelicaTextAdapter.supportsEffects(font)
             || !OpenGlHelper.isFramebufferEnabled()
             || !GLContext.getCapabilities().OpenGL20) {
-            drawPlain(font, text, x, y, fallbackColor(style, effect, color), shadow);
-            return;
+            return drawPlain(font, text, x, y, fallbackColor(style, effect, color), shadow);
         }
         try (TextRenderState ignored = new TextRenderState()) {
             float padding = Math.max(height, effect.padding(width, height));
             Mask mask = masks.get(font, text, width, height, padding);
-            if (mask == null) {
-                drawPlain(font, text, x, y, fallbackColor(style, effect, color), shadow);
-                return;
-            }
-            double seconds = (System.nanoTime() - START_TIME) * 1e-9;
+            if (mask == null) return drawPlain(font, text, x, y, fallbackColor(style, effect, color), shadow);
+            double seconds = seconds();
             if (shadow) {
                 float offset = ((IFontParameters) font).getShadowOffset();
                 effect.render(new TextRenderContext(mask, style, x + offset, y + offset, color, seconds, true));
             }
             effect.render(new TextRenderContext(mask, style, x, y, color, seconds, false));
+            return mask.advance();
         } catch (RuntimeException exception) {
             if (failed.add(style.rendererId()))
                 LOGGER.warn("Text effect unavailable until resource reload: {}", style.rendererId(), exception);
-            drawPlain(font, text, x, y, fallbackColor(style, effect, color), shadow);
+            return drawPlain(font, text, x, y, fallbackColor(style, effect, color), shadow);
         }
+    }
+
+    private static double seconds() {
+        return (System.nanoTime() - START_TIME) * 1e-9;
     }
 
     private static int fallbackColor(TextEffectStyle style, TextEffect effect, int color) {
@@ -207,12 +264,14 @@ public class EffectTextRenderer implements IResourceManagerReloadListener {
         return color & 0xFF000000 | rgb;
     }
 
-    private static void drawPlain(FontRenderer font, String text, float x, float y, int color, boolean shadow) {
+    private static float drawPlain(FontRenderer font, String text, float x, float y, int color, boolean shadow) {
         GL11.glPushMatrix();
         GL11.glTranslatef(x, y, 0);
         nativeDepth++;
         try {
-            font.drawString(text, 0, 0, color, shadow);
+            int end = font.drawString(text, 0, 0, color, shadow);
+            // Vanilla returns the end of whichever pass reaches further, which is the shadow pass.
+            return Math.max(0, end - (shadow ? ((IFontParameters) font).getShadowOffset() : 0));
         } finally {
             nativeDepth--;
             GL11.glPopMatrix();
@@ -222,6 +281,7 @@ public class EffectTextRenderer implements IResourceManagerReloadListener {
     @Override
     public void onResourceManagerReload(IResourceManager manager) {
         DeferredTextEffects.clear();
+        TypewriterTimeline.INSTANCE.clear();
         layouts.clear();
         failed.clear();
         if (GLContext.getCapabilities().OpenGL20) {
