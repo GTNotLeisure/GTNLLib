@@ -1,9 +1,12 @@
 package com.gtnllib.text;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -112,14 +115,17 @@ public class TextEffectFormat {
      * declaration already uses, such as {@code c}, {@code t} or {@code roll}, are refused.
      */
     public static void registerOptions(String rendererId, TextEffectOption... options) {
-        Map<String, TextEffectOption> known = OPTIONS
-            .computeIfAbsent(qualify(rendererId), id -> new Object2ObjectOpenHashMap<>());
+        String id = qualify(rendererId);
+        Map<String, TextEffectOption> registered = OPTIONS.get(id);
+        Map<String, TextEffectOption> known = registered == null ? new Object2ObjectOpenHashMap<>()
+            : new Object2ObjectOpenHashMap<>(registered);
         for (TextEffectOption option : options) {
             if (RESERVED_PARAMETERS.contains(option.name()))
                 throw new IllegalArgumentException("Option name is a declaration parameter: " + option.name());
             if (known.putIfAbsent(option.name(), option) != null)
                 throw new IllegalArgumentException("Option already registered: " + option.name());
         }
+        OPTIONS.put(id, known);
     }
 
     public static TextEffectOption option(String rendererId, String name) {
@@ -186,7 +192,9 @@ public class TextEffectFormat {
 
     /** Writes a time or option value rounded to three decimals without trailing zeros, for example {@code 2.5}. */
     public static String writeDecimal(float value) {
-        return BigDecimal.valueOf(Math.round(value * 1000), 3)
+        if (!Float.isFinite(value)) throw new IllegalArgumentException("Value must be finite");
+        return BigDecimal.valueOf(value)
+            .setScale(3, value < 0 ? RoundingMode.HALF_DOWN : RoundingMode.HALF_UP)
             .stripTrailingZeros()
             .toPlainString();
     }
@@ -226,19 +234,31 @@ public class TextEffectFormat {
 
     /** Reads {@code name=value} pairs joined by commas, as the scoped form writes them. */
     public static TextEffectStyle readOptions(TextEffectStyle style, String value) {
+        SortedMap<String, Float> options = new TreeMap<>(style.options());
         for (String pair : value.split(",", -1)) {
             int separator = pair.indexOf('=');
             if (separator < 0) throw new IllegalArgumentException("Invalid option");
-            style = readOption(style, pair.substring(0, separator), pair.substring(separator + 1));
+            readOption(style.rendererId(), options, pair.substring(0, separator), pair.substring(separator + 1));
         }
-        return style;
+        return withOptions(style, options);
     }
 
-    private static TextEffectStyle readOption(TextEffectStyle style, String name, String value) {
-        TextEffectOption option = option(style.rendererId(), name);
-        if (option == null || style.options()
-            .containsKey(name)) throw new IllegalArgumentException("Unknown or repeated option " + name);
-        return style.withOption(name, option.read(value));
+    private static void readOption(String rendererId, Map<String, Float> options, String name, String value) {
+        TextEffectOption option = option(rendererId, name);
+        if (option == null || options.containsKey(name))
+            throw new IllegalArgumentException("Unknown or repeated option " + name);
+        options.put(name, option.read(value));
+    }
+
+    private static TextEffectStyle withOptions(TextEffectStyle style, SortedMap<String, Float> options) {
+        return new TextEffectStyle(
+            style.rendererId(),
+            style.colors(),
+            style.speed(),
+            style.typewriter(),
+            style.roll(),
+            style.shake(),
+            options);
     }
 
     /** Text-only renderers that need no registered shader: the typewriter, the number roll and the shake. */
@@ -373,6 +393,7 @@ public class TextEffectFormat {
      * written {@code &{roll=1.5}} or {@code &{shake=2:sync}}.
      */
     public static TextEffectStyle readInline(String header) {
+        if (header.length() > MAX_HEADER_LENGTH) return null;
         String[] fields = header.split(";", -1);
         String id = fields[0].trim();
         String roll = null;
@@ -451,8 +472,12 @@ public class TextEffectFormat {
             if (blur != null && (roll == null || roll.contains(BLUR_PARAMETER + "="))) return null;
             if (blur != null) style = style.withRollBlur(readBlur(blur));
             if (shake != null) style = readShake(style, shake);
-            for (Map.Entry<String, String> option : options.entrySet())
-                style = readOption(style, option.getKey(), option.getValue());
+            if (!options.isEmpty()) {
+                SortedMap<String, Float> values = new TreeMap<>();
+                for (Map.Entry<String, String> option : options.entrySet())
+                    readOption(style.rendererId(), values, option.getKey(), option.getValue());
+                style = withOptions(style, values);
+            }
             return style;
         } catch (IllegalArgumentException ignored) {
             return null;

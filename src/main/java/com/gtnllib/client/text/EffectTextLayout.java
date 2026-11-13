@@ -227,6 +227,7 @@ public class EffectTextLayout {
             }
             int end = start;
             float width = 0;
+            boolean runSpaced = false;
             StringBuilder text = new StringBuilder(first.formatting());
             List<Glyph> members = new ObjectArrayList<>();
             while (end < glyphs.size()) {
@@ -236,8 +237,9 @@ public class EffectTextLayout {
                     || !glyph.formatting()
                         .equals(first.formatting()))
                     break;
-                if (end > start && glyph.width() > 0) width += spacing;
+                if (runSpaced && glyph.width() > 0) width += spacing;
                 width += glyph.width();
+                runSpaced |= glyph.width() > 0;
                 text.append(glyph.text());
                 members.add(glyph);
                 end++;

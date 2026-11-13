@@ -17,7 +17,7 @@ import com.gtnllib.text.TextEntrance;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent.Phase;
 import cpw.mods.fml.common.gameevent.TickEvent.RenderTickEvent;
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 
 /**
@@ -31,8 +31,10 @@ public class TypewriterTimeline {
     private static final double CARET_BLINK_SECONDS = 0.4;
     private static final long FORGET_AFTER_FRAMES = 2;
     private static final long SWEEP_INTERVAL_FRAMES = 120;
+    private static final int MAX_APPEARANCES = 256;
+    private static final int MAX_CACHED_TEXT_LENGTH = 16384;
     private static BooleanSupplier enabled = () -> true;
-    private final Object2ObjectOpenHashMap<String, Appearance> appearances = new Object2ObjectOpenHashMap<>();
+    private final Object2ObjectLinkedOpenHashMap<AppearanceKey, Appearance> appearances = new Object2ObjectLinkedOpenHashMap<>();
     private final Chain chain = new Chain();
     private long frame;
     private int stillDepth;
@@ -64,21 +66,32 @@ public class TypewriterTimeline {
     public void clear() {
         appearances.clear();
         chain.frame = -1;
+        chain.font = null;
     }
 
-    /** Returns null when the text shows in full: it has no typing, typing is off, or it has finished typing. */
+    /** Returns null for complete, disabled or oversized animations; oversized text remains fully visible. */
     public Typing plan(FontRenderer font, String text, Layout layout, float x, float y, double seconds) {
-        if (stillDepth > 0 || !enabled.getAsBoolean() || !typed(layout)) return null;
-        Appearance appearance = appearances.get(text);
+        if (stillDepth > 0 || !enabled.getAsBoolean() || text.length() >= MAX_CACHED_TEXT_LENGTH) return null;
+        AppearanceKey key = new AppearanceKey(font, text);
+        Appearance appearance = appearances.getAndMoveToLast(key);
+        if ((appearance == null || appearance.layout != layout) && !typed(layout)) return null;
         if (appearance == null) {
             appearance = new Appearance();
-            appearances.put(text, appearance);
+            appearances.putAndMoveToLast(key, appearance);
+            if (appearances.size() > MAX_APPEARANCES) appearances.removeFirst();
         }
         if (appearance.lastFrame < frame - FORGET_AFTER_FRAMES) appearance.firstSeen = seconds;
         appearance.lastFrame = frame;
         double start = appearance.firstSeen;
         if (chain.continues(frame, font, x, y)) start = Math.max(start, chain.end);
+        if (appearance.layout == layout && seconds - start >= appearance.settled) {
+            chain.extend(frame, font, x, y, start + appearance.duration);
+            return null;
+        }
         Typing typing = schedule(layout, seconds - start, seconds);
+        appearance.layout = layout;
+        appearance.duration = typing.duration();
+        appearance.settled = typing.settled();
         chain.extend(frame, font, x, y, start + typing.duration());
         return seconds - start >= typing.settled() ? null : typing;
     }
@@ -97,7 +110,17 @@ public class TypewriterTimeline {
 
     private static Typing schedule(Layout layout, double elapsed, double seconds) {
         Schedule schedule = new Schedule(layout.runs(), elapsed);
-        for (int[] line : lines(layout.runs())) schedule.line(line);
+        List<DrawRun> runs = layout.runs();
+        for (int start = 0; start < runs.size();) {
+            int end = start + 1;
+            while (end < runs.size() && runs.get(end)
+                .y()
+                == runs.get(start)
+                    .y())
+                end++;
+            schedule.line(start, end);
+            start = end;
+        }
         return schedule.finish(seconds);
     }
 
@@ -108,22 +131,8 @@ public class TypewriterTimeline {
         return false;
     }
 
-    private static List<int[]> lines(List<DrawRun> runs) {
-        List<int[]> lines = new ObjectArrayList<>();
-        for (int index = 0; index < runs.size(); index++) {
-            int[] last = lines.isEmpty() ? null : lines.get(lines.size() - 1);
-            if (last != null && runs.get(last[0])
-                .y()
-                == runs.get(index)
-                    .y())
-                last[1] = index + 1;
-            else lines.add(new int[] { index, index + 1 });
-        }
-        return lines;
-    }
-
-    private static boolean hasVisibleGlyph(List<DrawRun> runs, int[] line) {
-        for (int index = line[0]; index < line[1]; index++) {
+    private static boolean hasVisibleGlyph(List<DrawRun> runs, int start, int end) {
+        for (int index = start; index < end; index++) {
             for (Glyph glyph : runs.get(index)
                 .glyphs()) {
                 if (glyph.width() > 0) return true;
@@ -161,9 +170,7 @@ public class TypewriterTimeline {
      */
     public record GlyphEntrance(int index, float progress, TextEntrance kind, float size) {}
 
-    // Each typed glyph shows one interval after the one before it, the first included, so the caret shows first.
-    // Hidden glyphs still take their time, a rolling number takes its roll time as a whole, and text that rolls
-    // without its own typing rate keeps the latest rate and entrance, so a unit after a number types on.
+    // Hidden glyphs still advance the clock; a waiting roll advances it once for the entire run.
     private static class Schedule {
 
         private final List<DrawRun> runs;
@@ -194,12 +201,12 @@ public class TypewriterTimeline {
             entrances = new GlyphEntrance[runs.size()][];
         }
 
-        private void line(int[] line) {
+        private void line(int start, int end) {
             time = elapsed - lineStart;
             clock = 0;
             blocked = false;
             pausing = false;
-            for (int index = line[0]; index < line[1]; index++) {
+            for (int index = start; index < end; index++) {
                 DrawRun run = runs.get(index);
                 Roll roll = run.style() == null ? Roll.NONE
                     : run.style()
@@ -207,8 +214,8 @@ public class TypewriterTimeline {
                 if (roll.seconds() > 0 && hasDigits(run)) roll(index, roll);
                 else type(index, run);
             }
-            if (!anyCaret && !rolling && waitingRun < 0 && time < 0 && hasVisibleGlyph(runs, line)) {
-                waitingRun = line[0];
+            if (!anyCaret && !rolling && waitingRun < 0 && time < 0 && hasVisibleGlyph(runs, start, end)) {
+                waitingRun = start;
                 caretPausing = previousPausing;
             }
             previousPausing = pausing && !blocked;
@@ -306,7 +313,12 @@ public class TypewriterTimeline {
 
         private double firstSeen;
         private long lastFrame = Long.MIN_VALUE / 2;
+        private Layout layout;
+        private double duration;
+        private double settled;
     }
+
+    private record AppearanceKey(FontRenderer font, String text) {}
 
     private static class Chain {
 

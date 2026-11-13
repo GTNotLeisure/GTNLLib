@@ -1,7 +1,7 @@
 #version 120
 #include "common.glsl"
 
-// Star k of this epoch sits on a stroke inside its slice of the line; a slice with no stroke gets no star.
+// Place each epoch's stars on strokes; empty slices have no star.
 vec3 star(float k, float slice, float epoch, float unit) {
     for (int t = 0; t < 4; t++) {
         vec2 at = vec2((k + 0.2 + 0.6 * hash(vec2(k, epoch + float(t) * 7.0))) * slice,
@@ -27,7 +27,7 @@ void main() {
     vec2 point = snapToHalfPixel(position());
     if (drawShadow(point)) return;
     float ink = coverage(point);
-    // Every six seconds a new constellation draws itself from left to right, holds, then fades out star by star.
+    // A six-second cycle reveals and fades stars from left to right.
     float cycle = time / 6.0;
     float epoch = floor(cycle);
     float clock = fract(cycle) * 6.0;
@@ -51,7 +51,7 @@ void main() {
         stars = max(stars, sparkle(point - a.xy, size, twinkle, unit) * lit * (0.7 + 0.3 * twinkle));
         stars = max(stars, (1.0 - smoothstep(0.0, 1.8 * unit, length(point - a.xy))) * 0.3 * lit);
         light = max(light, (1.0 - smoothstep(0.0, 5.0 * unit, length(point - a.xy))) * lit);
-        // Each star links to the next one, and now and then also to the one after, closing a triangle.
+        // Neighbor links occasionally form a triangle.
         for (int b = 1; b <= 2; b++) {
             float step2 = float(b);
             if (k + step2 >= count) break;

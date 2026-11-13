@@ -12,11 +12,9 @@ import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.IntLists;
 
 /**
- * Serializable visual parameters independent of client rendering classes. {@code typewriter} types the span one glyph
- * at a time, {@code roll} counts its numbers up when they appear and {@code shake} makes it tremble; each has a
- * {@code NONE} value that leaves the span as it is. {@code options} holds the named numbers an effect declares for
- * itself, such as the neon flicker's {@code fault} or the arcane cipher's {@code hold}; a missing option keeps the
- * effect's own default. Every time is in seconds, rounded to the millisecond.
+ * Immutable effect parameters shared by parsing and rendering. Animation records use {@code NONE} to disable their
+ * behavior. Effect-specific options retain the renderer's defaults when absent. Times are in seconds and rounded
+ * to milliseconds.
  */
 public record TextEffectStyle(String rendererId, IntList colors, float speed, Typewriter typewriter, Roll roll,
     Shake shake, SortedMap<String, Float> options) {
@@ -165,7 +163,7 @@ public record TextEffectStyle(String rendererId, IntList colors, float speed, Ty
     }
 
     private static float toThousandths(float value) {
-        return Math.round(value * 1000) / 1000f;
+        return (float) (Math.floor((double) value * 1000 + 0.5) / 1000);
     }
 
     private static float checkedSeconds(float seconds, float max, String what) {

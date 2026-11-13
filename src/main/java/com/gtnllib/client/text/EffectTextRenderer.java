@@ -206,9 +206,9 @@ public class EffectTextRenderer implements IResourceManagerReloadListener {
 
     private void drawRuns(FontRenderer font, Layout layout, Typing typing, float x, float y, int color, boolean shadow,
         boolean effects) {
-        float[] advances = new float[layout.runs()
-            .size()];
-        for (int i = 0; i < advances.length; i++) {
+        float caretAdvance = 0;
+        for (int i = 0; i < layout.runs()
+            .size(); i++) {
             DrawRun run = layout.runs()
                 .get(i);
             int count = typing == null ? -1 : typing.count(i);
@@ -234,9 +234,9 @@ public class EffectTextRenderer implements IResourceManagerReloadListener {
                 color,
                 shadow,
                 effects);
-            advances[i] = advance;
+            if (typing != null && typing.caretRun() == i) caretAdvance = advance;
         }
-        drawCaret(font, layout, typing, advances, x, y, color, shadow);
+        drawCaret(font, layout, typing, caretAdvance, x, y, color, shadow);
     }
 
     private float paint(FontRenderer font, String text, TextEffectStyle style, float x, float y, float width,
@@ -450,8 +450,8 @@ public class EffectTextRenderer implements IResourceManagerReloadListener {
     }
 
     // Vanilla measures unicode glyphs wider than it draws them, so the caret uses the drawn advance of the typed text.
-    private void drawCaret(FontRenderer font, Layout layout, Typing typing, float[] advances, float x, float y,
-        int color, boolean shadow) {
+    private void drawCaret(FontRenderer font, Layout layout, Typing typing, float advance, float x, float y, int color,
+        boolean shadow) {
         if (typing == null || typing.caretRun() < 0) return;
         DrawRun run = layout.runs()
             .get(typing.caretRun());
@@ -459,7 +459,7 @@ public class EffectTextRenderer implements IResourceManagerReloadListener {
             .replace("§k", "")
             .replace("§K", "");
         String caret = formatting + CARET;
-        float slot = run.x() + advances[typing.caretRun()];
+        float slot = run.x() + advance;
         if (slot + layout(font, caret).width() > layout.width()) return;
         TextEffect effect = run.style() == null ? null
             : TextEffectRegistry.get(

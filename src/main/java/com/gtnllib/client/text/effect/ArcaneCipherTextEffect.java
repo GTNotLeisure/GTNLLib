@@ -6,10 +6,7 @@ import com.gtnllib.client.text.TextRenderContext;
 import com.gtnllib.text.TextEffectFormat;
 import com.gtnllib.text.TextEffectStyle;
 
-/**
- * Text written in shifting runes that a wave reads to plain text and back. The style's options set how long the line
- * stays text and runes, how long a pass of the wave takes, how often runes change, and the motes and flickers.
- */
+/** Configures the rune-to-text cycle, rune changes, shards and flicker from registered style options. */
 public class ArcaneCipherTextEffect extends ShaderTextEffect {
 
     public static final float DEFAULT_HOLD = 4;

@@ -1,19 +1,18 @@
 #version 120
 #include "common.glsl"
 
-// Rune changes per second, seconds the whole line stays text once the wave has turned it (zero keeps it runes),
-// seconds the whole line stays runes once the wave has turned it back, and seconds one pass of the wave takes.
+// Rates are per second; hold, hide and sweep durations are in seconds. Zero hold keeps the line in runes.
 uniform float flipRate;
 uniform float holdSeconds;
 uniform float hideSeconds;
 uniform float sweepSeconds;
-// Motes a rune shatters into as it turns to text, and the chance that a glyph flicks back while the line reads.
+// Shard count and probability of returning briefly to runes.
 uniform float shardCount;
 uniform float flickChance;
 const float FADE_IN_SECONDS = 0.25;
 const float FADE_OUT_SECONDS = 0.6;
 
-// Distance to a rune built from strokes between a 3 by 4 lattice of nodes; the seed picks which strokes exist.
+// Seeded rune strokes connect nodes on a 3-by-4 lattice.
 float rune(vec2 local, float seed) {
     float best = 99.0;
     int strokes = 0;
@@ -39,13 +38,12 @@ float rune(vec2 local, float seed) {
             }
         }
     }
-    // A rune always keeps its spine, so no glyph turns into a lone dot.
+    // Sparse runes retain a vertical spine.
     if (strokes < 3) best = min(best, segmentDistance(local, vec2(0.0, 1.0), vec2(0.0, 7.0)));
     return best;
 }
 
-// The mask's second row holds each glyph's drawn width over 16 units (red) and its kind (blue): 0 for a blank, a half
-// for punctuation and 1 for a letter.
+// Row two stores width / 16 in red and glyph kind in blue: blank = 0, punctuation = 0.5, letter = 1.
 vec2 glyphShape(float x) {
     vec3 row = glyphMetadata(vec2(clamp((x + padding) / maskSize.x, 0.0, 1.0), 1.0 - 1.5 / (maskSize.y * maskResolution)));
     return vec2(row.r * 16.0, row.b);
@@ -73,20 +71,19 @@ void main() {
     float center = glyphMetadata(vec2(clamp(coord.x, 0.0, 1.0), 1.0 - clamp(coord.y, 0.0, 1.0))).b * textSize.x;
     vec2 shape = glyphShape(point.x);
     float written = step(0.75, shape.y);
-    // Punctuation keeps its own shape in rune ink, so the sentence still shows its pauses.
+    // Punctuation retains its shape.
     float kept = step(0.25, shape.y) * (1.0 - written);
-    // Runes stretch to the glyph's drawn width, so wide CJK glyphs fill out and narrow ones do not collide.
+    // Match rune width to the native glyph.
     float stretch = clamp(shape.x / 6.0, 0.5, 1.5);
-    // Each glyph swaps runes a few times a second, out of step with its neighbors; a new rune flares as it forms.
+    // Stagger rune changes across glyphs and flare at each change.
     float clock = time * flipRate + hash(vec2(center, 1.0)) * 5.0;
     float flare = flipRate > 0.0 ? 1.0 - fract(clock) : 0.0;
-    // Runes are sampled at the centers of the font's half-pixel grid and cut hard, so they read as pixel glyphs.
+    // Sample rune strokes on the font's half-pixel grid.
     vec2 snapped = snapToHalfPixel(point);
-    float runeDistance = rune((snapped - vec2(center, 0.0)) / unit / vec2(stretch, 1.0), center * 13.0 + floor(clock) * 7.0);
+    float runeDistance = written > 0.0
+        ? rune((snapped - vec2(center, 0.0)) / unit / vec2(stretch, 1.0), center * 13.0 + floor(clock) * 7.0) : 99.0;
     float runeInk = step(runeDistance, 0.5) * written;
-    // A wave turns the line into text from left to right, the whole line holds for holdSeconds, a second wave turns it
-    // back into runes, and the whole line stays runes for hideSeconds. Every pass takes sweepSeconds whatever the
-    // line's width, so lines of different lengths keep the same cycle and stay in step.
+    // Normalize the sweep by line width to keep differently sized lines on the same cycle.
     float sweep = sweepSeconds;
     float lead = clamp(center / max(textSize.x, unit), 0.0, 1.0) * sweep;
     float cycle = sweep + FADE_IN_SECONDS + holdSeconds + sweep + FADE_OUT_SECONDS + hideSeconds;
@@ -94,14 +91,14 @@ void main() {
     float leave = sweep + FADE_IN_SECONDS + holdSeconds + lead;
     float reach = holdSeconds <= 0.0 ? 0.0
         : min(smoothstep(lead, lead + FADE_IN_SECONDS, passed), 1.0 - smoothstep(leave, leave + FADE_OUT_SECONDS, passed));
-    // Pixels cross over one by one, so a glyph dissolves from rune into text instead of the two overlapping.
+    // Grain selects which pixels have changed from rune to text.
     float grain = hash(floor((point + padding) / unit * 2.0) + vec2(center, 3.0));
     float shown = step(grain, reach);
-    // While the line reads as text, a glyph now and then flicks back to its rune, as if the knowledge resists.
+    // Fully revealed glyphs can briefly return to runes.
     float window = time / 0.6 + hash(vec2(center, 60.0));
     shown *= 1.0 - step(0.999, reach) * step(hash(vec2(center * 7.0, floor(window))), flickChance) * step(fract(window), 0.25);
     float text = coverage(point);
-    // Only strokes caught mid-change glitter, so the dissolve stays on the glyph.
+    // Glitter stays on strokes undergoing the transition.
     float spark = (1.0 - smoothstep(0.0, 0.1, abs(reach - grain))) * max(text, runeInk) * step(0.02, reach)
         * step(reach, 0.98);
     float ink = mix(max(runeInk, text * kept), text, shown);
@@ -116,12 +113,13 @@ void main() {
     runeColor = mix(runeColor, light, 0.4 * flare * flare * flare);
     vec3 inkColor = mix(runeColor, light, shown);
     float halo = (1.0 - smoothstep(0.6, 2.4, runeDistance)) * written * (1.0 - shown) * (0.35 + 0.2 * flare);
-    halo = max(halo, outline(point, unit) * kept * (1.0 - shown) * 0.35);
-    halo = max(halo, outline(point, unit) * reach * 0.35);
+    float textOutline = outline(point, unit) * 0.35;
+    halo = max(halo, textOutline * kept * (1.0 - shown));
+    halo = max(halo, textOutline * reach);
     halo = max(halo, motes(point, unit) * 0.8);
     halo *= 1.0 - ink;
     vec3 color = mix(palette[1], inkColor, ink);
-    // As a glyph turns to text, its rune shatters into a few motes that drift up and fade.
+    // Rune shards rise and fade during the reveal.
     float age = passed - lead;
     float shards = 0.0;
     if (holdSeconds > 0.0 && age > 0.0 && age < 0.9) {

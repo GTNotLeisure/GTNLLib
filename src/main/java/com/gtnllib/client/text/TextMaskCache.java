@@ -29,7 +29,7 @@ public class TextMaskCache {
     private static final long MAX_PIXELS = 4L * 1024 * 1024;
     private static final int BITMAP_RESOLUTION = 2;
     private static final int CUSTOM_FONT_RESOLUTION = 4;
-    private final Object2ObjectLinkedOpenHashMap<Key, Mask> masks = new Object2ObjectLinkedOpenHashMap<>(32);
+    private final Object2ObjectLinkedOpenHashMap<Key, CachedMask> masks = new Object2ObjectLinkedOpenHashMap<>(32);
     private final Object2ObjectOpenHashMap<Key, Object> liveStates = new Object2ObjectOpenHashMap<>();
     private long pixels;
 
@@ -38,10 +38,8 @@ public class TextMaskCache {
     }
 
     /**
-     * Captures a rolling number: every layer is drawn in the run's {@code formatting}, cut to the line and to the
-     * run's left edge before any effect sees it, so glow and outlines still spread past the cut. With {@code fade},
-     * digits sliding past the line fade out over its last {@code fadeUnits} instead of ending sharply. The mask is
-     * redrawn in place whenever the frame changes, so a roll keeps one framebuffer.
+     * Reuses one framebuffer for a rolling run. Moving layers are clipped before applying glow and outlines;
+     * {@code fadeUnits} softens the top and bottom edges when positive.
      */
     public Mask getRolled(FontRenderer font, String formatting, String metricsText, NumberRoll.Frame frame, float width,
         float height, float padding, float fadeUnits) {
@@ -64,9 +62,7 @@ public class TextMaskCache {
     }
 
     /**
-     * Captures text whose glyphs tremble on their own: glyph {@code i} is drawn {@code dx[i]}, {@code dy[i]} away from
-     * where the font would put it, each glyph starting where the previous one ended. The mask is redrawn in place
-     * whenever the offsets change, so a shaking span keeps one framebuffer.
+     * Reuses one framebuffer for a shaking span, drawing each glyph at its native advance plus {@code dx}/{@code dy}.
      */
     public Mask getShaken(FontRenderer font, String formatting, String metricsText, String[] glyphs, float[] dx,
         float[] dy, float width, float height, float padding) {
@@ -135,6 +131,11 @@ public class TextMaskCache {
 
     private Mask obtain(FontRenderer font, String keyText, String metricsText, float width, float height, float padding,
         Object state, Painter painter) {
+        if (!Float.isFinite(width) || !Float.isFinite(height)
+            || !Float.isFinite(padding)
+            || width < 0
+            || height <= 0
+            || padding < 0) return null;
         IFontParameters parameters = (IFontParameters) font;
         boolean smooth = AngelicaTextAdapter.usesCustomFont(font);
         int resolution = smooth ? CUSTOM_FONT_RESOLUTION : BITMAP_RESOLUTION;
@@ -151,40 +152,44 @@ public class TextMaskCache {
             parameters.getShadowOffset(),
             smooth,
             AngelicaTextAdapter.fontSettings());
-        Mask present = masks.getAndMoveToLast(key);
+        CachedMask present = masks.getAndMoveToLast(key);
+        boolean animated = hasAnimatedGlyphs(metricsText);
         if (present != null) {
             boolean stale = state != null && !state.equals(liveStates.get(key));
-            if (!stale && !hasAnimatedGlyphs(metricsText)) return present;
-            Mask redrawn = capture(
+            if (!stale && !animated) return present.mask();
+            CachedMask redrawn = capture(
                 font,
                 metricsText,
                 width,
                 height,
                 padding,
-                present.target(),
+                present.mask()
+                    .target(),
                 resolution,
                 smooth,
-                painter);
+                painter,
+                animated ? null : present);
             masks.put(key, redrawn);
             if (state != null) liveStates.put(key, state);
-            return redrawn;
+            return redrawn.mask();
         }
         int pixelWidth = Math.max(1, (int) Math.ceil((width + padding * 2) * resolution));
         int pixelHeight = Math.max(1, (int) Math.ceil((height + padding * 2) * resolution));
         int maxTextureSize = GL11.glGetInteger(GL11.GL_MAX_TEXTURE_SIZE);
         if (pixelWidth > maxTextureSize || pixelHeight > maxTextureSize || (long) pixelWidth * pixelHeight > MAX_PIXELS)
             return null;
-        Mask mask;
+        CachedMask cached;
         try (TextRenderState ignored = new TextRenderState()) {
             Framebuffer target = new Framebuffer(pixelWidth, pixelHeight, false);
             try {
-                mask = capture(font, metricsText, width, height, padding, target, resolution, smooth, painter);
+                cached = capture(font, metricsText, width, height, padding, target, resolution, smooth, painter, null);
             } catch (RuntimeException exception) {
                 target.deleteFramebuffer();
                 throw exception;
             }
         }
-        masks.putAndMoveToLast(key, mask);
+        Mask mask = cached.mask();
+        masks.putAndMoveToLast(key, cached);
         if (state != null) liveStates.put(key, state);
         pixels += mask.pixels();
         var iterator = masks.object2ObjectEntrySet()
@@ -193,7 +198,8 @@ public class TextMaskCache {
             try (TextRenderState ignored = new TextRenderState()) {
                 while (masks.size() > MAX_ENTRIES || pixels > MAX_PIXELS) {
                     var entry = iterator.next();
-                    Mask removed = entry.getValue();
+                    Mask removed = entry.getValue()
+                        .mask();
                     liveStates.remove(entry.getKey());
                     iterator.remove();
                     pixels -= removed.pixels();
@@ -215,8 +221,8 @@ public class TextMaskCache {
         return false;
     }
 
-    private Mask capture(FontRenderer font, String text, float width, float height, float padding, Framebuffer target,
-        int resolution, boolean smooth, Painter painter) {
+    private CachedMask capture(FontRenderer font, String text, float width, float height, float padding,
+        Framebuffer target, int resolution, boolean smooth, Painter painter, CachedMask previous) {
         try (TextRenderState ignored = new TextRenderState()) {
             target.setFramebufferColor(0, 0, 0, 0);
             target.setFramebufferFilter(smooth ? GL11.GL_LINEAR : GL11.GL_NEAREST);
@@ -247,17 +253,23 @@ public class TextMaskCache {
                 .glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ONE_MINUS_SRC_ALPHA);
             OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240, 240);
             int advance;
-            Layout layout = EffectTextLayout.create(font, text);
+            Layout layout = previous == null ? EffectTextLayout.create(font, text) : previous.layout();
             int[] starts;
+            GlyphTextureMetrics[] metrics;
             EffectTextRenderer.beginCapture();
             try {
                 advance = painter.paint(target, resolution);
-                starts = drawnStarts(font, layout);
+                starts = previous == null ? drawnStarts(font, layout) : previous.starts();
+                metrics = previous == null ? glyphTextureMetrics(font, layout) : previous.metrics();
             } finally {
                 EffectTextRenderer.endCapture();
             }
-            writeGlyphTextureMetrics(font, layout, starts, width, height, padding, resolution);
-            return new Mask(target, width, height, padding, resolution, advance);
+            writeGlyphTextureMetrics(layout, starts, metrics, width, height, padding, resolution);
+            return new CachedMask(
+                new Mask(target, width, height, padding, resolution, advance),
+                layout,
+                starts,
+                metrics);
         }
     }
 
@@ -283,18 +295,20 @@ public class TextMaskCache {
         return starts;
     }
 
-    private static void writeGlyphTextureMetrics(FontRenderer font, Layout layout, int[] starts, float width,
-        float height, float padding, int resolution) {
+    private static GlyphTextureMetrics[] glyphTextureMetrics(FontRenderer font, Layout layout) {
         GlyphTextureMetrics[] metrics = new GlyphTextureMetrics[layout.glyphs()
             .size()];
         for (int i = 0; i < metrics.length; i++) {
-            metrics[i] = GlyphTextureMetrics.of(
-                font,
-                layout.glyphs()
-                    .get(i)
-                    .text()
-                    .charAt(0));
+            String glyph = layout.glyphs()
+                .get(i)
+                .text();
+            metrics[i] = GlyphTextureMetrics.of(font, glyph.isEmpty() ? ' ' : glyph.charAt(0));
         }
+        return metrics;
+    }
+
+    private static void writeGlyphTextureMetrics(Layout layout, int[] starts, GlyphTextureMetrics[] metrics,
+        float width, float height, float padding, int resolution) {
         GL20.glUseProgram(0);
         OpenGlHelper.setActiveTexture(OpenGlHelper.lightmapTexUnit);
         GL11.glDisable(GL11.GL_TEXTURE_2D);
@@ -355,7 +369,8 @@ public class TextMaskCache {
     public void clear() {
         if (!masks.isEmpty()) {
             try (TextRenderState ignored = new TextRenderState()) {
-                for (Mask mask : masks.values()) mask.target()
+                for (CachedMask cached : masks.values()) cached.mask()
+                    .target()
                     .deleteFramebuffer();
             }
         }
@@ -372,6 +387,8 @@ public class TextMaskCache {
          */
         int paint(Framebuffer target, int resolution);
     }
+
+    private record CachedMask(Mask mask, Layout layout, int[] starts, GlyphTextureMetrics[] metrics) {}
 
     public record Key(FontRenderer font, String text, float width, float height, float padding, boolean unicode,
         float scaleX, float scaleY, float spacing, float shadowOffset, boolean smooth, FontSettings fontSettings) {

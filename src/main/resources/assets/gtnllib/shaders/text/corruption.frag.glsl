@@ -8,8 +8,7 @@ void main() {
     float waveX = fract(time / 2.5) * (textSize.x + 16.0 * unit) - 8.0 * unit;
     float wave = exp(-pow((point.x - waveX) / (3.0 * unit), 2.0));
     float ripple = floor(sin(point.x / unit * 1.4 - time * 9.0) * wave * 2.0 + 0.5) * 0.5 * unit;
-    // Every five seconds a rift tears open somewhere along the line and pushes the strokes apart.
-    // Each line seeds its own tears from its width and a few mask samples, which stay put while a tooltip moves.
+    // Seed five-second rifts from the line's content so tooltip movement does not change them.
     float lineSeed = fract(textSize.x * 0.1373) * 61.0 + coverage(vec2(textSize.x * 0.31, 4.5 * unit)) * 7.0
         + coverage(vec2(textSize.x * 0.67, 3.5 * unit)) * 13.0;
     float shifted = time / 5.0 + 0.3 * hash(vec2(lineSeed, 8.0));
@@ -17,7 +16,7 @@ void main() {
     float tear = epoch + lineSeed * 17.0;
     float clock = fract(shifted) * 5.0;
     float open = smoothstep(0.0, 0.4, clock) * (1.0 - smoothstep(1.4, 2.2, clock));
-    // Each tear has its own slant, span and zigzag, with one short crack branching off it.
+    // The rift has a seeded slant, span, zigzag and branch.
     float riftX = (0.15 + 0.7 * hash(vec2(tear, 9.0))) * textSize.x;
     float slant = (hash(vec2(tear, 10.0)) - 0.5) * 6.0 * unit;
     float riftTop = (-1.5 + 3.0 * hash(vec2(tear, 11.0))) * unit;
@@ -45,7 +44,7 @@ void main() {
     float branch = open * step(segmentDistance(point, branchRoot, branchEnd), 0.3 * unit) * step(0.4, open);
     float rift = max(open * inside * step(abs(point.x - crack), 0.5 * gape * unit + 0.25 * unit), branch);
     float riftGlow = open * inside * (1.0 - smoothstep(0.0, 2.5 * unit, abs(point.x - crack))) * 0.5;
-    // Tendrils root on a stroke, uncurl out of it, writhe with a hooked tip and pull back in.
+    // Tendrils extend from strokes, curl and retract.
     float tendril = 0.0;
     float rim = 0.0;
     float tip = 0.0;
@@ -57,6 +56,7 @@ void main() {
         float rootY = up < 0.0 ? 1.5 * unit : 6.5 * unit;
         vec2 root = vec2(-1.0);
         for (int t = 0; t < 4; t++) {
+            if (root.x >= 0.0) break;
             float x = (k + 0.15 + 0.7 * hash(vec2(k, 1.0 + float(t)))) * textSize.x / count;
             if (root.x < 0.0 && coverage(vec2(x, rootY)) > 0.5) root = vec2(x, rootY);
         }
@@ -110,7 +110,7 @@ void main() {
     float pulse = 0.75 + 0.25 * sin(time * 1.5);
     float halo = (outline(source, unit) * 0.65 + outline(source, 2.0 * unit) * 0.25) * pulse * (1.0 - ink);
     float body = max(ink * (1.0 - eaten * 0.85), tendril);
-    // Strokes keep a sick glow along their edges, so the darkened text still reads.
+    // Edge lighting preserves readability on dark strokes.
     float edge = ink * (1.0 - min(min(coverage(source + vec2(0.5 * unit, 0.0)), coverage(source - vec2(0.5 * unit, 0.0))),
         min(coverage(source + vec2(0.0, 0.5 * unit)), coverage(source - vec2(0.0, 0.5 * unit)))));
     vec3 core = mix(dark, sick, 0.25 + 0.15 * pulse);

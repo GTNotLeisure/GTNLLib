@@ -12,13 +12,9 @@ import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 
 /**
- * What rolling numbers show at one moment. Digits joined only by a separator ({@code , . _ '}) form one number, and
- * every number in a run counts up at the same time. Each digit is an odometer wheel: the ones wheel turns with the
- * value, and a higher wheel only turns while every wheel below it rolls over from 9 to 0. Wheels the value has not
- * reached take no room, so a number grows from the left and pushes what follows right as a wheel turns in; a number
- * written with leading zeros keeps all its wheels, and a decimal keeps its decimals and the digit before the point, so
- * {@code 0.85} rolls as {@code 0.xx}. Values are exact at any length. With a {@link SlotOrder} other than
- * {@code NONE} every wheel shows from the start and spins on its own instead, stopping on its digit one after another.
+ * Computes odometer and slot-machine frames without rendering. Leading zeros and decimal places remain visible;
+ * other odometer wheels appear as the value reaches them. Separators ({@code , . _ '}) join adjacent digits into a
+ * number, and separate numbers advance together. Slot wheels stay visible and stop in {@link SlotOrder} order.
  */
 public class NumberRoll {
 
@@ -26,6 +22,7 @@ public class NumberRoll {
     private static final double JUMP_EASE_POWER = 1.6;
     private static final double SLIDE_EASE_POWER = 3;
     private static final String SEPARATORS = ",._'";
+    private static final String[] DIGIT_TEXTS = { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" };
     private static final int THOUSANDS_GROUP = 3;
     private static final double SLOT_DIGITS_PER_SECOND = 14;
     private static final double SLOT_BRAKE_SECONDS = 0.3;
@@ -64,37 +61,29 @@ public class NumberRoll {
             BigDecimal eased = BigDecimal.valueOf(1 - Math.pow(1 - shown, jump ? JUMP_EASE_POWER : SLIDE_EASE_POWER));
             for (IntList digits : numbers(glyphs)) wheels.turn(glyphs, digits, eased, jump);
         }
-        float[] presence = new float[glyphs.size()];
         float leftPresence = 1;
         float hidden = 0;
-        for (int i = 0; i < glyphs.size(); i++) {
-            if (isDigit(
-                glyphs.get(i)
-                    .text()))
-                leftPresence = wheels.shown[i] ? 1 : wheels.turn[i];
-            presence[i] = leftPresence;
-            hidden += glyphs.get(i)
-                .width() * (1 - leftPresence);
-        }
         List<Layer> layers = new ObjectArrayList<>();
         StringBuilder text = new StringBuilder();
         float x = 0;
         for (int i = 0; i < glyphs.size(); i++) {
             Glyph glyph = glyphs.get(i);
             if (isDigit(glyph.text())) {
+                leftPresence = wheels.shown[i] ? 1 : wheels.turn[i];
                 int digit = wheels.digit[i];
                 float turn = wheels.turn[i];
                 if (wheels.shown[i]) {
-                    layers.add(new Layer(String.valueOf(digit), x, -turn, turn > 0, 1));
+                    layers.add(new Layer(DIGIT_TEXTS[digit], x, -turn, turn > 0, 1));
                     text.append(digit);
                 }
-                if (turn > 0) layers.add(new Layer(String.valueOf((digit + 1) % 10), x, 1 - turn, true, 1));
+                if (turn > 0) layers.add(new Layer(DIGIT_TEXTS[(digit + 1) % 10], x, 1 - turn, true, 1));
                 if (wheels.blur[i] > SLOT_MIN_BLUR) smear(layers, digit, turn, wheels.blur[i], x);
-            } else if (glyph.width() > 0 && presence[i] > 0.5f) {
+            } else if (glyph.width() > 0 && leftPresence > 0.5f) {
                 layers.add(new Layer(glyph.text(), x, 0, false, 1));
-                if (presence[i] >= 1) text.append(glyph.text());
+                if (leftPresence >= 1) text.append(glyph.text());
             }
-            x += glyph.width() * presence[i];
+            hidden += glyph.width() * (1 - leftPresence);
+            x += glyph.width() * leftPresence;
         }
         return new Frame(List.copyOf(layers), text.toString(), hidden);
     }
@@ -105,7 +94,7 @@ public class NumberRoll {
                 float shift = next - turn + SLOT_GHOST_SHIFTS[ghost] * SLOT_BLUR_SPREAD * blur;
                 if (shift != 0) layers.add(
                     new Layer(
-                        String.valueOf((digit + next) % 10),
+                        DIGIT_TEXTS[(digit + next) % 10],
                         x,
                         shift,
                         true,
@@ -187,19 +176,19 @@ public class NumberRoll {
                     .text());
             BigDecimal value = new BigDecimal(written.toString()).multiply(eased);
             int always = alwaysShown(glyphs, digits);
+            BigInteger whole = value.toBigInteger();
+            String integer = whole.toString();
+            float lowerTurn = value.subtract(new BigDecimal(whole))
+                .floatValue();
             int lowerDigit = 9;
-            float lowerTurn = 0;
             for (int place = 0; place < digits.size(); place++) {
                 int index = digits.getInt(digits.size() - 1 - place);
-                BigDecimal position = value.movePointLeft(place);
-                BigInteger whole = position.toBigInteger();
-                int wheelDigit = whole.mod(BigInteger.TEN)
-                    .intValue();
-                float wheelTurn = place == 0 ? position.subtract(new BigDecimal(whole))
-                    .floatValue() : lowerDigit == 9 ? lowerTurn : 0;
+                int position = integer.length() - 1 - place;
+                int wheelDigit = position >= 0 ? integer.charAt(position) - '0' : 0;
+                float wheelTurn = place == 0 || lowerDigit == 9 ? lowerTurn : 0;
                 digit[index] = wheelDigit;
                 turn[index] = jump ? 0 : wheelTurn;
-                shown[index] = place < always || whole.signum() > 0;
+                shown[index] = place < always || whole.signum() > 0 && position >= 0;
                 lowerDigit = wheelDigit;
                 lowerTurn = wheelTurn;
             }
@@ -221,7 +210,7 @@ public class NumberRoll {
                             .text()),
                     stop - time);
                 double whole = Math.floor(position);
-                digit[index] = (int) whole % 10;
+                digit[index] = Math.floorMod((int) whole, 10);
                 turn[index] = jump ? 0 : (float) (position - whole);
                 shown[index] = true;
                 double untilStop = stop - time;

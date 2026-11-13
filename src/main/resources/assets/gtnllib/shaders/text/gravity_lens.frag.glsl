@@ -6,9 +6,9 @@ const float CYCLE_SECONDS = 8.0;
 
 void main() {
     float unit = textSize.y / 9.0;
-    // Pixel centers of the font's half-pixel grid, so the whole scene reads as pixel art.
+    // Keep the lens and glyphs on the same half-pixel grid.
     vec2 point = snapToHalfPixel(position());
-    // An unseen black hole starts at the left edge, crosses the line and comes back, bobbing a little.
+    // The lens crosses the line and returns with a vertical oscillation.
     float phase = time * 6.283185307 / CYCLE_SECONDS;
     vec2 hole = vec2(textSize.x * 0.5 - (textSize.x * 0.5 + 4.0 * unit) * cos(phase),
         textSize.y * 0.45 + sin(phase * 3.0) * 0.8 * unit);
@@ -16,7 +16,7 @@ void main() {
     float radius = length(offset);
     float horizon = 2.4 * unit;
     vec2 away = offset / max(radius, 0.001);
-    // Light passing close is pulled in, so text near the hole is drawn from points nearer to it.
+    // Pull source samples toward the lens.
     vec2 source = point - away * (16.0 * unit * unit / max(radius, horizon));
     float inside = 1.0 - smoothstep(horizon - 0.4 * unit, horizon, radius);
     if (drawShadow(source)) return;

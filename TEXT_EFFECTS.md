@@ -152,6 +152,33 @@ Angelica defers sign text until its board geometry has rendered. Effect text fol
 
 ## Verification
 
+### Branch performance review (2026-11-14)
+
+The review covers the eight commits after `82108bb` on `typewriter-text-effect`.
+
+- Run layout adds spacing only between visible glyphs; pause markers do not move text or the caret.
+- Odometers extract the integer digits and fractional turn once per number, rather than converting a big decimal for every wheel. Digit strings are shared, and frame construction no longer needs a presence array.
+- Typing appearances are keyed by font and text and kept in a 256-entry LRU cache. Completed animations reuse their duration and settling time. Text of 16,384 source characters or more displays immediately to avoid retaining oversized animation layouts.
+- Rolling and shaking masks reuse their layout, native glyph starts and atlas metadata. Animated native formatting still refreshes those measurements. Cache eviction and resource reload release the framebuffer and its metadata together.
+- Effect options are parsed into one map before constructing the immutable style. Registration validates the whole batch before publishing it. Inline headers longer than the existing 512-character scanner limit are rejected before splitting.
+- Decimal storage and serialization avoid integer saturation; non-finite serialized values and invalid mask dimensions are rejected.
+- Rune rendering reuses one outline sample set and skips rune generation for blanks and punctuation. Melting and corruption stop searching once a stroke anchor is found. Related comments describe constraints and rendering intent in concise English.
+
+Validation uses the main build with unit-test tasks excluded and actual compilation/linking of all 31 text fragment shaders against `text.vert.glsl` in a hidden offscreen OpenGL context. No unit tests were added or executed. The shader check passed on NVIDIA OpenGL 4.6 with GLSL 1.20 sources; this does not measure in-game FPS or cover other GPU drivers.
+
+Public signatures and record components remain unchanged. Field changes are internal:
+
+| Modified public type/signature | Fields/components |
+| --- | --- |
+| `public class EffectTextLayout` | No fields; existing `Glyph`, `DrawRun` and `Layout` record components are unchanged. |
+| `public class EffectTextRenderer implements IResourceManagerReloadListener` | No field changes; caret advance is now a local scalar. |
+| `public class NumberRoll` | Adds private `String[] DIGIT_TEXTS`; public `JUMP_STEP_SECONDS` and `Layer`/`Frame` record components are unchanged. |
+| `public class TextMaskCache` | Private `masks` now stores `CachedMask`. Its private record contains `Mask mask`, `Layout layout`, `int[] starts`, `GlyphTextureMetrics[] metrics`. Existing public `Key` and `Mask` components are unchanged. |
+| `public class TypewriterTimeline` | Adds private `int MAX_APPEARANCES`, `int MAX_CACHED_TEXT_LENGTH`; private `appearances` becomes a linked map keyed by private `AppearanceKey(FontRenderer font, String text)`. Private `Appearance` adds `Layout layout`, `double duration`, `double settled`. Public `INSTANCE`, `Typing` and `GlyphEntrance` are unchanged. |
+| `public class TextEffectFormat` | No field changes; existing public constants and method signatures are unchanged. |
+| `public record TextEffectStyle(String rendererId, IntList colors, float speed, Typewriter typewriter, Roll roll, Shake shake, SortedMap<String, Float> options)` | All seven components and existing constants remain unchanged. |
+| `public class ArcaneCipherTextEffect extends ShaderTextEffect` | Comment only; existing `DEFAULT_HOLD`, `DEFAULT_HIDE`, `DEFAULT_SWEEP`, `DEFAULT_FLIP`, `DEFAULT_SHARDS`, `DEFAULT_FLICK` fields are unchanged. |
+
 - `gradlew build -x test -x testClasses` passed, including formatting, compilation, checkstyle, packaging and JVM downgrading. No unit tests were added or run.
 - Typewriter: `TypewriterFormatTest` covers the rate, entrance, roll, alias and pause syntax and both written forms; `TypewriterTimelineTest` covers line order, tooltip line chaining, pauses with the blinking caret, entrances and a slam's size, a rolling number holding the unit after it or, with `nowait`, letting it type on, and starting over after the text reappears; `NumberRollTest` covers odometer wheels, growth from the left, jump steps, separators, separate numbers in one run, leading zeros and decimals, exact long numbers, slot wheels stopping from either side, and the smear on spinning wheels only; `NeonFlickerFormatTest` covers the fault syntax and both written forms; `ArcaneCipherFormatTest` covers the cipher options and both written forms; `GravityLensFormatTest` covers the lens alias and colors; `MeltingConstellationCorruptionFormatTest` covers those three aliases and the corruption's fourth color; `TextShakeTest` covers whole-pixel jumps, smooth glides, the halved sideways move and glyphs shaking together; `TypewriterFormatTest` also covers the shake syntax, the slot words, the slam size, `blur` and `nowait`. Run them with `gradlew test`. The entrance and roll drawing (masks, scissor, fade pass, plain mask shader, the slam's scale and flash, the slot smear), the shake drawing, the neon flicker, the arcane cipher, the gravity lens, the melting, the constellation and the corruption have not been checked in game yet.
 - Both client variants loaded the input/NEI mixins. The no-Angelica variant skipped the Angelica mixin.

@@ -24,7 +24,7 @@ void main() {
     float unit = textSize.y / 9.0;
     vec2 point = snapToHalfPixel(position());
     float base = 7.5 * unit;
-    // Beads of molten metal swell under the strokes, snap off with a spray of sparks, and cool as they fall.
+    // Stroke-anchored beads grow, detach and cool during their fall.
     float count = min(14.0, max(4.0, textSize.x / (5.0 * unit)));
     float slice = textSize.x / count;
     float sag = 0.0;
@@ -38,6 +38,7 @@ void main() {
         float x = -1.0;
         float rootY = base;
         for (int t = 0; t < 3; t++) {
+            if (x >= 0.0) break;
             float candidate = (floor((k + 0.1 + 0.8 * hash(vec2(k, 1.0 + float(t)))) * slice / unit) + 0.5) * unit;
             if (x < 0.0 && coverage(vec2(candidate, base - 0.5 * unit)) > 0.5) x = candidate;
             if (x < 0.0 && coverage(vec2(candidate, base - 1.5 * unit)) > 0.5) {
@@ -56,7 +57,7 @@ void main() {
         float neckRadius = mix(0.9, 0.4, smoothstep(0.45, 0.62, phase)) * unit;
         float pull = (1.0 - fall) * grow * exp(-pow((point.x - x) / (2.0 * unit), 2.0));
         sag = max(sag, pull * 1.4 * unit);
-        // The bead hangs from where the bent stroke bottom now is.
+        // Move the bead's root with the deformed stroke.
         float rootDepth = rootY / textSize.y;
         rootY += noise(vec2(x / unit * 0.4, time * 0.5)) * rootDepth * rootDepth * 1.4 * unit
             + (rootY - 4.0 * unit) * 0.15 * (0.5 + 0.5 * noise(vec2(x / unit * 0.3 + 5.0, time * 0.35)))
@@ -75,7 +76,7 @@ void main() {
             drip = 1.0;
             bool falling = !attached && dropDistance < strandDistance;
             float rim = smoothstep(-0.6 * unit, 0.0, shape);
-            // Attached metal stays near the strokes' heat; a falling bead cools fast and grows a dark crust.
+            // Detached beads cool and develop a crust.
             float heat = falling ? 0.78 - fall * 0.62 : 0.85 - clamp((point.y - rootY) / (5.0 * unit), 0.0, 1.0) * 0.15;
             float crust = falling ? step(0.55, noise(offset / unit * 1.6 + k * 3.0)) * smoothstep(0.2, 0.6, fall) : 0.0;
             dripTemperature = heat - rim * 0.15 - crust * 0.3;
