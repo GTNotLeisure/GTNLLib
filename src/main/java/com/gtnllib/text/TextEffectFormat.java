@@ -374,7 +374,6 @@ public class TextEffectFormat {
      */
     public static TextEffectStyle readInline(String header) {
         String[] fields = header.split(";", -1);
-        if (fields.length > 8) return null;
         String id = fields[0].trim();
         String roll = null;
         String shake = null;

@@ -82,8 +82,8 @@ void main() {
     float flare = flipRate > 0.0 ? 1.0 - fract(clock) : 0.0;
     // Runes are sampled at the centers of the font's half-pixel grid and cut hard, so they read as pixel glyphs.
     vec2 snapped = snapToHalfPixel(point);
-    float distance = rune((snapped - vec2(center, 0.0)) / unit / vec2(stretch, 1.0), center * 13.0 + floor(clock) * 7.0);
-    float runeInk = step(distance, 0.5) * written;
+    float runeDistance = rune((snapped - vec2(center, 0.0)) / unit / vec2(stretch, 1.0), center * 13.0 + floor(clock) * 7.0);
+    float runeInk = step(runeDistance, 0.5) * written;
     // A wave turns the line into text from left to right, the whole line holds for holdSeconds, a second wave turns it
     // back into runes, and the whole line stays runes for hideSeconds. Every pass takes sweepSeconds whatever the
     // line's width, so lines of different lengths keep the same cycle and stay in step.
@@ -115,7 +115,7 @@ void main() {
     vec3 runeColor = mix(palette[0], palette[1], 0.5 + 0.5 * sin(time * 2.0 + center * 0.15));
     runeColor = mix(runeColor, light, 0.4 * flare * flare * flare);
     vec3 inkColor = mix(runeColor, light, shown);
-    float halo = (1.0 - smoothstep(0.6, 2.4, distance)) * written * (1.0 - shown) * (0.35 + 0.2 * flare);
+    float halo = (1.0 - smoothstep(0.6, 2.4, runeDistance)) * written * (1.0 - shown) * (0.35 + 0.2 * flare);
     halo = max(halo, outline(point, unit) * kept * (1.0 - shown) * 0.35);
     halo = max(halo, outline(point, unit) * reach * 0.35);
     halo = max(halo, motes(point, unit) * 0.8);

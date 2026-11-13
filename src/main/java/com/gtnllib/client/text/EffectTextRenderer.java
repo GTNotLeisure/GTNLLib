@@ -55,8 +55,9 @@ public class EffectTextRenderer implements IResourceManagerReloadListener {
     private static final float DECODE_SETTLES_AT = 0.75f;
     private static final double DECODE_FLICKER_HZ = 20;
     private static final String DECODE_LATIN = "0123456789ABCDEFGHJKLMNPQRSTUVWXYZ#$%&*?";
-    private static final char CJK_START = '一';
-    private static final int CJK_SPAN = 0x9fa5 - 0x4e00 + 1;
+    // A small fixed set keeps the stand-ins' effect masks cached instead of new framebuffers every flicker.
+    private static final String DECODE_CJK = "数据接入网络核心能量矩阵量子超频电压并行线圈熔炉光谱信号频道样板";
+    private static final char CJK_START = '⺀';
     private static final float DROP_HEIGHT = 4;
     public static final int MIN_FONT_ALPHA = 4;
     private static final float SLAM_FADE_IN = 3;
@@ -386,9 +387,8 @@ public class EffectTextRenderer implements IResourceManagerReloadListener {
 
     private static String decodeGlyph(String text, int index) {
         long step = (long) Math.floor(seconds() * DECODE_FLICKER_HZ);
-        int pick = (int) Math.floorMod(step * 7 + index * 13L, 1_000_003L);
-        if (!text.isEmpty() && text.charAt(0) >= CJK_START) return String.valueOf((char) (CJK_START + pick % CJK_SPAN));
-        return String.valueOf(DECODE_LATIN.charAt(pick % DECODE_LATIN.length()));
+        String pool = !text.isEmpty() && text.charAt(0) >= CJK_START ? DECODE_CJK : DECODE_LATIN;
+        return String.valueOf(pool.charAt((int) Math.floorMod(step * 7 + index * 13L, (long) pool.length())));
     }
 
     private void drawRolling(FontRenderer font, DrawRun run, float progress, float x, float y, float height, int color,
