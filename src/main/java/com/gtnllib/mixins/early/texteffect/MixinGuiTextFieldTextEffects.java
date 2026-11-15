@@ -38,6 +38,9 @@ public abstract class MixinGuiTextFieldTextEffects {
     private EffectTextFieldView gtnl$effectView;
 
     @Unique
+    private int gtnl$visibleEnd;
+
+    @Unique
     private EffectTextFieldView gtnl$view() {
         if (!EffectTextParser.containsMarkers(text)) {
             gtnl$effectView = null;
@@ -56,8 +59,11 @@ public abstract class MixinGuiTextFieldTextEffects {
             target = "Lnet/minecraft/client/gui/FontRenderer;trimStringToWidth(Ljava/lang/String;I)Ljava/lang/String;"))
     private String gtnl$trimVisibleRange(FontRenderer font, String value, int width, Operation<String> original) {
         EffectTextFieldView view = gtnl$view();
-        return view == null ? original.call(font, value, width)
-            : view.trim(lineScrollOffset, lineScrollOffset + value.length(), width, false);
+        if (view == null) return original.call(font, value, width);
+        String visible = view.trim(lineScrollOffset, lineScrollOffset + value.length(), width, false);
+        // Preserve source bounds before other mixins prepend formatting to the draw arguments.
+        gtnl$visibleEnd = lineScrollOffset + visible.length();
+        return visible;
     }
 
     @WrapOperation(
@@ -80,13 +86,9 @@ public abstract class MixinGuiTextFieldTextEffects {
     private int gtnl$drawBeforeCursor(FontRenderer font, String value, int x, int y, int color,
         Operation<Integer> original) {
         EffectTextFieldView view = gtnl$view();
-        return gtnl$drawStill(
-            original,
-            font,
-            view == null ? value : view.slice(lineScrollOffset, lineScrollOffset + value.length()),
-            x,
-            y,
-            color);
+        int end = cursorPosition >= lineScrollOffset && cursorPosition <= gtnl$visibleEnd ? cursorPosition
+            : gtnl$visibleEnd;
+        return gtnl$drawStill(original, font, view == null ? value : view.slice(lineScrollOffset, end), x, y, color);
     }
 
     @Unique
@@ -112,7 +114,7 @@ public abstract class MixinGuiTextFieldTextEffects {
         return gtnl$drawStill(
             original,
             font,
-            view == null ? value : view.slice(cursorPosition, cursorPosition + value.length()),
+            view == null ? value : view.slice(cursorPosition, gtnl$visibleEnd),
             x,
             y,
             color);
