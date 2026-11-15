@@ -1,6 +1,6 @@
 package com.gtnllib.client.text;
 
-import java.util.List;
+import java.util.Arrays;
 
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.OpenGlHelper;
@@ -17,8 +17,6 @@ import com.gtnllib.client.text.compat.AngelicaTextAdapter.FontSettings;
 import com.gtnllib.client.text.compat.GlyphTextureMetrics;
 import com.gtnllib.text.TextEffectColors;
 
-import it.unimi.dsi.fastutil.floats.FloatArrayList;
-import it.unimi.dsi.fastutil.floats.FloatList;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 
@@ -32,6 +30,7 @@ public class TextMaskCache {
     private final Object2ObjectLinkedOpenHashMap<Key, CachedMask> masks = new Object2ObjectLinkedOpenHashMap<>(32);
     private final Object2ObjectOpenHashMap<Key, Object> liveStates = new Object2ObjectOpenHashMap<>();
     private long pixels;
+    private int maxTextureSize;
 
     public Mask get(FontRenderer font, String text, float width, float height, float padding) {
         return obtain(font, text, text, width, height, padding, null, (target, resolution) -> drawWhite(font, text));
@@ -66,8 +65,10 @@ public class TextMaskCache {
      */
     public Mask getShaken(FontRenderer font, String formatting, String metricsText, String[] glyphs, float[] dx,
         float[] dy, float width, float height, float padding) {
+        if (glyphs.length != dx.length || glyphs.length != dy.length)
+            throw new IllegalArgumentException("Each shaking glyph needs an offset on both axes");
         String key = "\u0003" + formatting + metricsText;
-        List<FloatList> offsets = List.of(FloatArrayList.wrap(dx), FloatArrayList.wrap(dy));
+        ShakeOffsets offsets = new ShakeOffsets(dx, dy);
         return obtain(font, key, metricsText, width, height, padding, offsets, (target, resolution) -> {
             int pen = 0;
             for (int i = 0; i < glyphs.length; i++)
@@ -151,51 +152,47 @@ public class TextMaskCache {
             parameters.getGlyphSpacing(),
             parameters.getShadowOffset(),
             smooth,
-            AngelicaTextAdapter.fontSettings());
+            AngelicaTextAdapter.fontSettings(),
+            parameters.getWhitespaceScale());
         CachedMask present = masks.getAndMoveToLast(key);
-        boolean animated = hasAnimatedGlyphs(metricsText);
         if (present != null) {
             boolean stale = state != null && !state.equals(liveStates.get(key));
-            if (!stale && !animated) return present.mask();
-            CachedMask redrawn = capture(
-                font,
-                metricsText,
-                width,
-                height,
-                padding,
-                present.mask()
-                    .target(),
-                resolution,
-                smooth,
-                painter,
-                animated ? null : present);
-            masks.put(key, redrawn);
-            if (state != null) liveStates.put(key, state);
-            return redrawn.mask();
-        }
-        int pixelWidth = Math.max(1, (int) Math.ceil((width + padding * 2) * resolution));
-        int pixelHeight = Math.max(1, (int) Math.ceil((height + padding * 2) * resolution));
-        int maxTextureSize = GL11.glGetInteger(GL11.GL_MAX_TEXTURE_SIZE);
-        if (pixelWidth > maxTextureSize || pixelHeight > maxTextureSize || (long) pixelWidth * pixelHeight > MAX_PIXELS)
-            return null;
-        CachedMask cached;
-        try (TextRenderState ignored = new TextRenderState()) {
-            Framebuffer target = new Framebuffer(pixelWidth, pixelHeight, false);
+            if (!stale && !present.animatedGlyphs()) return present.mask();
+            CachedMask redrawn;
             try {
-                cached = capture(font, metricsText, width, height, padding, target, resolution, smooth, painter, null);
+                redrawn = capture(font, metricsText, width, height, padding, resolution, smooth, painter, present);
             } catch (RuntimeException exception) {
-                target.deleteFramebuffer();
+                masks.remove(key);
+                liveStates.remove(key);
+                pixels -= present.mask()
+                    .pixels();
+                try (TextRenderState ignored = new TextRenderState()) {
+                    present.mask()
+                        .target()
+                        .deleteFramebuffer();
+                } catch (RuntimeException cleanup) {
+                    exception.addSuppressed(cleanup);
+                }
                 throw exception;
             }
+            masks.put(key, redrawn);
+            rememberState(key, state);
+            return redrawn.mask();
         }
+        int pixelWidth = textureSize(width, padding, resolution);
+        int pixelHeight = textureSize(height, padding, resolution);
+        if (maxTextureSize == 0) maxTextureSize = GL11.glGetInteger(GL11.GL_MAX_TEXTURE_SIZE);
+        if (pixelWidth > maxTextureSize || pixelHeight > maxTextureSize || (long) pixelWidth * pixelHeight > MAX_PIXELS)
+            return null;
+        CachedMask cached = capture(font, metricsText, width, height, padding, resolution, smooth, painter, null);
         Mask mask = cached.mask();
         masks.putAndMoveToLast(key, cached);
-        if (state != null) liveStates.put(key, state);
+        rememberState(key, state);
         pixels += mask.pixels();
-        var iterator = masks.object2ObjectEntrySet()
-            .iterator();
         if (masks.size() > MAX_ENTRIES || pixels > MAX_PIXELS) {
             try (TextRenderState ignored = new TextRenderState()) {
+                var iterator = masks.object2ObjectEntrySet()
+                    .iterator();
                 while (masks.size() > MAX_ENTRIES || pixels > MAX_PIXELS) {
                     var entry = iterator.next();
                     Mask removed = entry.getValue()
@@ -211,6 +208,15 @@ public class TextMaskCache {
         return mask;
     }
 
+    private static int textureSize(float size, float padding, int resolution) {
+        return Math.max(1, (int) Math.ceil((size + padding * 2) * resolution));
+    }
+
+    private void rememberState(Key key, Object state) {
+        if (state != null)
+            liveStates.put(key, state instanceof ShakeOffsets offsets ? offsets.snapshot(liveStates.get(key)) : state);
+    }
+
     private static boolean hasAnimatedGlyphs(String text) {
         for (int i = 0; i + 1 < text.length(); i++) {
             if (text.charAt(i) == '\u00a7') {
@@ -221,55 +227,81 @@ public class TextMaskCache {
         return false;
     }
 
-    private CachedMask capture(FontRenderer font, String text, float width, float height, float padding,
-        Framebuffer target, int resolution, boolean smooth, Painter painter, CachedMask previous) {
+    private CachedMask capture(FontRenderer font, String text, float width, float height, float padding, int resolution,
+        boolean smooth, Painter painter, CachedMask previous) {
         try (TextRenderState ignored = new TextRenderState()) {
-            target.setFramebufferColor(0, 0, 0, 0);
-            target.setFramebufferFilter(smooth ? GL11.GL_LINEAR : GL11.GL_NEAREST);
-            GL11.glDisable(GL11.GL_SCISSOR_TEST);
-            GL11.glColorMask(true, true, true, true);
-            target.framebufferClear();
-            target.bindFramebuffer(true);
-            GL11.glMatrixMode(GL11.GL_PROJECTION);
-            GL11.glLoadIdentity();
-            GL11.glOrtho(
-                0,
-                target.framebufferWidth / (float) resolution,
-                target.framebufferHeight / (float) resolution,
-                0,
-                -100,
-                100);
-            GL11.glMatrixMode(GL11.GL_MODELVIEW);
-            GL11.glLoadIdentity();
-            GL11.glTranslatef(padding, padding, 0);
-            GL20.glUseProgram(0);
-            GL11.glDisable(GL11.GL_DEPTH_TEST);
-            GL11.glDepthMask(false);
-            GL11.glDisable(GL11.GL_LIGHTING);
-            GL11.glDisable(GL11.GL_CULL_FACE);
-            GL11.glEnable(GL11.GL_TEXTURE_2D);
-            GL11.glEnable(GL11.GL_BLEND);
-            OpenGlHelper
-                .glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ONE_MINUS_SRC_ALPHA);
-            OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240, 240);
-            int advance;
-            Layout layout = previous == null ? EffectTextLayout.create(font, text) : previous.layout();
-            int[] starts;
-            GlyphTextureMetrics[] metrics;
-            EffectTextRenderer.beginCapture();
+            Framebuffer target = previous == null
+                ? new Framebuffer(
+                    textureSize(width, padding, resolution),
+                    textureSize(height, padding, resolution),
+                    false)
+                : previous.mask()
+                    .target();
             try {
-                advance = painter.paint(target, resolution);
-                starts = previous == null ? drawnStarts(font, layout) : previous.starts();
-                metrics = previous == null ? glyphTextureMetrics(font, layout) : previous.metrics();
-            } finally {
-                EffectTextRenderer.endCapture();
+                if (previous == null) {
+                    target.setFramebufferColor(0, 0, 0, 0);
+                    target.setFramebufferFilter(smooth ? GL11.GL_LINEAR : GL11.GL_NEAREST);
+                }
+                boolean animated = previous == null ? hasAnimatedGlyphs(text) : previous.animatedGlyphs();
+                boolean refreshMetadata = previous == null || animated;
+                GL11.glDisable(GL11.GL_SCISSOR_TEST);
+                GL11.glColorMask(refreshMetadata, refreshMetadata, refreshMetadata, true);
+                target.bindFramebuffer(true);
+                GL11.glClearColor(0, 0, 0, 0);
+                GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
+                GL11.glMatrixMode(GL11.GL_PROJECTION);
+                GL11.glLoadIdentity();
+                GL11.glOrtho(
+                    0,
+                    target.framebufferWidth / (float) resolution,
+                    target.framebufferHeight / (float) resolution,
+                    0,
+                    -100,
+                    100);
+                GL11.glMatrixMode(GL11.GL_MODELVIEW);
+                GL11.glLoadIdentity();
+                GL11.glTranslatef(padding, padding, 0);
+                GL20.glUseProgram(0);
+                GL11.glDisable(GL11.GL_DEPTH_TEST);
+                GL11.glDepthMask(false);
+                GL11.glDisable(GL11.GL_LIGHTING);
+                GL11.glDisable(GL11.GL_CULL_FACE);
+                GL11.glEnable(GL11.GL_TEXTURE_2D);
+                GL11.glEnable(GL11.GL_BLEND);
+                OpenGlHelper.glBlendFunc(
+                    GL11.GL_SRC_ALPHA,
+                    GL11.GL_ONE_MINUS_SRC_ALPHA,
+                    GL11.GL_ONE,
+                    GL11.GL_ONE_MINUS_SRC_ALPHA);
+                OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240, 240);
+                // Coverage lives in alpha; unchanged atlas metadata remains in RGB across animation frames.
+                GL11.glColorMask(false, false, false, true);
+                int advance;
+                Layout layout = refreshMetadata ? EffectTextLayout.create(font, text) : previous.layout();
+                int[] starts;
+                GlyphTextureMetrics[] metrics;
+                EffectTextRenderer.beginCapture();
+                try {
+                    advance = painter.paint(target, resolution);
+                    starts = refreshMetadata ? drawnStarts(font, layout) : previous.starts();
+                    metrics = refreshMetadata ? glyphTextureMetrics(font, layout) : previous.metrics();
+                } finally {
+                    EffectTextRenderer.endCapture();
+                }
+                if (refreshMetadata)
+                    writeGlyphTextureMetrics(layout, starts, metrics, width, height, padding, resolution);
+                if (!refreshMetadata && advance == previous.mask()
+                    .advance()) return previous;
+                return new CachedMask(
+                    new Mask(target, width, height, padding, resolution, advance),
+                    layout,
+                    starts,
+                    metrics,
+                    animated);
+            } catch (RuntimeException exception) {
+                if (previous == null) target.deleteFramebuffer();
+                throw exception;
             }
-            writeGlyphTextureMetrics(layout, starts, metrics, width, height, padding, resolution);
-            return new CachedMask(
-                new Mask(target, width, height, padding, resolution, advance),
-                layout,
-                starts,
-                metrics);
         }
     }
 
@@ -377,6 +409,7 @@ public class TextMaskCache {
         masks.clear();
         liveStates.clear();
         pixels = 0;
+        maxTextureSize = 0;
     }
 
     private interface Painter {
@@ -388,10 +421,54 @@ public class TextMaskCache {
         int paint(Framebuffer target, int resolution);
     }
 
-    private record CachedMask(Mask mask, Layout layout, int[] starts, GlyphTextureMetrics[] metrics) {}
+    private record CachedMask(Mask mask, Layout layout, int[] starts, GlyphTextureMetrics[] metrics,
+        boolean animatedGlyphs) {}
+
+    private record ShakeOffsets(float[] dx, float[] dy) {
+
+        @Override
+        public boolean equals(Object other) {
+            return other instanceof ShakeOffsets offsets && Arrays.equals(dx, offsets.dx)
+                && Arrays.equals(dy, offsets.dy);
+        }
+
+        @Override
+        public int hashCode() {
+            return 31 * Arrays.hashCode(dx) + Arrays.hashCode(dy);
+        }
+
+        private ShakeOffsets snapshot(Object previous) {
+            if (previous instanceof ShakeOffsets offsets && dx.length == offsets.dx.length
+                && dy.length == offsets.dy.length) {
+                System.arraycopy(dx, 0, offsets.dx, 0, dx.length);
+                System.arraycopy(dy, 0, offsets.dy, 0, dy.length);
+                return offsets;
+            }
+            return new ShakeOffsets(dx.clone(), dy.clone());
+        }
+    }
 
     public record Key(FontRenderer font, String text, float width, float height, float padding, boolean unicode,
-        float scaleX, float scaleY, float spacing, float shadowOffset, boolean smooth, FontSettings fontSettings) {
+        float scaleX, float scaleY, float spacing, float shadowOffset, boolean smooth, FontSettings fontSettings,
+        float whitespace) {
+
+        public Key(FontRenderer font, String text, float width, float height, float padding, boolean unicode,
+            float scaleX, float scaleY, float spacing, float shadowOffset, boolean smooth, FontSettings fontSettings) {
+            this(
+                font,
+                text,
+                width,
+                height,
+                padding,
+                unicode,
+                scaleX,
+                scaleY,
+                spacing,
+                shadowOffset,
+                smooth,
+                fontSettings,
+                1);
+        }
 
         public Key(FontRenderer font, String text, float width, float height, float padding, boolean unicode,
             float scaleX, float scaleY, float spacing, float shadowOffset) {

@@ -2,6 +2,7 @@ package com.gtnllib.client.shader;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.FloatBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -21,6 +22,7 @@ public class GlslProgram implements AutoCloseable {
 
     private static final Pattern INCLUDE = Pattern.compile("(?m)^[\\t ]*#include[\\t ]+\"([^\"]+)\"[\\t ]*\\r?$");
     private static final int LOG_LENGTH = 8192;
+    private static final int UNRESOLVED_UNIFORM = Integer.MIN_VALUE;
 
     private final ResourceLocation vertexSource;
     private final ResourceLocation fragmentSource;
@@ -30,6 +32,7 @@ public class GlslProgram implements AutoCloseable {
     public GlslProgram(ResourceLocation vertexSource, ResourceLocation fragmentSource) {
         this.vertexSource = vertexSource;
         this.fragmentSource = fragmentSource;
+        uniforms.defaultReturnValue(UNRESOLVED_UNIFORM);
     }
 
     public void ensureCompiled() {
@@ -43,7 +46,12 @@ public class GlslProgram implements AutoCloseable {
 
     public int uniform(String name) {
         if (program == 0) throw new IllegalStateException("GLSL program is not compiled yet");
-        return uniforms.computeIfAbsent(name, (String key) -> GL20.glGetUniformLocation(program, key));
+        int location = uniforms.getInt(name);
+        if (location == UNRESOLVED_UNIFORM) {
+            location = GL20.glGetUniformLocation(program, name);
+            uniforms.put(name, location);
+        }
+        return location;
     }
 
     public void uniform1f(String name, float value) {
@@ -52,6 +60,18 @@ public class GlslProgram implements AutoCloseable {
 
     public void uniform2f(String name, float x, float y) {
         GL20.glUniform2f(uniform(name), x, y);
+    }
+
+    public void uniform1fv(String name, FloatBuffer values) {
+        GL20.glUniform1(uniform(name), values);
+    }
+
+    public void uniform2fv(String name, FloatBuffer values) {
+        GL20.glUniform2(uniform(name), values);
+    }
+
+    public void uniform3fv(String name, FloatBuffer values) {
+        GL20.glUniform3(uniform(name), values);
     }
 
     public void bindTexture(int unit, ResourceLocation texture) {
@@ -88,14 +108,17 @@ public class GlslProgram implements AutoCloseable {
 
     private static int compileStage(int type, String source) {
         int shader = GL20.glCreateShader(type);
-        GL20.glShaderSource(shader, source);
-        GL20.glCompileShader(shader);
-        if (GL20.glGetShaderi(shader, GL20.GL_COMPILE_STATUS) == GL11.GL_FALSE) {
-            String message = GL20.glGetShaderInfoLog(shader, LOG_LENGTH);
-            GL20.glDeleteShader(shader);
-            throw new IllegalStateException(message);
+        boolean compiled = false;
+        try {
+            GL20.glShaderSource(shader, source);
+            GL20.glCompileShader(shader);
+            if (GL20.glGetShaderi(shader, GL20.GL_COMPILE_STATUS) == GL11.GL_FALSE)
+                throw new IllegalStateException(GL20.glGetShaderInfoLog(shader, LOG_LENGTH));
+            compiled = true;
+            return shader;
+        } finally {
+            if (!compiled) GL20.glDeleteShader(shader);
         }
-        return shader;
     }
 
     private static String read(ResourceLocation path) throws IOException {

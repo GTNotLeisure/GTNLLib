@@ -26,8 +26,9 @@ public class TextRenderState implements AutoCloseable {
     private final int matrixMode = GL11.glGetInteger(GL11.GL_MATRIX_MODE);
     private final int activeTexture = GL11.glGetInteger(GL13.GL_ACTIVE_TEXTURE);
     private final int drawFramebuffer = framebuffers ? GL11.glGetInteger(GL30.GL_DRAW_FRAMEBUFFER_BINDING) : 0;
-    private final boolean separateTargets = GLContext.getCapabilities().OpenGL30
-        || GLContext.getCapabilities().GL_ARB_framebuffer_object;
+    private final boolean coreFramebuffers = GLContext.getCapabilities().OpenGL30;
+    private final boolean separateTargets = framebuffers
+        && (coreFramebuffers || GLContext.getCapabilities().GL_ARB_framebuffer_object);
     private final int readFramebuffer = separateTargets ? GL11.glGetInteger(GL30.GL_READ_FRAMEBUFFER_BINDING)
         : drawFramebuffer;
     private final float lightX = OpenGlHelper.lastBrightnessX;
@@ -48,7 +49,10 @@ public class TextRenderState implements AutoCloseable {
 
     @Override
     public void close() {
-        if (framebuffers && separateTargets) {
+        if (framebuffers && coreFramebuffers) {
+            GL30.glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER, drawFramebuffer);
+            GL30.glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, readFramebuffer);
+        } else if (separateTargets) {
             ARBFramebufferObject.glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER, drawFramebuffer);
             ARBFramebufferObject.glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, readFramebuffer);
         } else if (framebuffers) {

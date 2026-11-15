@@ -1,10 +1,12 @@
 package com.gtnllib.client.text.effect;
 
+import java.nio.FloatBuffer;
 import java.util.List;
 import java.util.Random;
 
 import net.minecraft.util.ResourceLocation;
 
+import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 import org.lwjgl.opengl.GL20;
@@ -30,6 +32,10 @@ public class InfernumCyanSparkTextEffect extends ShaderTextEffect {
 
     private final Random random = new Random();
     private final List<CyanSparkle> sparkles = new ObjectArrayList<>();
+    private final FloatBuffer particlePositions = BufferUtils.createFloatBuffer(MAX_SHADER_PARTICLES * 2);
+    private final FloatBuffer particleScales = BufferUtils.createFloatBuffer(MAX_SHADER_PARTICLES);
+    private final FloatBuffer particleRotations = BufferUtils.createFloatBuffer(MAX_SHADER_PARTICLES);
+    private final FloatBuffer particleColorAmounts = BufferUtils.createFloatBuffer(MAX_SHADER_PARTICLES);
     private double lastSimulationSeconds = Double.NaN;
     private double simulationAccumulator;
 
@@ -59,13 +65,27 @@ public class InfernumCyanSparkTextEffect extends ShaderTextEffect {
                 .height());
         int count = Math.min(MAX_SHADER_PARTICLES, sparkles.size());
         GL20.glUniform1i(shader.uniform("particleCount"), count);
+        if (count == 0) return;
+        particlePositions.clear();
+        particleScales.clear();
+        particleRotations.clear();
+        particleColorAmounts.clear();
         for (int i = 0; i < count; i++) {
             CyanSparkle sparkle = sparkles.get(i);
-            GL20.glUniform2f(shader.uniform("particlePosition[" + i + "]"), sparkle.x, sparkle.y);
-            GL20.glUniform1f(shader.uniform("particleScale[" + i + "]"), sparkle.scale);
-            GL20.glUniform1f(shader.uniform("particleRotation[" + i + "]"), sparkle.rotation);
-            GL20.glUniform1f(shader.uniform("particleColorAmount[" + i + "]"), sparkle.colorAmount);
+            particlePositions.put(sparkle.x)
+                .put(sparkle.y);
+            particleScales.put(sparkle.scale);
+            particleRotations.put(sparkle.rotation);
+            particleColorAmounts.put(sparkle.colorAmount);
         }
+        particlePositions.flip();
+        particleScales.flip();
+        particleRotations.flip();
+        particleColorAmounts.flip();
+        shader.uniform2fv("particlePosition", particlePositions);
+        shader.uniform1fv("particleScale", particleScales);
+        shader.uniform1fv("particleRotation", particleRotations);
+        shader.uniform1fv("particleColorAmount", particleColorAmounts);
     }
 
     @Override

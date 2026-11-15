@@ -9,6 +9,7 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Group;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -17,8 +18,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import com.gtnewhorizons.angelica.client.font.BatchingFontRenderer;
 import com.gtnewhorizons.angelica.config.FontConfig;
-import com.gtnewhorizons.angelica.glsm.GLSMPrograms;
-import com.gtnewhorizons.angelica.glsm.GLSMQueries;
 import com.gtnllib.client.text.DeferredTextEffects;
 import com.gtnllib.client.text.EffectTextRenderer;
 import com.gtnllib.client.text.compat.AngelicaTextAdapter;
@@ -100,6 +99,7 @@ public abstract class MixinFontBatchTextEffects implements FontBatchBridge {
         if (EffectTextRenderer.isCapturing()) cir.setReturnValue(false);
     }
 
+    @Group(name = "gtnl$maskBlend", min = 1, max = 1)
     @ModifyArg(
         method = { "flushBatchInner", "setupFontDrawState" },
         at = @At(
@@ -108,9 +108,25 @@ public abstract class MixinFontBatchTextEffects implements FontBatchBridge {
             ordinal = 0),
         index = 3,
         remap = false,
-        require = 1)
+        expect = 0,
+        require = 0)
     private int gtnl$compositeMaskCoverage(int destinationAlpha) {
         // Bold copies must accumulate coverage instead of erasing strokes with their translucent edges.
+        return EffectTextRenderer.isCapturing() ? GL11.GL_ONE_MINUS_SRC_ALPHA : destinationAlpha;
+    }
+
+    @Group(name = "gtnl$maskBlend", min = 1, max = 1)
+    @ModifyArg(
+        method = { "flushBatchInner", "setupFontDrawState" },
+        at = @At(
+            value = "INVOKE",
+            target = "Lcom/gtnewhorizons/angelica/glsm/GLStateManager;tryBlendFuncSeparate(IIII)V",
+            ordinal = 0),
+        index = 3,
+        remap = false,
+        expect = 0,
+        require = 0)
+    private int gtnl$compositeUnifiedMaskCoverage(int destinationAlpha) {
         return EffectTextRenderer.isCapturing() ? GL11.GL_ONE_MINUS_SRC_ALPHA : destinationAlpha;
     }
 
@@ -121,9 +137,9 @@ public abstract class MixinFontBatchTextEffects implements FontBatchBridge {
             target = "Lcom/gtnewhorizons/angelica/config/FontConfig;fontAAMode:I",
             opcode = Opcodes.GETSTATIC),
         remap = false,
-        require = 5)
+        require = 3)
     private int gtnl$sharpMaskCoverage() {
-        // Keep the glyph padding, comparison, cached mode and uniform consistent across both Angelica method layouts.
+        // Override the comparison, cached mode and uniform, plus glyph padding in versions that expand it.
         return EffectTextRenderer.isCapturing() && !AngelicaTextAdapter.usesCustomFont(underlying) ? 0
             : FontConfig.fontAAMode;
     }
@@ -133,13 +149,13 @@ public abstract class MixinFontBatchTextEffects implements FontBatchBridge {
     private void gtnl$restoreFontAntialiasing(CallbackInfo ci) {
         int configuredMode = FontConfig.fontAAMode;
         if (!EffectTextRenderer.isCapturing() || fontAAModeLast == configuredMode) return;
-        int previousProgram = GLSMQueries.glGetInteger(GL20.GL_CURRENT_PROGRAM);
-        GLSMPrograms.glUseProgram(fontShaderId);
+        int previousProgram = GL11.glGetInteger(GL20.GL_CURRENT_PROGRAM);
+        GL20.glUseProgram(fontShaderId);
         try {
-            GLSMPrograms.glUniform1i(AAMode, configuredMode);
+            GL20.glUniform1i(AAMode, configuredMode);
             fontAAModeLast = configuredMode;
         } finally {
-            GLSMPrograms.glUseProgram(previousProgram);
+            GL20.glUseProgram(previousProgram);
         }
     }
 }

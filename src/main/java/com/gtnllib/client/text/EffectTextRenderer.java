@@ -252,35 +252,34 @@ public class EffectTextRenderer implements IResourceManagerReloadListener {
         Shake shake = shakeOf(style);
         if (shake.pixels() == 0 || !effects)
             return paint(font, text, style, x, y, run.width(), height, color, shadow, effects);
+        double time = seconds();
         if (shake.mode() == ShakeMode.SYNC) return paint(
             font,
             text,
             style,
-            x + TextShake.offset(shake, 0, 0, seconds()),
-            y + TextShake.offset(shake, 0, 1, seconds()),
+            x + TextShake.offset(shake, 0, 0, time),
+            y + TextShake.offset(shake, 0, 1, time),
             run.width(),
             height,
             color,
             shadow,
             effects);
-        List<Glyph> glyphs = run.glyphs()
-            .subList(
-                0,
-                count < 0 ? run.glyphs()
-                    .size() : count);
+        List<Glyph> glyphs = run.glyphs();
+        int glyphCount = count < 0 ? glyphs.size() : count;
         int visible = 0;
-        for (Glyph glyph : glyphs) if (!glyph.text()
+        for (int i = 0; i < glyphCount; i++) if (!glyphs.get(i)
+            .text()
             .isEmpty()) visible++;
         String[] texts = new String[visible];
         float[] dx = new float[visible];
         float[] dy = new float[visible];
-        for (int i = 0, slot = 0; i < glyphs.size(); i++) {
+        for (int i = 0, slot = 0; i < glyphCount; i++) {
             Glyph glyph = glyphs.get(i);
             if (glyph.text()
                 .isEmpty()) continue;
             texts[slot] = glyph.text();
-            dx[slot] = shakeStep(shake, i, 0);
-            dy[slot] = shakeStep(shake, i, 1);
+            dx[slot] = shakeStep(shake, i, 0, time);
+            dy[slot] = shakeStep(shake, i, 1, time);
             slot++;
         }
         String formatting = run.formatting();
@@ -305,8 +304,8 @@ public class EffectTextRenderer implements IResourceManagerReloadListener {
         return style == null ? Shake.NONE : style.shake();
     }
 
-    private static float shakeStep(Shake shake, int glyph, int axis) {
-        return TextShake.toGrid(TextShake.offset(shake, glyph, axis, seconds()), SHAKE_GRID);
+    private static float shakeStep(Shake shake, int glyph, int axis, double time) {
+        return TextShake.toGrid(TextShake.offset(shake, glyph, axis, time), SHAKE_GRID);
     }
 
     private float drawEntrance(FontRenderer font, DrawRun run, GlyphEntrance entrance, float x, float y, float height,
@@ -325,8 +324,9 @@ public class EffectTextRenderer implements IResourceManagerReloadListener {
         // Vanilla draws any alpha below 4 fully opaque, so the faintest frames are skipped instead.
         if (alpha < MIN_FONT_ALPHA && flashAlpha < MIN_FONT_ALPHA) return glyph.width();
         TextEffectStyle style = run.style();
-        float glyphX = x + (effects ? shakeStep(shakeOf(style), entrance.index(), 0) : 0);
-        float glyphY = y + dy + (effects ? shakeStep(shakeOf(style), entrance.index(), 1) : 0);
+        double time = seconds();
+        float glyphX = x + (effects ? shakeStep(shakeOf(style), entrance.index(), 0, time) : 0);
+        float glyphY = y + dy + (effects ? shakeStep(shakeOf(style), entrance.index(), 1, time) : 0);
         GL11.glPushMatrix();
         GL11.glPushAttrib(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_ENABLE_BIT);
         try {
