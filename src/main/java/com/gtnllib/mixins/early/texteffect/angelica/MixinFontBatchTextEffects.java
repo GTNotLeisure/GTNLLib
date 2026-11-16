@@ -5,6 +5,7 @@ import net.minecraft.client.gui.FontRenderer;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL20;
 import org.objectweb.asm.Opcodes;
+import org.spongepowered.asm.mixin.Dynamic;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -115,6 +116,7 @@ public abstract class MixinFontBatchTextEffects implements FontBatchBridge {
         return EffectTextRenderer.isCapturing() ? GL11.GL_ONE_MINUS_SRC_ALPHA : destinationAlpha;
     }
 
+    @Dynamic("Newer Angelica versions move this blend call from GLSMBlend to GLStateManager")
     @Group(name = "gtnl$maskBlend", min = 1, max = 1)
     @ModifyArg(
         method = { "flushBatchInner", "setupFontDrawState" },
