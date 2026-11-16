@@ -4,11 +4,50 @@ name: Release tagged build
 on:
   push:
     tags: [ '*' ]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag to regenerate'
+        required: true
+        type: string
+      previous_tag:
+        description: 'Previous tag (blank selects the nearest published ancestor)'
+        required: false
+        type: string
+      dry_run:
+        description: 'Generate a preview without updating the release'
+        default: true
+        type: boolean
 
 permissions:
   contents: write
+  pull-requests: read
 
 jobs:
   release-tags:
+    if: github.event_name == 'push' && github.ref_name != 'dev-build'
     uses: GTNewHorizons/GTNH-Actions-Workflows/.github/workflows/release-tags.yml@master
     secrets: inherit
+
+  release-notes:
+    needs: release-tags
+    if: >-
+      always() && !cancelled() &&
+      (needs.release-tags.result == 'success' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-24.04
+    concurrency:
+      group: release-notes-${{ inputs.tag || github.ref_name }}
+      cancel-in-progress: false
+    steps:
+      - name: Checkout release tooling and complete history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Enhance release description
+        uses: ./.github/actions/release-notes
+        with:
+          tag: ${{ inputs.tag || github.ref_name }}
+          previous-tag: ${{ inputs.previous_tag }}
+          dry-run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}

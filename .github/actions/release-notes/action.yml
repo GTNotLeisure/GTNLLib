@@ -1,0 +1,68 @@
+name: Enhanced release notes
+description: Preserve generated PR notes and add uncovered commits and contributors to the calling repository's release.
+
+inputs:
+  tag:
+    description: Existing published release tag in the calling repository
+    required: true
+  previous-tag:
+    description: Previous tag; blank selects the nearest published ancestor
+    default: ''
+  dry-run:
+    description: Generate a preview without updating the release (true or false)
+    default: 'true'
+  excluded-tags:
+    description: Exact tag names to exclude as targets and baselines, one per line
+    default: dev-build
+  token:
+    description: Token for the calling repository with contents write and pull requests read permissions
+    default: ${{ github.token }}
+  upload-artifact:
+    description: Upload the generated Markdown preview as an artifact (true or false)
+    default: 'true'
+
+outputs:
+  notes-path:
+    description: Absolute path of the generated UTF-8 Markdown file; empty when a handwritten changelog is preserved
+    value: ${{ steps.notes.outputs.notes-path }}
+  status:
+    description: One of preview, updated, unchanged, or skipped
+    value: ${{ steps.notes.outputs.status }}
+
+runs:
+  using: composite
+  steps:
+    - name: Enhance release description
+      id: notes
+      uses: actions/github-script@v7
+      env:
+        RELEASE_NOTES_ACTION_PATH: ${{ github.action_path }}
+        RELEASE_TAG: ${{ inputs.tag }}
+        PREVIOUS_RELEASE_TAG: ${{ inputs.previous-tag }}
+        RELEASE_NOTES_DRY_RUN: ${{ inputs.dry-run }}
+        RELEASE_NOTES_EXCLUDED_TAGS: ${{ inputs.excluded-tags }}
+        RELEASE_NOTES_UPLOAD_ARTIFACT: ${{ inputs.upload-artifact }}
+      with:
+        github-token: ${{ inputs.token }}
+        retries: 3
+        script: |
+          const { join } = require('node:path');
+          const updateReleaseNotes = require(join(process.env.RELEASE_NOTES_ACTION_PATH, 'update-release-notes.cjs'));
+          for (const name of ['RELEASE_NOTES_DRY_RUN', 'RELEASE_NOTES_UPLOAD_ARTIFACT']) {
+            if (!['true', 'false'].includes(process.env[name])) throw new Error(`${name} must be true or false.`);
+          }
+          await updateReleaseNotes({
+            github, core, repo: context.repo,
+            tag: process.env.RELEASE_TAG,
+            previousTag: process.env.PREVIOUS_RELEASE_TAG,
+            dryRun: process.env.RELEASE_NOTES_DRY_RUN === 'true',
+            excludedTags: process.env.RELEASE_NOTES_EXCLUDED_TAGS.split(/\r?\n/).map(tag => tag.trim()).filter(Boolean),
+          });
+
+    - name: Upload release notes preview
+      if: ${{ always() && inputs.upload-artifact == 'true' && steps.notes.outputs.notes-path != '' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-notes-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}
+        path: ${{ steps.notes.outputs.notes-path }}
+        if-no-files-found: error
