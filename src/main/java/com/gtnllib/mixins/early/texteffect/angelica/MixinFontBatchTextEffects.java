@@ -5,12 +5,10 @@ import net.minecraft.client.gui.FontRenderer;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL20;
 import org.objectweb.asm.Opcodes;
-import org.spongepowered.asm.mixin.Dynamic;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Group;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -100,48 +98,33 @@ public abstract class MixinFontBatchTextEffects implements FontBatchBridge {
         if (EffectTextRenderer.isCapturing()) cir.setReturnValue(false);
     }
 
-    @Group(name = "gtnl$maskBlend", min = 1, max = 1)
     @ModifyArg(
-        method = { "flushBatchInner", "setupFontDrawState" },
+        method = "setupFontDrawState",
         at = @At(
             value = "INVOKE",
             target = "Lcom/gtnewhorizons/angelica/glsm/GLSMBlend;tryBlendFuncSeparate(IIII)V",
             ordinal = 0),
         index = 3,
         remap = false,
-        expect = 0,
-        require = 0)
+        require = 1,
+        allow = 1)
     private int gtnl$compositeMaskCoverage(int destinationAlpha) {
         // Bold copies must accumulate coverage instead of erasing strokes with their translucent edges.
         return EffectTextRenderer.isCapturing() ? GL11.GL_ONE_MINUS_SRC_ALPHA : destinationAlpha;
     }
 
-    @Dynamic("Newer Angelica versions move this blend call from GLSMBlend to GLStateManager")
-    @Group(name = "gtnl$maskBlend", min = 1, max = 1)
-    @ModifyArg(
-        method = { "flushBatchInner", "setupFontDrawState" },
-        at = @At(
-            value = "INVOKE",
-            target = "Lcom/gtnewhorizons/angelica/glsm/GLStateManager;tryBlendFuncSeparate(IIII)V",
-            ordinal = 0),
-        index = 3,
-        remap = false,
-        expect = 0,
-        require = 0)
-    private int gtnl$compositeUnifiedMaskCoverage(int destinationAlpha) {
-        return EffectTextRenderer.isCapturing() ? GL11.GL_ONE_MINUS_SRC_ALPHA : destinationAlpha;
-    }
-
     @Redirect(
-        method = { "flushBatchInner", "setupFontDrawState", "pushTexRect" },
+        method = { "setupFontDrawState", "pushTexRect" },
         at = @At(
             value = "FIELD",
             target = "Lcom/gtnewhorizons/angelica/config/FontConfig;fontAAMode:I",
             opcode = Opcodes.GETSTATIC),
         remap = false,
-        require = 3)
+        expect = 5,
+        require = 5,
+        allow = 5)
     private int gtnl$sharpMaskCoverage() {
-        // Override the comparison, cached mode and uniform, plus glyph padding in versions that expand it.
+        // Keep the comparison, cached mode, uniform and glyph padding consistent during mask capture.
         return EffectTextRenderer.isCapturing() && !AngelicaTextAdapter.usesCustomFont(underlying) ? 0
             : FontConfig.fontAAMode;
     }
