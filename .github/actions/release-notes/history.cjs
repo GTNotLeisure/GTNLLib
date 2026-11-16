@@ -68,18 +68,19 @@ async function selectPreviousRelease(releases, current, head, previousTag, exclu
 
 async function readCommits(base, head) {
     const output = await git([
-        'log', '--reverse', '--topo-order', '--no-show-signature', '-z',
-        '--format=%H%x00%P%x00%s%x00%an', base ? `${base}..${head}` : head, '--',
+        'log', '--reverse', '--topo-order', '--no-show-signature', '--abbrev=12', '-z',
+        '--format=%H%x00%h%x00%P%x00%s%x00%an', base ? `${base}..${head}` : head, '--',
     ]);
     if (!output) return [];
     const fields = output.split('\0');
     const commits = [];
-    for (let index = 0; index + 3 < fields.length; index += 4) {
+    for (let index = 0; index + 4 < fields.length; index += 5) {
         commits.push({
             sha: fields[index],
-            parents: fields[index + 1].split(' ').filter(Boolean),
-            title: fields[index + 2],
-            authorName: fields[index + 3],
+            shortSha: fields[index + 1],
+            parents: fields[index + 2].split(' ').filter(Boolean),
+            title: fields[index + 3],
+            authorName: fields[index + 4],
         });
     }
     return commits;

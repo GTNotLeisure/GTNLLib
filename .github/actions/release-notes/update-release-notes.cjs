@@ -31,7 +31,7 @@ module.exports = async function updateReleaseNotes({
     });
     const repositoryUrl = release.html_url.slice(0, release.html_url.lastIndexOf('/releases/tag/'));
     const contributions = await collectContributions({
-        github, repo, commits, previous, nativeBody: notes.body, repositoryUrl,
+        github, repo, commits, previous, nativeBody: notes.body,
     });
     const body = renderReleaseNotes({ nativeBody: notes.body, ...contributions, repositoryUrl, tag, previous });
     if (body.length > 125000) throw new Error('Release notes exceed the GitHub release body limit.');

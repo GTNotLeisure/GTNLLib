@@ -12,7 +12,7 @@ async function mapConcurrent(items, operation) {
     return results;
 }
 
-async function collectContributions({ github, repo, commits, previous, nativeBody, repositoryUrl }) {
+async function collectContributions({ github, repo, commits, previous, nativeBody }) {
     const bySha = new Map(commits.map(commit => [commit.sha, commit]));
     const pullRequests = new Map();
     const associations = await mapConcurrent(commits, async commit => {
@@ -46,26 +46,42 @@ async function collectContributions({ github, repo, commits, previous, nativeBod
             ...commit,
             login: data.author?.login,
             authorType: data.author?.type,
-            url: `${repositoryUrl}/commit/${commit.sha}`,
         };
     });
 
     const nativeNewContributors = new Set(
-        [...nativeBody.matchAll(/^\* @([^\s]+) made their first contribution in /gm)]
+        [...nativeBody.matchAll(/^[*-] @([^\s]+) made their first contribution in /gm)]
             .map(match => match[1].toLowerCase()));
+    const nativePullUrls = new Set(
+        [...nativeBody.matchAll(/https?:\/\/[^\s)<>]+\/pull\/\d+\b/g)].map(match => match[0]));
+    const commitOrder = new Map(commits.map((commit, index) => [commit.sha, index]));
+    const authorContributions = directCommits.map(commit => ({
+        login: commit.login, type: commit.authorType, sha: commit.sha, reference: commit.shortSha,
+    }));
+    for (const pull of pullRequests.values()) {
+        // Respect the generated notes' PR exclusions when building contributor lists.
+        if (nativePullUrls.has(pull.html_url)) {
+            authorContributions.push({
+                login: pull.user?.login, type: pull.user?.type,
+                sha: pull.merge_commit_sha, reference: `#${pull.number}`,
+            });
+        }
+    }
+    authorContributions.sort((left, right) => commitOrder.get(left.sha) - commitOrder.get(right.sha));
     const authors = new Map();
-    for (const commit of directCommits) {
-        if (commit.login && commit.authorType !== 'Bot' && !nativeNewContributors.has(commit.login.toLowerCase())) {
-            // Commits are in chronological topology order, so the first link is stable across reruns.
-            if (!authors.has(commit.login.toLowerCase())) authors.set(commit.login.toLowerCase(), commit);
+    for (const contribution of authorContributions) {
+        if (contribution.login && contribution.type !== 'Bot') {
+            const key = contribution.login.toLowerCase();
+            if (!authors.has(key)) authors.set(key, { login: contribution.login, references: new Set() });
+            authors.get(key).references.add(contribution.reference);
         }
     }
     let previousPullAuthors;
-    const contributors = await mapConcurrent([...authors.values()], async commit => {
-        let isNew = !previous;
-        if (previous) {
+    const contributors = await mapConcurrent([...authors.values()], async author => {
+        let isNew = !previous || nativeNewContributors.has(author.login.toLowerCase());
+        if (previous && !isNew) {
             const { data } = await github.rest.repos.listCommits({
-                ...repo, sha: previous.sha, author: commit.login, per_page: 1,
+                ...repo, sha: previous.sha, author: author.login, per_page: 1,
             });
             isNew = data.length === 0;
             if (isNew) {
@@ -76,10 +92,10 @@ async function collectContributions({ github, repo, commits, previous, nativeBod
                 ]).then(([pulls, ancestors]) => new Set(pulls
                     .filter(pull => pull.merged_at && ancestors.has(pull.merge_commit_sha) && pull.user)
                     .map(pull => pull.user.login.toLowerCase())));
-                isNew = !(await previousPullAuthors).has(commit.login.toLowerCase());
+                isNew = !(await previousPullAuthors).has(author.login.toLowerCase());
             }
         }
-        return { login: commit.login, url: commit.url, isNew };
+        return { login: author.login, references: [...author.references], isNew };
     });
 
     return { commits: directCommits.reverse(), contributors, pullRequestCount: pullRequests.size };
