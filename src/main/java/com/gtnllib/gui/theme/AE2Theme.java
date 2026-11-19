@@ -551,11 +551,44 @@ public class AE2Theme {
      * @return background drawable
      */
     public static IDrawable well(int width, int plainColor) {
-        return (context, x, y, w, h, widgetTheme) -> {
-            Variant variant = active(context);
-            if (variant == null) GuiDraw.drawRect(x, y, width, h, plainColor);
-            else variant.inset.draw(x, y, width, h);
-        };
+        return (context, x, y, w, h, widgetTheme) -> drawWell(active(context), x, y, width, h, plainColor);
+    }
+
+    /**
+     * Draws a list well directly, for widgets that draw their own content.
+     *
+     * @param variant    active AE2 variant, or {@code null} outside the AE2 themes
+     * @param x          left edge
+     * @param y          top edge
+     * @param width      well width in pixels
+     * @param height     well height in pixels
+     * @param plainColor ARGB fill used outside the AE2 themes
+     * @see #well(int, int)
+     */
+    public static void drawWell(@Nullable Variant variant, int x, int y, int width, int height, int plainColor) {
+        if (variant == null) GuiDraw.drawRect(x, y, width, height, plainColor);
+        else variant.inset.draw(x, y, width, height);
+    }
+
+    /**
+     * Draws an on/off switch: AE2's switch sprite under AE2 themes, MUI2's check box otherwise. List rows and
+     * {@link #toggleSwitch} both use it, so a switch looks the same everywhere in a theme.
+     *
+     * @param variant active AE2 variant, or {@code null} outside the AE2 themes
+     * @param x       left edge
+     * @param y       top edge
+     * @param on      switch value
+     * @param hovered whether the mouse is over the switch; only AE2 sprites show it
+     * @return width of the drawn switch: {@link #SWITCH_WIDTH} under AE2 themes, {@link #SWITCH_HEIGHT} otherwise
+     */
+    public static int drawSwitch(@Nullable Variant variant, int x, int y, boolean on, boolean hovered) {
+        if (variant == null) {
+            (on ? GuiTextures.CHECK_BOX_FULL : GuiTextures.CHECK_BOX_EMPTY).draw(x, y, SWITCH_HEIGHT, SWITCH_HEIGHT);
+            return SWITCH_HEIGHT;
+        }
+        variant.switchSprite(on, hovered)
+            .draw(x, y, SWITCH_WIDTH, SWITCH_HEIGHT);
+        return SWITCH_WIDTH;
     }
 
     /**
@@ -736,8 +769,7 @@ public class AE2Theme {
             Variant variant = active(context);
             GlStateManager.color(1, 1, 1, usable ? 1 : INACTIVE_ALPHA);
             if (variant == null) {
-                (checked ? GuiTextures.CHECK_BOX_FULL : GuiTextures.CHECK_BOX_EMPTY)
-                    .draw(x, y, SWITCH_HEIGHT, SWITCH_HEIGHT);
+                drawSwitch(null, x, y, checked, lit);
                 GlStateManager.color(1, 1, 1, 1);
                 ITheme screen = screenTheme(context);
                 WidgetTheme look = screen == null ? null
@@ -751,8 +783,7 @@ public class AE2Theme {
                     look != null && look.getTextShadow());
                 return;
             }
-            variant.switchSprite(checked, lit)
-                .draw(x, y, SWITCH_WIDTH, SWITCH_HEIGHT);
+            drawSwitch(variant, x, y, checked, lit);
             GlStateManager.color(1, 1, 1, 1);
             text(
                 fitted,

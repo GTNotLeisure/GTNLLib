@@ -3,7 +3,6 @@ package com.gtnllib.gui.widget;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.IntConsumer;
 import java.util.function.LongConsumer;
 import java.util.function.Supplier;
 
@@ -25,27 +24,24 @@ import com.cleanroommc.modularui.theme.WidgetThemeEntry;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.AE2Theme.Variant;
-import com.gtnllib.gui.widget.AE2ButtonDrawable.State;
 
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 
 /**
  * A scrolling list whose rows are drawn directly instead of being widgets, so it stays fast with hundreds of rows.
- * The rows are read from a supplier every tick. A row can carry an item icon, a right-aligned detail, a ‹ › stepper, an
- * on/off switch, a dropdown whose options open as indented rows under it, or a number field. Number fields are
+ * The rows are read from a supplier every tick. A row can carry an item icon, a right-aligned detail, an on/off
+ * switch, a dropdown whose options open as indented rows under it, or a number field. Number fields are
  * {@link NumberEntry} children placed over the visible number rows, so only those rows cost a widget.
  * <p>
- * Under an AE2 theme the list draws as an AE2 inset with AE2 list-row highlights, switches, step buttons and a small
- * scroll bar; otherwise it keeps its own dark look.
+ * Under an AE2 theme the list draws as an AE2 inset with AE2 list-row highlights, switches and a small scroll bar;
+ * otherwise it keeps its own dark look with MUI2's check boxes.
  */
 public class IconRowList extends ParentWidget<IconRowList> implements Interactable, RecipeViewerIngredientProvider {
 
-    public static final int ROW = 18, ARROW = 12, SCROLLBAR = 3, INDENT = 10, CARET = 9, SWITCH = 16, NUMBER_WIDTH = 64,
-        STEPPER_WIDTH = 58;
+    public static final int ROW = 18, SCROLLBAR = 3, INDENT = 10, CARET = 9, NUMBER_WIDTH = 64;
     public static final int BACKGROUND = 0xFF1C1C22, NESTED = 0xFF26262E, HOVER = 0x30FFFFFF, SELECTED = 0x5040A0FF,
-        BAR = 0xFF808090, HEADER = 0xFFA0A0A8, TEXT = 0xFFE8E8E8, ACCENT = 0xFFFFD040, SWITCH_ON = 0xFF3C9A50,
-        SWITCH_OFF = 0xFF4A4A54, KNOB = 0xFFF0F0F0;
+        BAR = 0xFF808090, HEADER = 0xFFA0A0A8, TEXT = 0xFFE8E8E8, ACCENT = 0xFFFFD040;
     /** Row colors that AE2 themes replace with their own good and bad colors. */
     public static final int GOOD = 0xFF60E060, BAD = 0xFFFF6060;
     /**
@@ -68,37 +64,32 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
     public record Numeric(long value, long min, long max, long reset, LongConsumer set) {}
 
     /**
-     * One row. Only one of click, adjust, options, toggle and number is normally set; options turn the row into a
+     * One row. Only one of click, options, toggle and number is normally set; options turn the row into a
      * dropdown, a non-null toggle draws a switch whose state is that value, and a number puts a {@link NumberEntry}
      * on the right of the row. A right click runs {@code secondary} when it is set. A nonzero {@code detailColor}
      * colors only the detail; zero uses {@code color} for both.
      */
     public record Row(ItemStack icon, String text, String detail, int color, boolean selected, boolean header,
-        Runnable click, IntConsumer adjust, List<Row> options, Boolean toggle, Numeric number, Runnable secondary,
-        int detailColor) {
+        Runnable click, List<Row> options, Boolean toggle, Numeric number, Runnable secondary, int detailColor) {
 
         public static Row header(String text) {
-            return new Row(null, text, "", HEADER, false, true, null, null, null, null, null, null, 0);
+            return new Row(null, text, "", HEADER, false, true, null, null, null, null, null, 0);
         }
 
         public static Row item(ItemStack icon, String text, String detail, boolean selected, Runnable click) {
-            return new Row(icon, text, detail, TEXT, selected, false, click, null, null, null, null, null, 0);
+            return new Row(icon, text, detail, TEXT, selected, false, click, null, null, null, null, 0);
         }
 
         public static Row colored(ItemStack icon, String text, String detail, int color) {
-            return new Row(icon, text, detail, color, false, false, null, null, null, null, null, null, 0);
-        }
-
-        public static Row stepper(String text, String detail, IntConsumer adjust) {
-            return new Row(null, text, detail, TEXT, false, false, null, adjust, null, null, null, null, 0);
+            return new Row(icon, text, detail, color, false, false, null, null, null, null, null, 0);
         }
 
         public static Row toggle(String text, boolean on, Runnable click) {
-            return new Row(null, text, "", TEXT, false, false, click, null, null, on, null, null, 0);
+            return new Row(null, text, "", TEXT, false, false, click, null, on, null, null, 0);
         }
 
         public static Row dropdown(ItemStack icon, String text, String detail, boolean selected, List<Row> options) {
-            return new Row(icon, text, detail, TEXT, selected, false, null, null, options, null, null, null, 0);
+            return new Row(icon, text, detail, TEXT, selected, false, null, options, null, null, null, 0);
         }
 
         public static Row number(String text, long value, long min, long max, long reset, LongConsumer set) {
@@ -109,7 +100,6 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
                 TEXT,
                 false,
                 false,
-                null,
                 null,
                 null,
                 null,
@@ -133,7 +123,6 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
                 selected,
                 header,
                 click,
-                adjust,
                 options,
                 toggle,
                 number,
@@ -157,7 +146,6 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
                 selected,
                 header,
                 click,
-                adjust,
                 options,
                 toggle,
                 number,
@@ -357,8 +345,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
         Variant variant = AE2Theme.active(context);
         layout(variant != null);
         int width = getArea().width, height = getArea().height;
-        if (variant == null) GuiDraw.drawRect(0, 0, width, height, BACKGROUND);
-        else variant.inset.draw(0, 0, width - AE2_SCROLL_COLUMN, height);
+        AE2Theme.drawWell(variant, 0, 0, variant == null ? width : width - AE2_SCROLL_COLUMN, height, BACKGROUND);
         FontRenderer font = Minecraft.getMinecraft().fontRenderer;
         int hovered = hoveredRow(), visible = visibleRows();
         int rowRight = width - gutter, textRight = rowRight - 2;
@@ -389,10 +376,6 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
             }
             int right = textRight;
             if (row.number() != null) right -= NUMBER_WIDTH + 2;
-            if (row.adjust() != null) {
-                stepper(variant, font, textRight - STEPPER_WIDTH, top, row.detail());
-                right -= STEPPER_WIDTH + 3;
-            }
             if (row.options() != null) {
                 AE2Theme.drawCaret(
                     textRight - CARET + 2,
@@ -403,7 +386,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
                 right -= CARET;
             }
             if (row.toggle() != null) right -= drawSwitch(variant, textRight, top, row.toggle(), index == hovered) + 3;
-            String detail = row.detail() == null || row.adjust() != null ? "" : row.detail();
+            String detail = row.detail() == null ? "" : row.detail();
             int detailWidth = detail.isEmpty() ? 0 : font.getStringWidth(detail) + 3;
             if (!detail.isEmpty()) font.drawString(detail, right - detailWidth + 3, top + 5, detailColor);
             String text = font.trimStringToWidth(row.text(), Math.max(0, right - detailWidth - textLeft));
@@ -431,9 +414,10 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
     }
 
     /**
-     * Draws a row's on/off switch against the row's right end.
+     * Draws a row's on/off switch against the row's right end, centered in the row; see
+     * {@link AE2Theme#drawSwitch}.
      *
-     * @param variant active AE2 variant, or {@code null} for the list's own dark look
+     * @param variant active AE2 variant, or {@code null} outside the AE2 themes
      * @param right   pixel the switch ends at
      * @param top     top of the {@link #ROW}-high row
      * @param on      whether the switch is on
@@ -441,13 +425,8 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
      * @return width of the drawn switch
      */
     public static int drawSwitch(@Nullable Variant variant, int right, int top, boolean on, boolean hovered) {
-        if (variant == null) {
-            toggle(right - SWITCH, top + 5, on);
-            return SWITCH;
-        }
-        variant.switchSprite(on, hovered)
-            .draw(right - AE2Theme.SWITCH_WIDTH, top + 3, AE2Theme.SWITCH_WIDTH, AE2Theme.SWITCH_HEIGHT);
-        return AE2Theme.SWITCH_WIDTH;
+        int width = variant == null ? AE2Theme.SWITCH_HEIGHT : AE2Theme.SWITCH_WIDTH;
+        return AE2Theme.drawSwitch(variant, right - width, top + 3, on, hovered);
     }
 
     /**
@@ -470,33 +449,6 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
         GuiDraw.drawRect(start, top + 10, width, 1, HEADER_LINE_ALPHA | variant.colors.edge() & 0xFFFFFF);
     }
 
-    private static void stepper(Variant variant, FontRenderer font, int x, int top, String value) {
-        int fieldX = x + ARROW + 1, fieldWidth = STEPPER_WIDTH - 2 * ARROW - 2;
-        String shown = font.trimStringToWidth(value == null ? "" : value, fieldWidth - 2);
-        int textX = fieldX + (fieldWidth - font.getStringWidth(shown)) / 2;
-        if (variant == null) {
-            font.drawString("<", x + 3, top + 5, ACCENT);
-            font.drawString(">", x + STEPPER_WIDTH - ARROW + 3, top + 5, ACCENT);
-            font.drawString(shown, textX, top + 5, TEXT);
-            return;
-        }
-        arrowButton(variant, font, "<", x, top + 1);
-        arrowButton(variant, font, ">", x + STEPPER_WIDTH - ARROW, top + 1);
-        variant.textField.draw(fieldX, top + 1, fieldWidth, ROW - 2);
-        font.drawString(shown, textX, top + 5, variant.colors.fieldText());
-    }
-
-    private static void arrowButton(Variant variant, FontRenderer font, String label, int x, int y) {
-        int height = ROW - 2;
-        AE2ButtonDrawable.draw(variant.folder, State.NORMAL, x, y, ARROW, height);
-        font.drawString(
-            label,
-            x + (ARROW - font.getStringWidth(label)) / 2,
-            y + AE2ButtonDrawable.textY(State.NORMAL, height),
-            variant.colors.button(State.NORMAL));
-        GL11.glColor4f(1f, 1f, 1f, 1f);
-    }
-
     private void scrollbar(Variant variant, int width, int height, int visible) {
         boolean scrolls = rows.size() > visible;
         if (variant == null) {
@@ -504,11 +456,6 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
             return;
         }
         AE2Theme.drawScrollbar(variant, width - AE2Theme.BIG_SCROLLER_WIDTH, 0, height, handleTop() - 1, scrolls);
-    }
-
-    private static void toggle(int x, int y, boolean on) {
-        GuiDraw.drawRect(x, y, SWITCH, 8, on ? SWITCH_ON : SWITCH_OFF);
-        GuiDraw.drawRect(on ? x + SWITCH - 7 : x + 1, y + 1, 6, 6, KNOB);
     }
 
     @Override
@@ -532,17 +479,9 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
             return Result.SUCCESS;
         }
         if (mouseButton != 0) return Result.ACCEPT;
-        int textRight = getArea().width - gutter - 2, mouseX = getContext().getMouseX();
         if (row.options() != null) {
             expanded = row.text()
                 .equals(expanded) ? null : row.text();
-            Interactable.playButtonClickSound();
-        } else if (row.adjust() != null && mouseX >= textRight - STEPPER_WIDTH) {
-            if (mouseX < textRight - STEPPER_WIDTH + ARROW) row.adjust()
-                .accept(-1);
-            else if (mouseX >= textRight - ARROW) row.adjust()
-                .accept(1);
-            else return Result.SUCCESS;
             Interactable.playButtonClickSound();
         } else if (row.click() != null) {
             row.click()
