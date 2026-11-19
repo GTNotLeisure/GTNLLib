@@ -1,5 +1,7 @@
 package com.gtnllib.client.fx.world;
 
+import java.util.function.Predicate;
+
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderBlocks;
@@ -29,10 +31,18 @@ public class FxBlockMesh {
 
     public static class Section {
 
+        /** Lowest corner of the section in source-world coordinates; the section spans 16 blocks on each axis. */
+        public final int x, y, z;
         public final IntArrayList cells = new IntArrayList();
         public int list = -1;
         public boolean dirty = true;
         public long signature;
+
+        public Section(int x, int y, int z) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
     }
 
     public final FxBlockView view = new FxBlockView();
@@ -84,9 +94,10 @@ public class FxBlockMesh {
         view.source = source;
         for (int cell = 0; cell < xs.length; cell++) {
             view.cells.put(FxVoxelOutline.pack(xs[cell], ys[cell], zs[cell]), cell);
+            int sectionX = xs[cell] >> 4, sectionY = ys[cell] >> 4, sectionZ = zs[cell] >> 4;
             sections.computeIfAbsent(
-                FxVoxelOutline.pack(xs[cell] >> 4, ys[cell] >> 4, zs[cell] >> 4),
-                k -> new Section()).cells.add(cell);
+                FxVoxelOutline.pack(sectionX, sectionY, sectionZ),
+                k -> new Section(sectionX << 4, sectionY << 4, sectionZ << 4)).cells.add(cell);
         }
         return true;
     }
@@ -136,6 +147,15 @@ public class FxBlockMesh {
     public void draw() {
         for (Section section : sections.values()) {
             if (section.list >= 0) GL11.glCallList(section.list);
+        }
+    }
+
+    /**
+     * Draws the compiled sections that pass the test, such as a view-frustum check of each section's box.
+     */
+    public void draw(Predicate<Section> visible) {
+        for (Section section : sections.values()) {
+            if (section.list >= 0 && visible.test(section)) GL11.glCallList(section.list);
         }
     }
 

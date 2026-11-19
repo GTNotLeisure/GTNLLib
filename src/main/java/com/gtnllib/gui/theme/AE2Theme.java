@@ -92,12 +92,20 @@ public class AE2Theme {
         SCROLLER_HEIGHT = 15, RADIO_SIZE = 14, RADIO_LABEL_X = 16, RADIO_LABEL_Y = 3, LIST_ROW_HEIGHT = 22,
         PROGRESS_WIDTH = 6, PROGRESS_HEIGHT = 18, BUTTON_BAR_MARGIN = 2, BUTTON_BAR_SPACING = 6, UPGRADE_PADDING = 5,
         UPGRADE_ROWS = 8, VALIDATION_ICON_SIZE = 8, PANEL_EDGE = 2, PANEL_BOTTOM_EDGE = 4;
+    /**
+     * AE2 page tabs: size, distance between tab tops (neighbours share an outline row) and how far a tab starts inside
+     * the panel's right edge, which its left columns cover so the selected tab joins the panel.
+     */
+    public static final int PAGE_TAB_SIZE = 22, PAGE_TAB_PITCH = 21, PAGE_TAB_INSET = 3;
+    /** Size of the dropdown triangle drawn by {@link #drawCaret}. */
+    public static final int CARET_WIDTH = 5, CARET_HEIGHT = 3;
     private static final String ROOT = "textures/gui/skin/";
     private static final ResourceLocation AE2_LEGACY_STATES = new ResourceLocation(
         "appliedenergistics2",
         "textures/guis/states.png"),
         AE2_LEGACY_TERMINAL = new ResourceLocation("appliedenergistics2", "textures/guis/terminal.png"),
         CREATIVE_TABS = new ResourceLocation("textures/gui/container/creative_inventory/tabs.png");
+    private static final int PAGE_TAB_U = 128, PAGE_TAB_V = 128;
     private static final int PANEL_SIZE = 256, INSET_WIDTH = 8, INSET_HEIGHT = 9, SLOT_SIZE = 18, FIELD_WIDTH = 128,
         SHEET = 256, SWITCH_SHEET = 64, TAB_HOVER_SIZE = 22, LABEL_PADDING = 2, LABEL_HEIGHT = 8, TRACK_WIDTH = 8,
         TRACK_HEIGHT = 6, FILL_SIZE = 4, TAG_WIDTH = 6, TAG_HEIGHT = 9, DIVIDER_WIDTH = 4, DIVIDER_HEIGHT = 2,
@@ -303,6 +311,21 @@ public class AE2Theme {
     }
 
     /**
+     * Draws the five-by-three-pixel triangle that marks a dropdown.
+     *
+     * @param x     left edge of the triangle
+     * @param y     top edge of the triangle
+     * @param open  whether the dropdown is open, which points the triangle up
+     * @param color ARGB color
+     */
+    public static void drawCaret(int x, int y, boolean open, int color) {
+        for (int line = 0; line < CARET_HEIGHT; line++) {
+            int row = open ? CARET_HEIGHT - 1 - line : line;
+            GuiDraw.drawRect(x + line, y + row, CARET_WIDTH - line * 2, 1, color);
+        }
+    }
+
+    /**
      * Calculates an upgrade panel's width for columns of at most {@link #UPGRADE_ROWS} slots.
      *
      * @param slots nonnegative slot count; zero still reserves one column
@@ -498,6 +521,44 @@ public class AE2Theme {
     }
 
     /**
+     * Creates the panel background for a panel whose edges are covered by AE2 toolbar strips or page tabs: the active
+     * theme's panel texture drawn between the given insets. Use it with {@code disableThemeBackground(true)}.
+     *
+     * @param left  pixels from the panel's left edge to the background, such as
+     *              {@code VerticalButtonBar.WIDTH - VerticalButtonBar.OVERLAP}
+     * @param right pixels from the panel's right edge to the background, such as
+     *              {@code PAGE_TAB_SIZE - PAGE_TAB_INSET}
+     * @return background drawable for the panel
+     */
+    public static IDrawable panelBackground(int left, int right) {
+        return (context, x, y, width, height, widgetTheme) -> {
+            if (!(context instanceof ModularGuiContext modular)) return;
+            WidgetTheme look = modular.getTheme()
+                .getPanelTheme()
+                .getTheme();
+            IDrawable panel = look.getBackground();
+            if (panel != null) panel.draw(context, x + left, y, width - left - right, height, look);
+        };
+    }
+
+    /**
+     * Creates a list well: AE2's inset under AE2 themes, a flat rectangle otherwise. The well starts at the drawn
+     * area's left edge and has a fixed width, so a widget can be wider than its well, for example to leave room for
+     * the scroll bar that AE2 places beside it.
+     *
+     * @param width      well width in pixels
+     * @param plainColor ARGB fill used outside the AE2 themes
+     * @return background drawable
+     */
+    public static IDrawable well(int width, int plainColor) {
+        return (context, x, y, w, h, widgetTheme) -> {
+            Variant variant = active(context);
+            if (variant == null) GuiDraw.drawRect(x, y, width, h, plainColor);
+            else variant.inset.draw(x, y, width, h);
+        };
+    }
+
+    /**
      * Creates a button background resolved against the theme and supplied state at draw time.
      *
      * @param widget    widget supplying hover state
@@ -561,19 +622,36 @@ public class AE2Theme {
      * @return combined background and icon drawable; the standard size is 18 by 20 pixels
      */
     public static IDrawable iconButton(Widget<?> widget, Supplier<Icon> icon, BooleanSupplier available) {
+        return iconButton(widget, icon, available, () -> false);
+    }
+
+    /**
+     * Creates a toolbar-button background and icon that shows AE2's selected frame while it is selected, such as the
+     * button of the open page. Hovering still sinks it like any toolbar button.
+     *
+     * @param widget    widget supplying hover state
+     * @param icon      supplier of the displayed icon
+     * @param available supplier of the visual enabled state
+     * @param selected  supplier of the selected state
+     * @return combined background and icon drawable; the standard size is 18 by 20 pixels
+     * @see #iconButton(Widget, Supplier, BooleanSupplier)
+     */
+    public static IDrawable iconButton(Widget<?> widget, Supplier<Icon> icon, BooleanSupplier available,
+        BooleanSupplier selected) {
         return (context, x, y, width, height, theme) -> {
-            boolean on = available.getAsBoolean(), lit = on && widget.isHovering();
+            boolean on = available.getAsBoolean(), lit = on && widget.isHovering(), chosen = selected.getAsBoolean();
             Variant variant = active(context);
             UITexture sprite = icon.get()
                 .texture(variant);
             if (variant == null) {
-                themeButton(context, lit ? State.HOVER : State.NORMAL, x, y, width, height);
+                themeButton(context, lit || chosen ? State.HOVER : State.NORMAL, x, y, width, height);
                 drawIcon(sprite, x + (width - ICON_SIZE) / 2, y + (height - ICON_SIZE) / 2, on);
                 return;
             }
             int sink = lit ? 1 : 0;
             GlStateManager.color(1, 1, 1, 1);
-            (lit ? variant.iconButtonHover : variant.iconButton).draw(x, y + sink, width, height);
+            (lit ? variant.iconButtonHover : chosen ? variant.iconButtonSelected : variant.iconButton)
+                .draw(x, y + sink, width, height);
             drawIcon(sprite, x + (width - ICON_SIZE) / 2, y + Math.max(0, (height - ICON_SIZE) / 2 - 1) + sink, on);
         };
     }
@@ -604,6 +682,36 @@ public class AE2Theme {
             if (lit) variant.tabButtonHover.draw(x, y, TAB_HOVER_SIZE, TAB_HOVER_SIZE);
             else variant.tabButton.draw(x, y, TAB_BUTTON_SIZE, TAB_BUTTON_SIZE);
             drawIcon(sprite, x + 2, y + 1, on);
+        };
+    }
+
+    /**
+     * Creates a page-tab background and icon, as AE2 draws the mode tabs of its pattern encoding terminal.
+     * <p>
+     * AE2 tabs are 22 by 22 pixels, stacked {@link #PAGE_TAB_PITCH} apart and placed {@link #PAGE_TAB_INSET} pixels
+     * inside the panel's right edge, after the panel: the selected tab then covers the panel border and joins the
+     * panel, the others stand out as separate tabs. Other themes use the button look, hovered while selected.
+     *
+     * @param widget   widget supplying hover state
+     * @param icon     supplier of the displayed icon
+     * @param selected supplier of the selected state
+     * @return combined tab background and icon drawable
+     */
+    public static IDrawable pageTab(Widget<?> widget, Supplier<Icon> icon, BooleanSupplier selected) {
+        return (context, x, y, width, height, theme) -> {
+            boolean chosen = selected.getAsBoolean(), lit = widget.isHovering();
+            Variant variant = active(context);
+            UITexture sprite = icon.get()
+                .texture(variant);
+            if (variant == null) {
+                themeButton(context, lit || chosen ? State.HOVER : State.NORMAL, x, y, width, height);
+                drawIcon(sprite, x + (width - ICON_SIZE) / 2, y + (height - ICON_SIZE) / 2, true);
+                return;
+            }
+            GlStateManager.color(1, 1, 1, 1);
+            (chosen ? variant.pageTabSelected : lit ? variant.pageTabHover : variant.pageTab)
+                .draw(x, y, PAGE_TAB_SIZE, PAGE_TAB_SIZE);
+            drawIcon(sprite, x + 3, y + 2, true);
         };
     }
 
@@ -704,6 +812,22 @@ public class AE2Theme {
                 : state == State.HOVER ? GuiTextures.MC_BUTTON_HOVERED : GuiTextures.MC_BUTTON;
             vanilla.draw(x, y, width, height);
         } else background.draw(context, x, y, width, height, look);
+        GlStateManager.color(1, 1, 1, 1);
+    }
+
+    /**
+     * Draws an icon tinted with a color, such as a green check or a red warning. The light sprite is used under every
+     * theme so the tint keeps its brightness.
+     *
+     * @param icon  icon to draw
+     * @param x     left edge
+     * @param y     top edge
+     * @param color RGB tint; the alpha byte is ignored
+     */
+    public static void drawTintedIcon(Icon icon, int x, int y, int color) {
+        GlStateManager.color((color >> 16 & 255) / 255f, (color >> 8 & 255) / 255f, (color & 255) / 255f, 1);
+        icon.texture(Variant.LIGHT)
+            .draw(x, y, ICON_SIZE, ICON_SIZE);
         GlStateManager.color(1, 1, 1, 1);
     }
 
@@ -905,10 +1029,12 @@ public class AE2Theme {
         public final UITexture bigScroller, bigScrollerDisabled;
         /** Resizable text-field background with a native height of 12 pixels. */
         public final UITexture textField;
-        /** Normal and hovered toolbar-button frames, natively 18 by 20 pixels. */
-        public final UITexture iconButton, iconButtonHover;
+        /** Normal, hovered and selected toolbar-button frames, natively 18 by 20 pixels. */
+        public final UITexture iconButton, iconButtonHover, iconButtonSelected;
         /** Normal 20-by-20 and hovered 22-by-22 tab-button backgrounds. */
         public final UITexture tabButton, tabButtonHover;
+        /** Normal, selected and hovered 22-by-22 page tabs that stick out of a panel's right edge. */
+        public final UITexture pageTab, pageTabSelected, pageTabHover;
         /** Unchecked switch sprites in normal and hovered states, 22 by 12 pixels. */
         public final UITexture switchOff, switchOffHover;
         /** Checked switch sprites in normal and hovered states, 22 by 12 pixels. */
@@ -991,8 +1117,26 @@ public class AE2Theme {
                 .build();
             iconButton = frame(folder, "icon_button", 176, 128);
             iconButtonHover = frame(folder, "icon_button_hover", 212, 128);
+            iconButtonSelected = frame(folder, "icon_button_selected", 194, 128);
             tabButton = sprite(folder, "states", SHEET, 160, 192, TAB_BUTTON_SIZE, TAB_BUTTON_SIZE);
             tabButtonHover = sprite(folder, "states", SHEET, 160, 224, TAB_HOVER_SIZE, TAB_HOVER_SIZE);
+            pageTab = sprite(folder, "states", SHEET, PAGE_TAB_U, PAGE_TAB_V, PAGE_TAB_SIZE, PAGE_TAB_SIZE);
+            pageTabSelected = sprite(
+                folder,
+                "states",
+                SHEET,
+                PAGE_TAB_U,
+                PAGE_TAB_V + PAGE_TAB_SIZE,
+                PAGE_TAB_SIZE,
+                PAGE_TAB_SIZE);
+            pageTabHover = sprite(
+                folder,
+                "states",
+                SHEET,
+                PAGE_TAB_U + PAGE_TAB_SIZE,
+                PAGE_TAB_V,
+                PAGE_TAB_SIZE,
+                PAGE_TAB_SIZE);
             switchOff = checkbox(folder, "switch_off", 0, 28);
             switchOffHover = checkbox(folder, "switch_off_hover", 22, 28);
             switchOn = checkbox(folder, "switch_on", 0, 40);
@@ -1219,6 +1363,8 @@ public class AE2Theme {
         SEARCH(160, 48, GuiTextures.SEARCH),
         /** Confirmation action. */
         CHECKMARK(176, 48, GuiTextures.CHECKMARK),
+        /** Warning, such as a problem to look at. */
+        EXCLAMATION(16, 48, GuiTextures.EXCLAMATION),
         /** Settings action. */
         GEAR(0, 0, GuiTextures.GEAR),
         /** Add action. */
@@ -1230,15 +1376,45 @@ public class AE2Theme {
         /** Edit action. */
         EDIT(80, 16, GuiTextures.EDIT),
         /** Filter control. */
-        FILTER(128, 0, GuiTextures.FILTER);
+        FILTER(128, 0, GuiTextures.FILTER),
+        /** Hidden state of a visibility control. */
+        INVISIBLE(32, 32, GuiTextures.INVISIBLE),
+        /** Upward arrow from a bar, such as raising something. */
+        UPLOAD(16, 16, GuiTextures.UPLOAD),
+        /** Downward arrow onto a bar, such as lowering something. */
+        DOWNLOAD(0, 16, GuiTextures.DOWNLOAD),
+        /** Two opposite horizontal arrows, such as mirroring. */
+        REVERSE(224, 16, GuiTextures.REVERSE),
+        /** A block or cube. */
+        BLOCK(240, 16, GuiTextures.BLOCK),
+        /** Turning arrow, such as a quarter turn. */
+        SHIFT_BACKWARD(208, 32, GuiTextures.SHIFT_BACKWARD),
+        /** A page of text, such as a list. */
+        FILE(80, 48, GuiTextures.FILE),
+        /** A chip, such as a machine part. */
+        PROCESSOR(96, 48, GuiTextures.PROCESSOR),
+        /** Arrows pointing outwards, such as fitting a view to its content. */
+        MAXIMIZE(80, 32, GuiTextures.MAXIMIZE),
+        /** Arrows pointing inwards, such as turning around a centre. */
+        MINIMIZE(96, 32, GuiTextures.MINIMIZE),
+        /** Plain upward arrow, such as raising by one step. */
+        ARROW_UP(0, 64, GuiTextures.ARROW_UP),
+        /** Plain downward arrow, such as lowering by one step. */
+        ARROW_DOWN(16, 64, GuiTextures.ARROW_DOWN),
+        /** Two opposite vertical arrows, such as flipping upside down. */
+        FLIP_VERTICAL(32, 64, null),
+        /** {@link #MOVE_TO} pointing up, such as a face turned upwards. */
+        MOVE_TO_UP(48, 64, null),
+        /** {@link #MOVE_TO} pointing down, such as a face turned downwards. */
+        MOVE_TO_DOWN(64, 64, null);
 
         /** Source coordinates within the AE2 icon sheet, in pixels. */
         public final int x, y;
-        /** MUI2 fallback texture used outside AE2 themes. */
-        public final UITexture vanilla;
+        /** MUI2 fallback texture used outside AE2 themes, or {@code null} to use the dark AE2 sprite there. */
+        public final @Nullable UITexture vanilla;
         private final UITexture[] skins = new UITexture[Variant.values().length];
 
-        Icon(int x, int y, UITexture vanilla) {
+        Icon(int x, int y, @Nullable UITexture vanilla) {
             this.x = x;
             this.y = y;
             this.vanilla = vanilla;
@@ -1247,11 +1423,15 @@ public class AE2Theme {
         /**
          * Resolves this icon's texture, caching the AE2 sprite for each variant.
          *
-         * @param variant AE2 variant, or {@code null} for the MUI2 fallback
+         * @param variant AE2 variant, or {@code null} for the MUI2 fallback; icons MUI2 has no equivalent for use the
+         *                dark AE2 sprite there
          * @return icon texture
          */
         public UITexture texture(@Nullable Variant variant) {
-            if (variant == null) return vanilla;
+            if (variant == null) {
+                if (vanilla != null) return vanilla;
+                variant = Variant.DARK;
+            }
             UITexture skin = skins[variant.ordinal()];
             if (skin == null)
                 skin = skins[variant.ordinal()] = sprite(variant.folder, "icons", SHEET, x, y, ICON_SIZE, ICON_SIZE);

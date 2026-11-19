@@ -11,7 +11,19 @@ GTNLLib provides light, dark and purple-highlighted dark AE2 themes for ModularU
 | [HandleScrollData](src/main/java/com/gtnllib/gui/widget/HandleScrollData.java) | Vertical scrolling with a fixed-size handle and optional row snapping. |
 | [GTNLListWidget](src/main/java/com/gtnllib/gui/widget/GTNLListWidget.java) | List layout, initial scroll position and persistent scroll-bar integration. |
 | [IPersistentScrollbar](src/main/java/com/gtnllib/gui/widget/IPersistentScrollbar.java) | Extension contract for scroll data that retains an inactive track. |
-| [NumberEntry](src/main/java/com/gtnllib/gui/widget/NumberEntry.java) | Bounded integer input, expression parsing, step buttons and validation feedback. |
+| [NumberEntry](src/main/java/com/gtnllib/gui/widget/NumberEntry.java) | Bounded integer input of any size, expression parsing, step buttons or `<` `>` arrows, wheel stepping, right-click reset and validation feedback. |
+| [VerticalButtonBar](src/main/java/com/gtnllib/gui/widget/VerticalButtonBar.java) | AE2's vertical toolbar left of a panel: 18×20 icon buttons 22 pixels apart on a strip that covers the panel's left border; on/off buttons show AE2's selected frame while on. |
+| [IconRowList](src/main/java/com/gtnllib/gui/widget/IconRowList.java) | Fast drawn list rows with icons, details (optionally in their own color), dropdowns, switches, steppers and `NumberEntry` fields; AE2 inset, highlights and scroll bar under AE2 themes. |
+| [ListRow](src/main/java/com/gtnllib/gui/widget/ListRow.java) | A widget row drawn like an `IconRowList` row: label, then a control widget or switch against the right end; clickable rows highlight. For lists that mix MUI2 controls with rows. |
+| [ActionButton](src/main/java/com/gtnllib/gui/widget/ActionButton.java) | Themed text button or 18×20 toolbar icon button with a left-click action, optional available and selected states; an unavailable button swallows left clicks. |
+| [ValueStepper](src/main/java/com/gtnllib/gui/widget/ValueStepper.java) | `<` value `>` stepper over named values such as voltage tiers; the mouse wheel steps too. |
+| [CycleDropdown](src/main/java/com/gtnllib/gui/widget/CycleDropdown.java) | Dropdown that keeps its menu inside the panel (`menuWidth`); `iconOption` builds an item-icon option row with a scrolling name. |
+
+AE2 draws its toolbar strip after the panel, anchored three pixels inside the panel's left edge, so the strip's right two pixels hide the panel border and the two read as one piece. Place `VerticalButtonBar` at `panelLeft - WIDTH + OVERLAP` and add it after the panel's other children. A panel that also holds the bar starts its background `WIDTH - OVERLAP` pixels right of its own left edge; `AE2Theme.panelBackground(left, right)` draws the panel texture between such insets.
+
+Pages are switched with AE2's page tabs (`AE2Theme.pageTab`), the mode tabs of the pattern encoding terminal: 22×22 tabs stacked `PAGE_TAB_PITCH` apart on the panel's right edge, starting `PAGE_TAB_INSET` pixels inside it and added after the panel. The selected tab covers the panel border and joins the panel; the others stand out. Toolbar buttons (`AE2Theme.iconButton`) are actions, not pages; their `selected` overload marks a toggled action.
+
+AE2 lists keep their scroll bar beside the list inset, on the panel background, with seven pixels from the inset edge to the groove; the groove is never drawn inside the inset. `IconRowList` reserves `AE2_SCROLL_COLUMN` for it, so align controls above a list to `width - AE2_SCROLL_COLUMN` under AE2 themes. `AE2Theme.well(width, plainColor)` draws such an inset for a page of your own widgets. `ListRow`s as wide as the inset put their text and controls where `IconRowList`'s own rows put them, so pages built from either line up. A scrolling list of `ListRow`s placed one pixel inside its inset, top and bottom, clips its rows inside the inset border while `HandleScrollData` still draws the groove over the inset's full height.
 
 ## Theme Selection
 
@@ -59,7 +71,9 @@ NumberEntry amount = new NumberEntry(Variant.LIGHT).bounds(1, 1_000_000)
 OptionalLong requested = amount.value();
 ```
 
-`value()` returns an empty result for invalid input. `isInputValid()` checks the input; inherited `isValid()` reports the MUI2 widget lifecycle. Callback semantics are defined by `NumberEntry.onChange(LongConsumer)`.
+`value()` returns an empty result for invalid input. `follow(LongSupplier)` keeps the field showing a value that other controls can change too, except while the player is typing in it. `isInputValid()` checks the input; inherited `isValid()` reports the MUI2 widget lifecycle. Callback semantics are defined by `NumberEntry.onChange(LongConsumer)`.
+
+The layout follows the size: from 62 pixels high it shows the AE2 step buttons stretched to the width, and lower entries are one row of `<`, the text field and `>`, such as `.size(64, 16)`. The arrows and the mouse wheel over the field step by 1, or 10 with Shift. Right-clicking the field applies `resetValue(long)` (default 0) clamped to the bounds.
 
 ## Texture Attribution
 

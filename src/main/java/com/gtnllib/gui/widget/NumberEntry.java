@@ -4,13 +4,16 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.OptionalLong;
 import java.util.function.LongConsumer;
+import java.util.function.LongSupplier;
 import java.util.regex.Pattern;
 
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.util.StatCollector;
 
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import com.cleanroommc.modularui.api.UpOrDown;
 import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.theme.WidgetThemeEntry;
@@ -19,6 +22,7 @@ import com.cleanroommc.modularui.utils.ParseResult;
 import com.cleanroommc.modularui.value.StringValue;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widget.Widget;
+import com.cleanroommc.modularui.widget.sizer.Unit.Measure;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import com.gtnllib.gui.theme.AE2Theme;
@@ -29,15 +33,23 @@ import cpw.mods.fml.relauncher.SideOnly;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 
 /**
- * Client-side integer input with a text field, validation feedback and four pairs of step buttons.
+ * Client-side integer input with a text field, validation feedback and step controls.
+ * <p>
+ * The layout follows the widget's size. From {@link #HEIGHT} pixels up the entry shows AE2's four pairs of step
+ * buttons above and below the text field, stretched to the width; the default size is {@link #WIDTH} by
+ * {@link #HEIGHT}. A lower entry is a single row of {@code <}, the text field and {@code >}, for example 64 by 16
+ * pixels inside a list row.
  * <p>
  * Input may contain a signed {@code long} literal or a numeric expression with SI suffixes, such as {@code 2 * 64}
  * or {@code 1.5k}. Only integral results within the configured bounds are valid. Invalid text remains editable and
- * is accompanied by an error tooltip and icon. The text field accepts up to 64 characters.
+ * is accompanied by an error tooltip, and in the tall layout an error icon. The text field accepts up to 64
+ * characters.
  * <p>
- * Step sizes are 1, 10, 100 and 1000, or 1, 16, 32 and 64 while Shift or Ctrl is held. Steps are clamped to the
- * configured bounds. Increasing a value of one by a step larger than one selects that step value. Invalid input
- * is treated as zero when applying a step.
+ * Step button sizes are 1, 10, 100 and 1000, or 1, 16, 32 and 64 while Shift or Ctrl is held. The {@code <} and
+ * {@code >} buttons and the mouse wheel over the text field step by 1, or by 10 while Shift is held. Steps are
+ * clamped to the configured bounds. Increasing a value of one by a step larger than one selects that step value.
+ * Invalid input is treated as zero when applying a step. Right-clicking the text field sets the reset value,
+ * clamped to the bounds, so the default reset value of zero becomes one when the minimum is one.
  * <p>
  * {@link #isInputValid()} describes the input. Inherited {@link #isValid()} describes the MUI2 widget lifecycle.
  * <p>
@@ -47,12 +59,14 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 @SideOnly(Side.CLIENT)
 public class NumberEntry extends ParentWidget<NumberEntry> {
 
-    /** Default widget dimensions in GUI pixels. */
+    /** Default widget dimensions in GUI pixels; lower entries use the single-row layout. */
     public static final int WIDTH = 138, HEIGHT = 62;
+    /** Width of the {@code <} and {@code >} buttons of the single-row layout. */
+    public static final int ARROW_WIDTH = 12;
     private static final long[] STEPS = { 1, 10, 100, 1000 }, SHIFT_STEPS = { 1, 16, 32, 64 };
     private static final int[] BUTTON_X = { 0, 28, 62, 100 }, BUTTON_WIDTH = { 22, 28, 32, 38 };
-    private static final int MINUS_Y = 42, FIELD_X = 28, FIELD_Y = 25, FIELD_WIDTH = 66, ICON_X = 104, ICON_Y = 27,
-        MAX_LENGTH = 64, PLAIN_ERROR = 0xFFFF5555;
+    private static final int FIELD_X = 28, FIELD_Y = 25, FIELD_WIDTH = 66, ICON_X = 104, ICON_Y = 27, ARROW_GAP = 1,
+        FINE_STEP = 1, SHIFT_FINE_STEP = 10, MAX_LENGTH = 64, PLAIN_ERROR = 0xFFFF5555;
     private static final String LANG = "gtnllib.gui.number_entry.";
     private static final Pattern INTEGER = Pattern.compile("-?\\d+");
 
@@ -61,7 +75,7 @@ public class NumberEntry extends ParentWidget<NumberEntry> {
     private final Warning warning = new Warning();
     private final List<String> messages = new ObjectArrayList<>();
     private String text = "0";
-    private long min, max = Long.MAX_VALUE, value;
+    private long min, max = Long.MAX_VALUE, value, reset;
     private boolean inputValid = true;
     private LongConsumer listener = ignored -> {};
 
@@ -75,13 +89,28 @@ public class NumberEntry extends ParentWidget<NumberEntry> {
         this.variant = variant;
         size(WIDTH, HEIGHT);
         for (int i = 0; i < STEPS.length; i++) {
+            int index = i;
             child(
-                step(i, 1).pos(BUTTON_X[i], 0)
-                    .size(BUTTON_WIDTH[i], AE2Theme.BUTTON_HEIGHT));
+                step(i, 1).left(() -> scaled(BUTTON_X[index]), Measure.PIXEL)
+                    .width(() -> scaledWidth(BUTTON_X[index], BUTTON_WIDTH[index]), Measure.PIXEL)
+                    .top(0)
+                    .height(AE2Theme.BUTTON_HEIGHT));
             child(
-                step(i, -1).pos(BUTTON_X[i], MINUS_Y)
-                    .size(BUTTON_WIDTH[i], AE2Theme.BUTTON_HEIGHT));
+                step(i, -1).left(() -> scaled(BUTTON_X[index]), Measure.PIXEL)
+                    .width(() -> scaledWidth(BUTTON_X[index], BUTTON_WIDTH[index]), Measure.PIXEL)
+                    .bottom(0)
+                    .height(AE2Theme.BUTTON_HEIGHT));
         }
+        child(
+            arrow(-1).left(0)
+                .top(0)
+                .width(ARROW_WIDTH)
+                .heightRel(1f));
+        child(
+            arrow(1).right(0)
+                .top(0)
+                .width(ARROW_WIDTH)
+                .heightRel(1f));
         field.setMaxLength(MAX_LENGTH)
             .setTooltipOverride(true)
             .autoUpdateOnChange(true)
@@ -92,12 +121,55 @@ public class NumberEntry extends ParentWidget<NumberEntry> {
             .tooltipAutoUpdate(true)
             .tooltipBuilder(tooltip -> messages.forEach(tooltip::addLine));
         child(
-            field.pos(FIELD_X, FIELD_Y)
-                .size(FIELD_WIDTH, AE2Theme.TEXT_FIELD_HEIGHT));
+            field.left(() -> compact() ? ARROW_WIDTH + ARROW_GAP : scaled(FIELD_X), Measure.PIXEL)
+                .width(
+                    () -> compact() ? getArea().width - 2 * (ARROW_WIDTH + ARROW_GAP)
+                        : scaledWidth(FIELD_X, FIELD_WIDTH),
+                    Measure.PIXEL)
+                .top(() -> compact() ? 0 : FIELD_Y + centerShift(), Measure.PIXEL)
+                .height(() -> compact() ? getArea().height : AE2Theme.TEXT_FIELD_HEIGHT, Measure.PIXEL));
         child(
-            warning.pos(ICON_X, ICON_Y)
-                .size(AE2Theme.VALIDATION_ICON_SIZE, AE2Theme.VALIDATION_ICON_SIZE));
+            warning.left(() -> scaled(ICON_X), Measure.PIXEL)
+                .top(() -> ICON_Y + centerShift(), Measure.PIXEL)
+                .size(AE2Theme.VALIDATION_ICON_SIZE, AE2Theme.VALIDATION_ICON_SIZE)
+                .setEnabledIf(icon -> !inputValid && !compact()));
         validate(false);
+    }
+
+    /**
+     * Sets the value chosen by right-clicking the text field. It is clamped to the bounds when applied.
+     *
+     * @param reset value to apply; the default is zero
+     * @return this widget
+     */
+    public NumberEntry resetValue(long reset) {
+        this.reset = reset;
+        return this;
+    }
+
+    /**
+     * Reports whether the text field has keyboard focus, so callers can avoid replacing text the player is typing.
+     *
+     * @return {@code true} while the text field is focused
+     */
+    public boolean isEditing() {
+        return field.isValid() && field.isFocused();
+    }
+
+    private boolean compact() {
+        return getArea().height < HEIGHT;
+    }
+
+    private int scaled(int x) {
+        return Math.round(x * (float) getArea().width / WIDTH);
+    }
+
+    private int scaledWidth(int x, int width) {
+        return scaled(x + width) - scaled(x);
+    }
+
+    private int centerShift() {
+        return (getArea().height - HEIGHT) / 2;
     }
 
     /**
@@ -142,6 +214,23 @@ public class NumberEntry extends ParentWidget<NumberEntry> {
     }
 
     /**
+     * Keeps the shown value equal to a source that can also change elsewhere, such as through another control. The
+     * value is copied every update while the field is not being edited; user input still goes to
+     * {@link #onChange(LongConsumer)}.
+     *
+     * @param source supplier of the current value, read on the client thread every update
+     * @return this widget
+     */
+    public NumberEntry follow(LongSupplier source) {
+        value(source.getAsLong());
+        onUpdateListener(widget -> {
+            long current = source.getAsLong();
+            if (!isEditing() && value().orElse(Long.MIN_VALUE) != current) value(current);
+        }, true);
+        return this;
+    }
+
+    /**
      * Returns the accepted value of the current text.
      *
      * @return the integer value, or an empty result while the input is invalid
@@ -169,11 +258,35 @@ public class NumberEntry extends ParentWidget<NumberEntry> {
                 if (mouse != 0) return false;
                 add(sign * steps()[index]);
                 return true;
-            });
+            })
+            .setEnabledIf(widget -> !compact());
+    }
+
+    private ButtonWidget<?> arrow(int sign) {
+        ButtonWidget<?> button = new ButtonWidget<>();
+        IDrawable background = AE2Theme.button(button, () -> true, () -> false);
+        return button.background(background)
+            .hoverBackground(background)
+            .overlay(AE2Theme.label(button, () -> sign > 0 ? ">" : "<", () -> true, () -> false))
+            .onMousePressed(mouse -> {
+                if (mouse != 0) return false;
+                add(sign * fineStep());
+                return true;
+            })
+            .setEnabledIf(widget -> compact());
     }
 
     private static long[] steps() {
         return GuiScreen.isShiftKeyDown() || GuiScreen.isCtrlKeyDown() ? SHIFT_STEPS : STEPS;
+    }
+
+    private static long fineStep() {
+        return GuiScreen.isShiftKeyDown() ? SHIFT_FINE_STEP : FINE_STEP;
+    }
+
+    private void reset() {
+        setText(Long.toString(Math.max(min, Math.min(max, reset))));
+        validate(true);
     }
 
     private void add(long delta) {
@@ -204,7 +317,6 @@ public class NumberEntry extends ParentWidget<NumberEntry> {
         else if (number.compareTo(BigDecimal.valueOf(max)) > 0) messages.add(tr("max", max));
         inputValid = messages.isEmpty();
         field.error(inputValid ? null : variant == null ? PLAIN_ERROR : variant.colors.error());
-        warning.setEnabled(!inputValid);
         if (!inputValid) return;
         value = number.longValueExact();
         if (!INTEGER.matcher(text.strip())
@@ -234,13 +346,26 @@ public class NumberEntry extends ParentWidget<NumberEntry> {
         return StatCollector.translateToLocalFormatted(LANG + key, args);
     }
 
-    private static class Field extends TextFieldWidget {
+    private class Field extends TextFieldWidget {
 
         @Override
         public void setText(String text) {
             super.setText(text);
             handler.clampCursors();
             getScrollData().scrollTo(getScrollArea(), 0);
+        }
+
+        @Override
+        public @NotNull Result onMousePressed(int mouseButton) {
+            if (mouseButton != 1 || !isHovering()) return super.onMousePressed(mouseButton);
+            reset();
+            return Result.SUCCESS;
+        }
+
+        @Override
+        public boolean onMouseScroll(UpOrDown scrollDirection, int amount) {
+            add(scrollDirection.modifier * fineStep());
+            return true;
         }
 
         private void error(@Nullable Integer color) {
