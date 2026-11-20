@@ -15,11 +15,14 @@ import com.gtnllib.gui.theme.AE2Theme.Icon;
  * A button drawn by the active theme: a text button ({@link AE2Theme#button} with {@link AE2Theme#label}) or a
  * toolbar icon button ({@link AE2Theme#iconButton}). It reacts to the left mouse button only, unless a mouse handler
  * set afterwards replaces the action. While it is not available it looks disabled and swallows left clicks, so they
- * never reach a widget below it. It can be built on either side, so it also works in GUIs the server opens.
+ * never reach a widget below it. Under AE2 themes an icon button reacts like AE2's: only the 16-by-16 square at the top
+ * of its frame, centred across it, takes the mouse, and the lower part of the frame does not. It can be built on
+ * either side, so it also works in GUIs the server opens.
  */
 public class ActionButton extends ButtonWidget<ActionButton> {
 
     private BooleanSupplier available = () -> true, selected = () -> false;
+    private boolean icon;
 
     /**
      * Creates a text button. The caller sets its size.
@@ -48,6 +51,7 @@ public class ActionButton extends ButtonWidget<ActionButton> {
      */
     public static ActionButton icon(Supplier<Icon> icon, Runnable action) {
         ActionButton button = new ActionButton();
+        button.icon = true;
         IDrawable look = AE2Theme.iconButton(button, icon, button::isAvailable, button::isSelected);
         return button.background(look)
             .hoverBackground(look)
@@ -96,6 +100,15 @@ public class ActionButton extends ButtonWidget<ActionButton> {
     @Override
     public boolean canBeSeen(IViewportStack stack) {
         return isEnabled() && super.canBeSeen(stack);
+    }
+
+    // Why: AE2's IconButton is a 16-by-16 widget; the 18-by-20 frame around it is only drawn.
+    @Override
+    public boolean isInside(IViewportStack stack, int mx, int my, boolean absolute) {
+        if (!icon || AE2Theme.active(getContext()) == null) return super.isInside(stack, mx, my, absolute);
+        int x = absolute ? stack.unTransformX(mx, my) : mx, y = absolute ? stack.unTransformY(mx, my) : my,
+            left = (getArea().w() - AE2Theme.ICON_SIZE) / 2;
+        return x >= left && x < left + AE2Theme.ICON_SIZE && y >= 0 && y < Math.min(AE2Theme.ICON_SIZE, getArea().h());
     }
 
     @Override

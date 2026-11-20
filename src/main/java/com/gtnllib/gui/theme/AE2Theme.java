@@ -1,5 +1,6 @@
 package com.gtnllib.gui.theme;
 
+import java.util.List;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
@@ -32,6 +33,7 @@ import com.cleanroommc.modularui.utils.JsonBuilder;
 import com.cleanroommc.modularui.utils.Platform;
 import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widgets.SliderWidget;
+import com.cleanroommc.modularui.widgets.textfield.BaseTextFieldWidget;
 import com.gtnllib.GTNLLib;
 import com.gtnllib.gui.theme.ThemeSkin.Part;
 import com.gtnllib.gui.wheel.WheelStyle;
@@ -88,6 +90,8 @@ public class AE2Theme {
         PURPLE_HIGHLIGHT_SHADOW = 0xFF212040;
     /** ARGB text color of a text field that cannot be edited, as Minecraft draws uneditable fields. */
     public static final int FIELD_DISABLED_TEXT = 0xFF707070;
+    /** Pixels between an AE2 text field's background edge and its text; MUI2's text fields use four. */
+    public static final int TEXT_FIELD_PADDING = 2;
     /**
      * Widget dimensions, label offsets, border widths and layout spacing in GUI pixels; {@code UPGRADE_ROWS} is a
      * count.
@@ -103,6 +107,8 @@ public class AE2Theme {
      * the panel's right edge, which its left columns cover so the selected tab joins the panel.
      */
     public static final int PAGE_TAB_SIZE = 22, PAGE_TAB_PITCH = 21, PAGE_TAB_INSET = 3;
+    /** How far an upgrade panel starts inside the right edge of the panel it belongs to, as AE2 places it. */
+    public static final int UPGRADE_OVERLAP = 2;
     /** Size of the dropdown triangle drawn by {@link #drawCaret}. */
     public static final int CARET_WIDTH = 5, CARET_HEIGHT = 3;
     private static final String ROOT = "textures/gui/skin/";
@@ -111,7 +117,7 @@ public class AE2Theme {
         "textures/guis/states.png"),
         AE2_LEGACY_TERMINAL = new ResourceLocation("appliedenergistics2", "textures/guis/terminal.png"),
         CREATIVE_TABS = new ResourceLocation("textures/gui/container/creative_inventory/tabs.png");
-    private static final int PAGE_TAB_U = 128, PAGE_TAB_V = 128;
+    private static final int PAGE_TAB_U = 128, PAGE_TAB_V = 128, MUI_TEXT_FIELD_PADDING = 4, CHECKBOX_LINES_Y = 1;
     private static final int PANEL_SIZE = 256, INSET_WIDTH = 8, INSET_HEIGHT = 9, SLOT_SIZE = 18, FIELD_WIDTH = 128,
         SHEET = 256, SWITCH_SHEET = 64, TAB_HOVER_SIZE = 22, LABEL_PADDING = 2, LABEL_HEIGHT = 8, TRACK_WIDTH = 8,
         TRACK_HEIGHT = 6, FILL_SIZE = 4, TAG_WIDTH = 6, TAG_HEIGHT = 9, DIVIDER_WIDTH = 4, DIVIDER_HEIGHT = 2,
@@ -339,13 +345,42 @@ public class AE2Theme {
     }
 
     /**
-     * Calculates an upgrade panel's width for columns of at most {@link #UPGRADE_ROWS} slots.
+     * Calculates an upgrade panel's width for columns of at most {@link #UPGRADE_ROWS} slots. AE2 attaches the panel
+     * to the right of the panel it belongs to, starting {@link #UPGRADE_OVERLAP} pixels inside that panel's right edge,
+     * so that many of these pixels cover the other panel's border.
      *
      * @param slots nonnegative slot count; zero still reserves one column
-     * @return panel width in pixels, including padding
+     * @return panel width in pixels, 23 for one column
      */
     public static int upgradePanelWidth(int slots) {
-        return UPGRADE_PADDING * 2 + Math.max(1, (slots + UPGRADE_ROWS - 1) / UPGRADE_ROWS) * SLOT_SIZE;
+        return upgradeColumns(slots) * SLOT_SIZE + UPGRADE_PADDING;
+    }
+
+    private static int upgradeColumns(int slots) {
+        return Math.max(1, (slots + UPGRADE_ROWS - 1) / UPGRADE_ROWS);
+    }
+
+    /**
+     * Returns the left edge of an 18-by-18 item slot widget in an upgrade panel, relative to the panel; the item sits
+     * one pixel inside, on the slot well the panel draws. Turn off the slot widget's theme background
+     * ({@code disableThemeBackground(true)}), or its own frame covers AE2's wells.
+     *
+     * @param index zero-based slot index; slots fill columns of {@link #UPGRADE_ROWS} from the top
+     * @return x offset in pixels
+     */
+    public static int upgradeSlotX(int index) {
+        return index / UPGRADE_ROWS * SLOT_SIZE;
+    }
+
+    /**
+     * Returns the top edge of an 18-by-18 item slot widget in an upgrade panel, relative to the panel.
+     *
+     * @param index zero-based slot index
+     * @return y offset in pixels
+     * @see #upgradeSlotX(int)
+     */
+    public static int upgradeSlotY(int index) {
+        return UPGRADE_PADDING + index % UPGRADE_ROWS * SLOT_SIZE;
     }
 
     /**
@@ -359,7 +394,10 @@ public class AE2Theme {
     }
 
     /**
-     * Draws an upgrade panel and its empty item slots in column-major order.
+     * Draws an upgrade panel and its empty slot wells as AE2 does. The panel has no left border: its first column
+     * covers the right border of the panel it belongs to, so draw it after that panel at
+     * {@code panelRight - UPGRADE_OVERLAP}. A light frame surrounds the block of 16-by-16 wells, which sit 18 pixels
+     * apart in columns of {@link #UPGRADE_ROWS}.
      *
      * @param variant non-null AE2 variant
      * @param x       panel left edge
@@ -367,15 +405,23 @@ public class AE2Theme {
      * @param slots   nonnegative number of slots to draw
      * @see #upgradePanelWidth(int)
      * @see #upgradePanelHeight(int)
+     * @see #upgradeSlotX(int)
      */
     public static void drawUpgradePanel(Variant variant, int x, int y, int slots) {
+        int columns = upgradeColumns(slots), rows = Math.max(1, Math.min(slots, UPGRADE_ROWS)),
+            width = upgradePanelWidth(slots), height = upgradePanelHeight(slots);
         GlStateManager.color(1, 1, 1, 1);
-        variant.panel.draw(x, y, upgradePanelWidth(slots), upgradePanelHeight(slots));
-        for (int i = 0; i < slots; i++) variant.slotItem.draw(
-            x + UPGRADE_PADDING + i / UPGRADE_ROWS * SLOT_SIZE,
-            y + UPGRADE_PADDING + i % UPGRADE_ROWS * SLOT_SIZE,
-            SLOT_SIZE,
-            SLOT_SIZE);
+        variant.upgradeFrame.draw(x + 1, y, width - 1, height);
+        GuiDraw.drawRect(x, y + PANEL_EDGE, 1, height - PANEL_EDGE - PANEL_BOTTOM_EDGE, variant.colors.panel);
+        int blockY = y + UPGRADE_PADDING, blockWidth = columns * SLOT_SIZE, blockHeight = rows * SLOT_SIZE;
+        GuiDraw.drawRect(x, blockY, blockWidth, blockHeight, variant.colors.edge);
+        GuiDraw.drawRect(x + 1, blockY + 1, blockWidth - 2, blockHeight - 2, variant.colors.panel);
+        for (int i = 0; i < slots; i++) {
+            int wellX = x + upgradeSlotX(i) + 1, wellY = y + upgradeSlotY(i) + 1;
+            GuiDraw.drawRect(wellX, wellY, ICON_SIZE, 1, variant.colors.well);
+            GuiDraw.drawRect(wellX, wellY + 1, ICON_SIZE, ICON_SIZE - 1, variant.colors.raised);
+        }
+        GlStateManager.color(1, 1, 1, 1);
     }
 
     /**
@@ -458,26 +504,49 @@ public class AE2Theme {
         return (context, x, y, width, height, theme) -> {
             boolean usable = available.getAsBoolean(), lit = usable && widget.isHovering(),
                 checked = selected.getAsBoolean();
-            FontRenderer font = Minecraft.getMinecraft().fontRenderer;
-            String fitted = font.trimStringToWidth(label.get(), Math.max(0, width - RADIO_LABEL_X));
             Variant variant = active(context);
             GlStateManager.color(1, 1, 1, usable ? 1 : INACTIVE_ALPHA);
             if (variant == null) {
                 (checked ? GuiTextures.CHECK_BOX_FULL : GuiTextures.CHECK_BOX_EMPTY).draw(x, y, RADIO_SIZE, RADIO_SIZE);
                 GlStateManager.color(1, 1, 1, 1);
+                String fitted = Minecraft.getMinecraft().fontRenderer
+                    .trimStringToWidth(label.get(), Math.max(0, width - RADIO_LABEL_X));
                 plainText(context, fitted, x + RADIO_LABEL_X, y + (RADIO_SIZE - LABEL_HEIGHT) / 2);
                 return;
             }
             variant.radioSprite(checked, lit)
                 .draw(x, y, RADIO_SIZE, RADIO_SIZE);
             GlStateManager.color(1, 1, 1, 1);
-            text(
-                fitted,
+            checkboxLabel(
+                label.get(),
                 x + RADIO_LABEL_X,
-                y + RADIO_LABEL_Y,
+                y,
+                width - RADIO_LABEL_X,
                 usable ? variant.colors.text : variant.colors.muted,
                 false);
         };
+    }
+
+    /**
+     * Draws the label of a switch or radio button as AE2's check boxes do: wrapped at the given width, a single line
+     * {@link #SWITCH_LABEL_Y} pixels below the top of the sprite and several lines from one pixel below it, one font
+     * line apart. Client only.
+     *
+     * @param label  text to draw
+     * @param x      left edge of the text
+     * @param top    top edge of the switch or radio sprite
+     * @param width  width the text may use, in pixels; the label wraps at word boundaries to fit it
+     * @param color  ARGB text color
+     * @param shadow whether to draw a text shadow
+     */
+    public static void checkboxLabel(String label, int x, int top, int width, int color, boolean shadow) {
+        FontRenderer font = Minecraft.getMinecraft().fontRenderer;
+        List<?> lines = font.listFormattedStringToWidth(label, Math.max(1, width));
+        int lineY = top + (lines.size() <= 1 ? SWITCH_LABEL_Y : CHECKBOX_LINES_Y);
+        for (Object line : lines) {
+            text(String.valueOf(line), x, lineY, color, shadow);
+            lineY += font.FONT_HEIGHT;
+        }
     }
 
     /**
@@ -504,6 +573,26 @@ public class AE2Theme {
         float u = index % LEGACY_CELLS * ICON_SIZE / (float) SHEET,
             v = index / LEGACY_CELLS * ICON_SIZE / (float) SHEET, span = ICON_SIZE / (float) SHEET;
         GuiDraw.drawTexture(legacyStates(variant), x, y, x + size, y + size, u, v, u + span, v + span, true);
+    }
+
+    /**
+     * Makes a MUI2 text field place its text as AE2's text fields do: {@link #TEXT_FIELD_PADDING} pixels from the
+     * edges of its background under AE2 themes, and MUI2's own four pixels under other themes. It follows the theme
+     * of the screen while the screen is open, from the first client update on. It can be called on either side.
+     *
+     * @param field text field to adjust; a later {@code padding} call on it is overridden
+     * @param <W>   text field type
+     * @return the same text field
+     */
+    public static <W extends BaseTextFieldWidget<W>> W textFieldPadding(W field) {
+        return field.onUpdateListener(self -> {
+            int padding = active(self.getContext()) == null ? MUI_TEXT_FIELD_PADDING : TEXT_FIELD_PADDING;
+            if (self.getArea()
+                .getPadding()
+                .getLeft() == padding) return;
+            self.padding(padding, 0);
+            self.scheduleResize();
+        }, true);
     }
 
     /**
@@ -788,15 +877,17 @@ public class AE2Theme {
      */
     public static IDrawable toggleSwitch(Widget<?> widget, BooleanSupplier on, Supplier<String> label,
         BooleanSupplier available) {
+        SwitchHover hover = new SwitchHover();
         return (context, x, y, width, height, theme) -> {
-            boolean usable = available.getAsBoolean(), lit = usable && widget.isHovering(), checked = on.getAsBoolean();
-            FontRenderer font = Minecraft.getMinecraft().fontRenderer;
-            String fitted = font.trimStringToWidth(label.get(), Math.max(0, width - SWITCH_LABEL_X));
+            boolean usable = available.getAsBoolean(), checked = on.getAsBoolean(),
+                lit = hover.lit(widget.isHovering(), checked) && usable;
             Variant variant = active(context);
             GlStateManager.color(1, 1, 1, usable ? 1 : INACTIVE_ALPHA);
             if (variant == null) {
                 drawSwitch(null, x, y, checked, lit);
                 GlStateManager.color(1, 1, 1, 1);
+                String fitted = Minecraft.getMinecraft().fontRenderer
+                    .trimStringToWidth(label.get(), Math.max(0, width - SWITCH_LABEL_X));
                 plainText(
                     context,
                     fitted,
@@ -806,13 +897,39 @@ public class AE2Theme {
             }
             drawSwitch(variant, x, y, checked, lit);
             GlStateManager.color(1, 1, 1, 1);
-            text(
-                fitted,
+            checkboxLabel(
+                label.get(),
                 x + SWITCH_LABEL_X,
-                y + SWITCH_LABEL_Y,
+                y,
+                width - SWITCH_LABEL_X,
                 usable ? variant.colors.text : variant.colors.muted,
                 false);
         };
+    }
+
+    /**
+     * AE2's hover rule for switches: once a switch flips under the pointer it shows its plain sprite until the pointer
+     * leaves it, as AE2's check box does while it keeps the focus of the click. Radio buttons always show hover in AE2.
+     * Keep one instance per switch and ask it every frame.
+     */
+    public static class SwitchHover {
+
+        private @Nullable Boolean shown;
+        private boolean quiet;
+
+        /**
+         * Decides whether the switch is drawn hovered this frame.
+         *
+         * @param hovering whether the pointer is over the switch
+         * @param on       the switch's current value
+         * @return whether to draw the hovered sprite
+         */
+        public boolean lit(boolean hovering, boolean on) {
+            if (!hovering) quiet = false;
+            else if (shown != null && shown != on) quiet = true;
+            shown = on;
+            return hovering && !quiet;
+        }
     }
 
     /**
@@ -1080,6 +1197,8 @@ public class AE2Theme {
         public final ResourceLocation legacyStates, legacyTerminal;
         /** Resizable panel background and inset list well. */
         public final UITexture panel, inset;
+        /** The panel texture without its left border, for upgrade panels; see {@link #drawUpgradePanel}. */
+        public final UITexture upgradeFrame;
         /** Empty item and fluid slot backgrounds, natively 18 by 18 pixels. */
         public final UITexture slotItem, slotFluid;
         /** Small scroll-bar handle, natively 7 by 15 pixels and resizable by MUI2. */
@@ -1159,6 +1278,13 @@ public class AE2Theme {
                 PANEL_EDGE,
                 PANEL_EDGE,
                 PANEL_BOTTOM_EDGE);
+            upgradeFrame = UITexture.builder()
+                .location(texture(folder, "panel"))
+                .imageSize(PANEL_SIZE, PANEL_SIZE)
+                .subAreaXYWH(PANEL_EDGE, 0, PANEL_SIZE - PANEL_EDGE, PANEL_SIZE)
+                .adaptable(0, PANEL_EDGE, PANEL_EDGE, PANEL_BOTTOM_EDGE)
+                .name("gtnllib_" + folder + "_upgrade_frame")
+                .build();
             inset = adaptable(
                 folder,
                 "inset",

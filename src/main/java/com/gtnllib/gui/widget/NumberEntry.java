@@ -359,6 +359,10 @@ public class NumberEntry extends ParentWidget<NumberEntry> {
 
     private class Field extends TextFieldWidget {
 
+        private Field() {
+            AE2Theme.textFieldPadding(this);
+        }
+
         @Override
         public void setText(String text) {
             super.setText(text);

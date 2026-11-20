@@ -31,6 +31,7 @@ public class SlideSwitch extends ButtonWidget<SlideSwitch> {
     private static final int LABEL_Y = 1, LABEL_END = 2;
     private static final float INACTIVE_ALPHA = 0.5F;
 
+    private final AE2Theme.SwitchHover hover = new AE2Theme.SwitchHover();
     private BooleanSupplier on = () -> false, live = () -> true, available = () -> true;
     private IKey label = IKey.EMPTY;
 
@@ -92,7 +93,8 @@ public class SlideSwitch extends ButtonWidget<SlideSwitch> {
         boolean on = this.on.getAsBoolean(), open = available.getAsBoolean(), lit = on && open && live.getAsBoolean();
         int width = getArea().w(), height = getArea().h(), switchWidth = style.switchWidth,
             switchHeight = style.switchHeight, top = (height - switchHeight) / 2, labelX = labelX(style);
-        UITexture sprite = colors.sprite(on, open && isHovering());
+        boolean hovered = hover.lit(isHovering(), on);
+        UITexture sprite = colors.sprite(on, open && hovered);
         if (sprite != null) {
             GlStateManager.color(1, 1, 1, open ? 1 : INACTIVE_ALPHA);
             sprite.draw(0, top, switchWidth, switchHeight);
@@ -105,16 +107,18 @@ public class SlideSwitch extends ButtonWidget<SlideSwitch> {
             if (colors.knobSkin != null) colors.knobSkin.draw(knobX, top, switchHeight, switchHeight, knob);
             else GuiDraw.drawRect(knobX, top, switchHeight, switchHeight, knob);
         }
-        int labelY = sprite != null ? top + AE2Theme.SWITCH_LABEL_Y : LABEL_Y;
-        TextRenderUtils.drawTextFitted(
+        int color = textColor(colors, on, lit, open);
+        boolean shadow = lit && colors.getTextShadow();
+        if (sprite != null) AE2Theme.checkboxLabel(label.get(), labelX, top, width - labelX, color, shadow);
+        else TextRenderUtils.drawTextFitted(
             label.get(),
             labelX,
-            labelY,
+            LABEL_Y,
             width - labelX,
-            sprite != null ? height - labelY : height,
-            sprite != null ? Alignment.TopLeft : Alignment.CenterLeft,
-            textColor(colors, on, lit, open),
-            lit && colors.getTextShadow(),
+            height,
+            Alignment.CenterLeft,
+            color,
+            shadow,
             style.textScale);
     }
 

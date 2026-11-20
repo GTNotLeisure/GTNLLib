@@ -21,8 +21,10 @@ import com.gtnllib.gui.theme.AE2Theme.Variant;
  * available vertical track must be at least {@link AE2Theme#SCROLLER_HEIGHT} pixels tall.
  * <p>
  * Scrolling is smooth by default. {@link #rows(int)} enables immediate scrolling snapped to row boundaries. Scroll
- * shadows are never drawn. A press on the track beside the handle pages a third of the view towards the pointer, as in
- * AE2's crafting CPU list; inside a {@link GTNLListWidget} holding the button keeps paging, first after
+ * shadows are never drawn. A press on the track beside the handle moves one wheel step (MUI2's scroll speed, one row
+ * after {@link #rows(int)}) towards the pointer, as AE2 moves its scroll bars by the same page size for the wheel and
+ * the track; set a larger step with {@code setScrollSpeed} after {@code rows}, such as a multiple of the row height.
+ * Inside a {@link GTNLListWidget} holding the button keeps paging, first after
  * {@value #FIRST_REPEAT_MILLIS} ms and then every {@value #REPEAT_MILLIS} ms. Such a press changes this scroll
  * data's offset at once and does not start a drag. A widget that drives the scroll area itself and expects a press
  * beside the handle to start a drag can turn paging off with {@link #pageOnTrackPress(boolean)}.
@@ -31,7 +33,6 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
 
     /** Delay before a held track press pages again, and the interval between later pages, in milliseconds. */
     public static final int FIRST_REPEAT_MILLIS = 250, REPEAT_MILLIS = 150;
-    private static final int PAGE_PARTS = 3;
     private final @Nullable Variant variant;
     private final boolean small;
     private int rowHeight;
@@ -162,10 +163,9 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
     }
 
     private void page(ScrollArea area) {
-        int visible = getFullVisibleSize(area);
-        int step = rowHeight > 0 ? Math.max(1, visible / rowHeight / PAGE_PARTS) * rowHeight
-            : Math.max(1, visible / PAGE_PARTS);
-        int max = Math.max(0, getScrollSize() - visible), from = isAnimating() ? getAnimatingTo() : getScroll();
+        int step = Math.max(1, getScrollSpeed());
+        int max = Math.max(0, getScrollSize() - getFullVisibleSize(area)),
+            from = isAnimating() ? getAnimatingTo() : getScroll();
         animateTo(area, Math.max(0, Math.min(max, from + pageDirection * step)));
     }
 
