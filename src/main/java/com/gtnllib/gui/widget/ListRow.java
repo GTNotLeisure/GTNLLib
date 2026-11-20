@@ -17,6 +17,7 @@ import com.cleanroommc.modularui.theme.WidgetThemeEntry;
 import com.cleanroommc.modularui.utils.GlStateManager;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widget.Widget;
+import com.cleanroommc.modularui.widget.sizer.Unit.Measure;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.AE2Theme.Variant;
 
@@ -28,13 +29,15 @@ import com.gtnllib.gui.theme.AE2Theme.Variant;
  * The row is meant to sit inside a list inset, like {@link IconRowList}'s rows: a row as wide as that list's inset
  * places its label {@link #TEXT_INSET} pixels and its control {@link #END_INSET} pixels from the inset's edges, the
  * same as the list's own rows. Use it where a list mixes MUI2 controls such as {@link NumberEntry} and
- * {@link CycleDropdown} with plain rows. It can be built on either side, so it also works in GUIs the server opens.
+ * {@link CycleDropdown} with plain rows. The row is {@link IconRowList#ROW} pixels high unless its height is set; the
+ * label, switch and control stay centred in any height. It can be built on either side, so it also works in GUIs the
+ * server opens.
  */
 public class ListRow extends ParentWidget<ListRow> implements Interactable {
 
     /** Pixels from the row's left edge to the label and from its right edge to the control or switch. */
     public static final int TEXT_INSET = 4, END_INSET = 3;
-    private static final int EDGE = 1, GAP = 4, TEXT_Y = 5;
+    private static final int EDGE = 1, GAP = 4;
     private static final float INACTIVE_ALPHA = 0.5F;
     private final Supplier<String> label;
     private final boolean header;
@@ -77,7 +80,7 @@ public class ListRow extends ParentWidget<ListRow> implements Interactable {
      *
      * @param control control widget; its size is set here
      * @param width   control width in pixels
-     * @param height  control height in pixels, at most {@link IconRowList#ROW}
+     * @param height  control height in pixels, at most the row's height
      * @return this row
      */
     public ListRow control(Widget<?> control, int width, int height) {
@@ -86,7 +89,7 @@ public class ListRow extends ParentWidget<ListRow> implements Interactable {
         child(
             control.size(width, height)
                 .right(END_INSET)
-                .top((IconRowList.ROW - height) / 2));
+                .top(() -> (getArea().height - height) / 2, Measure.PIXEL));
         return this;
     }
 
@@ -147,13 +150,13 @@ public class ListRow extends ParentWidget<ListRow> implements Interactable {
     @Override
     public void draw(ModularGuiContext context, WidgetThemeEntry<?> widgetTheme) {
         Variant variant = AE2Theme.active(context);
-        int width = getArea().width;
+        int width = getArea().width, height = getArea().height;
         boolean usable = available.getAsBoolean(), hovered = usable && click != null && isHovering();
-        if (hovered) GuiDraw.drawRect(EDGE, 0, width - 2 * EDGE, getArea().height, IconRowList.hoverColor(variant));
+        if (hovered) GuiDraw.drawRect(EDGE, 0, width - 2 * EDGE, height, IconRowList.hoverColor(variant));
         int right = width - END_INSET;
         if (toggle != null) {
             GlStateManager.color(1, 1, 1, usable ? 1 : INACTIVE_ALPHA);
-            right -= IconRowList.drawSwitch(variant, right, 0, toggle.getAsBoolean(), hovered) + GAP;
+            right -= IconRowList.drawSwitch(variant, right, 0, height, toggle.getAsBoolean(), hovered) + GAP;
             GlStateManager.color(1, 1, 1, 1);
         }
         if (control != null) right -= controlWidth + GAP;
@@ -161,12 +164,12 @@ public class ListRow extends ParentWidget<ListRow> implements Interactable {
         String full = label.get();
         String shown = font.trimStringToWidth(full, Math.max(0, right - TEXT_INSET));
         cut = shown.length() < full.length();
-        if (header) IconRowList.drawHeader(variant, font, shown, TEXT_INSET, 0, width - EDGE);
+        if (header) IconRowList.drawHeader(variant, font, shown, TEXT_INSET, 0, height, width - EDGE);
         else {
             boolean muted = !usable || control != null && !control.isEnabled();
             int color = variant == null ? muted ? IconRowList.HEADER : IconRowList.TEXT
                 : muted ? variant.colors.muted() : variant.colors.text();
-            AE2Theme.text(shown, TEXT_INSET, TEXT_Y, color, false);
+            AE2Theme.text(shown, TEXT_INSET, IconRowList.textTop(height), color, false);
         }
         GL11.glColor4f(1f, 1f, 1f, 1f);
     }

@@ -23,12 +23,18 @@ import com.gtnllib.gui.theme.AE2Theme.IconSource;
  * open tab then covers the panel border and joins the panel, and the others stand out. {@link #page(int, Widget)}
  * shows a page widget only while its tab is open. Other themes draw the tabs as buttons, the open one hovered. A tab
  * made unavailable with {@link #available(BooleanSupplier)} shows no hover, draws its icon faded and swallows clicks.
+ * {@link #tabSize(int, int)} changes the size of the tabs from AE2's 22 by 22 pixels.
  */
 public class PageTabs extends ParentWidget<PageTabs> {
+
+    private static final int MIN_WIDTH = AE2Theme.PAGE_TAB_INSET + AE2Theme.ICON_SIZE + 2,
+        MIN_HEIGHT = AE2Theme.ICON_SIZE + 2;
 
     private final IntSupplier open;
     private final IntConsumer select;
     private final List<BooleanSupplier[]> usable = new ArrayList<>();
+    private final List<ActionButton> buttons = new ArrayList<>();
+    private int tabWidth = AE2Theme.PAGE_TAB_SIZE, tabHeight = AE2Theme.PAGE_TAB_SIZE;
 
     /**
      * Creates an empty column of tabs.
@@ -40,6 +46,33 @@ public class PageTabs extends ParentWidget<PageTabs> {
         this.open = open;
         this.select = select;
         size(AE2Theme.PAGE_TAB_SIZE, 0);
+    }
+
+    /**
+     * Sets the size of every tab, also of tabs added before; AE2's are {@link AE2Theme#PAGE_TAB_SIZE} pixels square.
+     * Neighbouring tabs share one outline row, so tabs start {@code height - 1} pixels apart. The widget becomes as
+     * wide as a tab.
+     *
+     * @param width  tab width in pixels, at least 21 so a 16-pixel icon fits beside the covered panel border
+     * @param height tab height in pixels, at least 18
+     * @return these tabs
+     */
+    public PageTabs tabSize(int width, int height) {
+        tabWidth = Math.max(MIN_WIDTH, width);
+        tabHeight = Math.max(MIN_HEIGHT, height);
+        for (int i = 0; i < buttons.size(); i++) buttons.get(i)
+            .pos(0, i * pitch())
+            .size(tabWidth, tabHeight);
+        resize();
+        return this;
+    }
+
+    private int pitch() {
+        return tabHeight - 1;
+    }
+
+    private void resize() {
+        size(tabWidth, buttons.isEmpty() ? 0 : buttons.size() * pitch() + 1);
     }
 
     /**
@@ -60,8 +93,8 @@ public class PageTabs extends ParentWidget<PageTabs> {
             .background(look)
             .hoverBackground(look)
             .disableHoverThemeBackground(true)
-            .pos(0, index * AE2Theme.PAGE_TAB_PITCH)
-            .size(AE2Theme.PAGE_TAB_SIZE, AE2Theme.PAGE_TAB_SIZE)
+            .pos(0, index * pitch())
+            .size(tabWidth, tabHeight)
             .tooltipAutoUpdate(true)
             .tooltipBuilder(lines -> lines.addLine(tooltip.get()))
             .onMousePressed(mouse -> {
@@ -69,8 +102,9 @@ public class PageTabs extends ParentWidget<PageTabs> {
                 if (open.getAsInt() != index) select.accept(index);
                 return true;
             });
+        buttons.add(tab);
         child(tab);
-        height(usable.size() * AE2Theme.PAGE_TAB_PITCH + AE2Theme.PAGE_TAB_SIZE - AE2Theme.PAGE_TAB_PITCH);
+        resize();
         return this;
     }
 

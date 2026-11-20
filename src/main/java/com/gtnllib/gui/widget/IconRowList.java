@@ -53,7 +53,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
      */
     public static final int AE2_SCROLL_COLUMN = AE2Theme.BIG_SCROLLER_WIDTH + 5;
     private static final int AE2_GUTTER = AE2_SCROLL_COLUMN + 1, LIGHT_SHADE = 0x18000000, DARK_SHADE = 0x18FFFFFF,
-        HEADER_LINE_ALPHA = 0x40000000;
+        HEADER_LINE_ALPHA = 0x40000000, ICON = 16, TEXT_HEIGHT = 8, MIN_ROW = ICON, MIN_NUMBER_WIDTH = 32;
     private static final float INACTIVE_ALPHA = 0.5F;
 
     /**
@@ -193,7 +193,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
     private List<Row> rows = Collections.emptyList();
     private boolean[] nested = new boolean[0];
     private String expanded;
-    private int scroll, edge, gutter = SCROLLBAR;
+    private int scroll, edge, gutter = SCROLLBAR, rowHeight = ROW, numberWidth = NUMBER_WIDTH;
     private boolean revealSelected;
     private final RowScrollbar scrollbar = new RowScrollbar(() -> scroll, this::maxScroll, row -> scroll = row)
         .plainBar(BAR, this::visibleRows);
@@ -219,6 +219,37 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
     public IconRowList revealSelected() {
         revealSelected = true;
         return this;
+    }
+
+    /**
+     * Sets the height of every row; the standard is {@link #ROW}. Text, icons, switches, carets and number fields stay
+     * centred in the row. Make the list's inner height a multiple of it, or a strip stays empty at the bottom.
+     *
+     * @param rowHeight row height in pixels, at least 16 so a 16-pixel item icon fits
+     * @return this list
+     */
+    public IconRowList rowHeight(int rowHeight) {
+        this.rowHeight = Math.max(MIN_ROW, rowHeight);
+        resizeEntries();
+        return this;
+    }
+
+    /**
+     * Sets the width of the number fields of number rows; the standard is {@link #NUMBER_WIDTH}.
+     *
+     * @param numberWidth field width in pixels, at least 32 so the arrows and a few digits fit
+     * @return this list
+     */
+    public IconRowList numberWidth(int numberWidth) {
+        this.numberWidth = Math.max(MIN_NUMBER_WIDTH, numberWidth);
+        resizeEntries();
+        return this;
+    }
+
+    private void resizeEntries() {
+        for (NumberEntry entry : entries) entry.size(numberWidth, rowHeight - 2);
+        entryTops.replaceAll(top -> -1);
+        scheduleResize();
     }
 
     // MUI2 lets the mouse fall through a parent widget without a theme background; this one draws its own.
@@ -268,7 +299,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
         rows = flat;
         nested = new boolean[flat.size()];
         for (int i = 0; i < nested.length; i++) nested[i] = inside.get(i);
-        if (revealSelected && getArea().height >= ROW) {
+        if (revealSelected && getArea().height >= rowHeight) {
             revealSelected = false;
             for (int i = 0; i < flat.size(); i++) {
                 if (!flat.get(i)
@@ -292,7 +323,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
                 moved = true;
             }
             NumberEntry entry = entries.get(used);
-            int top = edge + i * ROW + 1;
+            int top = edge + i * rowHeight + 1;
             if (entryTops.getInt(used) != top) {
                 entry.top(top);
                 entryTops.set(used, top);
@@ -319,7 +350,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
         int index = entries.size();
         NumberEntry entry = new NumberEntry(null).right(gutter + 2)
             .top(0)
-            .size(NUMBER_WIDTH, ROW - 2)
+            .size(numberWidth, rowHeight - 2)
             .available(() -> {
                 Row row = entryRows.get(index);
                 return row == null || row.available();
@@ -349,7 +380,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
     }
 
     private int visibleRows() {
-        return Math.max(1, (getArea().height - 2 * edge) / ROW);
+        return Math.max(1, (getArea().height - 2 * edge) / rowHeight);
     }
 
     private int maxScroll() {
@@ -363,8 +394,8 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
     private int hoveredRow() {
         if (!isHovering() || inGutter()) return -1;
         int mouseY = getContext().getMouseY() - edge;
-        int row = scroll + Math.floorDiv(mouseY, ROW);
-        return mouseY >= 0 && row < rows.size() && mouseY < visibleRows() * ROW ? row : -1;
+        int row = scroll + Math.floorDiv(mouseY, rowHeight);
+        return mouseY >= 0 && row < rows.size() && mouseY < visibleRows() * rowHeight ? row : -1;
     }
 
     @Override
@@ -380,7 +411,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
         for (int i = 0; i < visible && scroll + i < rows.size(); i++) {
             int index = scroll + i;
             Row row = rows.get(index);
-            int top = edge + i * ROW, left = edge + (nested[index] ? INDENT : 0);
+            int top = edge + i * rowHeight, left = edge + (nested[index] ? INDENT : 0);
             boolean usable = row.available(), lit = usable && index == hovered;
             int muted = variant == null ? HEADER : variant.colors.muted();
             int textColor = usable ? color(variant, row.color(), variant == null ? TEXT : variant.colors.text())
@@ -391,26 +422,28 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
                     row.detailColor() != 0 ? row.detailColor() : row.color(),
                     variant == null ? TEXT : variant.colors.secondary())
                 : muted;
-            if (nested[index]) GuiDraw.drawRect(edge, top, rowRight - edge, ROW, variant == null ? NESTED : shade);
+            if (nested[index])
+                GuiDraw.drawRect(edge, top, rowRight - edge, rowHeight, variant == null ? NESTED : shade);
             if (row.selected()) {
-                if (variant == null) GuiDraw.drawRect(left, top, rowRight - left, ROW, SELECTED);
+                if (variant == null) GuiDraw.drawRect(left, top, rowRight - left, rowHeight, SELECTED);
                 else {
-                    variant.listRowSelected.draw(left, top, rowRight - left, ROW);
+                    variant.listRowSelected.draw(left, top, rowRight - left, rowHeight);
                     textColor = detailColor = variant.highlightText;
                 }
             }
-            if (lit && !row.header() && !row.selected()) GuiDraw.drawRect(left, top, rowRight - left, ROW, shade);
+            if (lit && !row.header() && !row.selected()) GuiDraw.drawRect(left, top, rowRight - left, rowHeight, shade);
             int textLeft = left + 3;
             if (row.icon() != null) {
-                new ItemDrawable(row.icon()).draw(context, left + 1, top + 1, 16, 16, widgetTheme.getTheme());
+                new ItemDrawable(row.icon())
+                    .draw(context, left + 1, top + (rowHeight - ICON) / 2, ICON, ICON, widgetTheme.getTheme());
                 textLeft = left + 19;
             }
             int right = textRight;
-            if (row.number() != null) right -= NUMBER_WIDTH + 2;
+            if (row.number() != null) right -= numberWidth + 2;
             if (row.options() != null) {
                 AE2Theme.drawCaret(
                     textRight - CARET + 2,
-                    top + 7,
+                    top + (rowHeight - AE2Theme.CARET_HEIGHT) / 2,
                     row.text()
                         .equals(expanded),
                     variant == null ? ACCENT : textColor);
@@ -418,15 +451,16 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
             }
             if (row.toggle() != null) {
                 GlStateManager.color(1, 1, 1, usable ? 1 : INACTIVE_ALPHA);
-                right -= drawSwitch(variant, textRight, top, row.toggle(), lit) + 3;
+                right -= drawSwitch(variant, textRight, top, rowHeight, row.toggle(), lit) + 3;
                 GlStateManager.color(1, 1, 1, 1);
             }
             String detail = row.detail() == null ? "" : row.detail();
             int detailWidth = detail.isEmpty() ? 0 : font.getStringWidth(detail) + 3;
-            if (!detail.isEmpty()) font.drawString(detail, right - detailWidth + 3, top + 5, detailColor);
+            if (!detail.isEmpty())
+                font.drawString(detail, right - detailWidth + 3, top + textTop(rowHeight), detailColor);
             String text = font.trimStringToWidth(row.text(), Math.max(0, right - detailWidth - textLeft));
-            if (row.header()) drawHeader(variant, font, text, textLeft, top, rowRight);
-            else font.drawString(text, textLeft, top + 5, textColor);
+            if (row.header()) drawHeader(variant, font, text, textLeft, top, rowHeight, rowRight);
+            else font.drawString(text, textLeft, top + textTop(rowHeight), textColor);
         }
         GL11.glColor4f(1f, 1f, 1f, 1f);
     }
@@ -448,39 +482,54 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
     }
 
     /**
+     * Returns how far below a row's top its one-line text starts, so the text is centred in the row; 5 for the
+     * standard {@link #ROW}.
+     *
+     * @param rowHeight row height in pixels
+     * @return text offset in pixels
+     */
+    public static int textTop(int rowHeight) {
+        return (rowHeight - TEXT_HEIGHT) / 2;
+    }
+
+    /**
      * Draws a row's on/off switch against the row's right end, centered in the row; see
      * {@link AE2Theme#drawSwitch}.
      *
-     * @param variant active AE2 variant, or {@code null} outside the AE2 themes
-     * @param right   pixel the switch ends at
-     * @param top     top of the {@link #ROW}-high row
-     * @param on      whether the switch is on
-     * @param hovered whether the row is under the mouse
+     * @param variant   active AE2 variant, or {@code null} outside the AE2 themes
+     * @param right     pixel the switch ends at
+     * @param top       top of the row
+     * @param rowHeight row height in pixels, {@link #ROW} for the standard rows
+     * @param on        whether the switch is on
+     * @param hovered   whether the row is under the mouse
      * @return width of the drawn switch
      */
-    public static int drawSwitch(@Nullable Variant variant, int right, int top, boolean on, boolean hovered) {
+    public static int drawSwitch(@Nullable Variant variant, int right, int top, int rowHeight, boolean on,
+        boolean hovered) {
         int width = variant == null ? AE2Theme.SWITCH_HEIGHT : AE2Theme.SWITCH_WIDTH;
-        return AE2Theme.drawSwitch(variant, right - width, top + 3, on, hovered);
+        return AE2Theme.drawSwitch(variant, right - width, top + (rowHeight - AE2Theme.SWITCH_HEIGHT) / 2, on, hovered);
     }
 
     /**
      * Draws a section header: muted text followed, under AE2 themes, by a divider line up to the row's end.
      *
-     * @param variant active AE2 variant, or {@code null} for the list's own dark look
-     * @param font    font to draw with
-     * @param text    header text, already cut to the available width
-     * @param left    left edge of the text
-     * @param top     top of the {@link #ROW}-high row
-     * @param right   right end of the row
+     * @param variant   active AE2 variant, or {@code null} for the list's own dark look
+     * @param font      font to draw with
+     * @param text      header text, already cut to the available width
+     * @param left      left edge of the text
+     * @param top       top of the row
+     * @param rowHeight row height in pixels, {@link #ROW} for the standard rows
+     * @param right     right end of the row
      */
     public static void drawHeader(@Nullable Variant variant, FontRenderer font, String text, int left, int top,
-        int right) {
-        AE2Theme.text(text, left, top + 5, variant == null ? HEADER : variant.colors.muted(), false);
+        int rowHeight, int right) {
+        int textY = top + textTop(rowHeight);
+        AE2Theme.text(text, left, textY, variant == null ? HEADER : variant.colors.muted(), false);
         if (variant == null) return;
         int start = left + font.getStringWidth(text) + 4, width = right - 4 - start;
         if (width <= 0) return;
-        GuiDraw.drawRect(start, top + 9, width, 1, variant.colors.line());
-        GuiDraw.drawRect(start, top + 10, width, 1, HEADER_LINE_ALPHA | variant.colors.edge() & 0xFFFFFF);
+        GuiDraw.drawRect(start, textY + 4, width, 1, variant.colors.line());
+        GuiDraw.drawRect(start, textY + 5, width, 1, HEADER_LINE_ALPHA | variant.colors.edge() & 0xFFFFFF);
     }
 
     @Override

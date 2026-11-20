@@ -89,6 +89,13 @@ public class ServerWidgetScenario implements Runnable {
             .tab(() -> Icon.FILE, () -> "Plan")
             .available(() -> false);
         tabs.page(1, new ParentWidget<>());
+        tabs.tabSize(30, 26);
+        new VerticalButtonBar().button(() -> Icon.ADD, () -> "Add", () -> {})
+            .buttonSize(24, 24);
+        new IconRowList(() -> rows).rowHeight(24)
+            .numberWidth(48);
+        new ListRow(() -> "Tall row").height(26)
+            .control(new NumberEntry(light), 64, 16);
         int[] firstRow = { 0 };
         new RowScrollbar(() -> firstRow[0], () -> 5, row -> firstRow[0] = row).step(2)
             .small(true)

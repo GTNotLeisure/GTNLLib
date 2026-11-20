@@ -118,13 +118,14 @@ public class AE2Theme {
         CREATIVE_TABS = new ResourceLocation("textures/gui/container/creative_inventory/tabs.png");
     private static final int PAGE_TAB_U = 128, PAGE_TAB_V = 128, CHECKBOX_LINES_Y = 1;
     private static final int PANEL_SIZE = 256, INSET_WIDTH = 8, INSET_HEIGHT = 9, SLOT_SIZE = 18, FIELD_WIDTH = 128,
-        SHEET = 256, SWITCH_SHEET = 64, TAB_HOVER_SIZE = 22, LABEL_PADDING = 2, LABEL_HEIGHT = 8, TRACK_WIDTH = 8,
-        TRACK_HEIGHT = 6, FILL_SIZE = 4, TAG_WIDTH = 6, TAG_HEIGHT = 9, DIVIDER_WIDTH = 4, DIVIDER_HEIGHT = 2,
-        LEGACY_CELLS = 16, DISABLED_TEXT = 0xFFA0A0A0, VANILLA_TEXT = 0xFF404040, WHEEL_DISC_ALPHA = 0xE6000000,
-        GROOVE_X = 3, GROOVE_WIDTH = 6, SMALL_GROOVE_X = 1, SMALL_GROOVE_WIDTH = 5, LIST_ROW_WIDTH = 67,
-        BUTTON_BAR_WIDTH = 21, BUTTON_BAR_HEIGHT = 26, RADIO_X = 28, INVALID_Y = 128, UPGRADE_SHADOW = 2,
-        VANILLA_SCROLLER_U = 232, VANILLA_SCROLLER_DISABLED_U = 244, VANILLA_TRACK = 0xFF8B8B8B,
-        VANILLA_TRACK_SHADOW = 0xFF373737, VANILLA_TRACK_LIGHT = 0xFFFFFFFF;
+        SHEET = 256, SWITCH_SHEET = 64, TAB_BUTTON_U = 160, TAB_BUTTON_V = 192, TAB_HOVER_V = 224, TAB_BORDER_LEFT = 2,
+        PAGE_TAB_BORDER_LEFT = 3, LABEL_PADDING = 2, LABEL_HEIGHT = 8, TRACK_WIDTH = 8, TRACK_HEIGHT = 6, FILL_SIZE = 4,
+        TAG_WIDTH = 6, TAG_HEIGHT = 9, DIVIDER_WIDTH = 4, DIVIDER_HEIGHT = 2, LEGACY_CELLS = 16,
+        DISABLED_TEXT = 0xFFA0A0A0, VANILLA_TEXT = 0xFF404040, WHEEL_DISC_ALPHA = 0xE6000000, GROOVE_X = 3,
+        GROOVE_WIDTH = 6, SMALL_GROOVE_X = 1, SMALL_GROOVE_WIDTH = 5, LIST_ROW_WIDTH = 67, BUTTON_BAR_WIDTH = 21,
+        BUTTON_BAR_HEIGHT = 26, RADIO_X = 28, INVALID_Y = 128, UPGRADE_SHADOW = 2, VANILLA_SCROLLER_U = 232,
+        VANILLA_SCROLLER_DISABLED_U = 244, VANILLA_TRACK = 0xFF8B8B8B, VANILLA_TRACK_SHADOW = 0xFF373737,
+        VANILLA_TRACK_LIGHT = 0xFFFFFFFF;
     private static final UITexture VANILLA_SCROLLER = vanillaScroller(VANILLA_SCROLLER_U),
         VANILLA_SCROLLER_DISABLED = vanillaScroller(VANILLA_SCROLLER_DISABLED_U);
     // IDrawable.EMPTY is saved as JSON null, which the theme loader reads as unset and replaces with the parent
@@ -352,11 +353,23 @@ public class AE2Theme {
      * @return panel width in pixels, 23 for one column
      */
     public static int upgradePanelWidth(int slots) {
-        return upgradeColumns(slots) * SLOT_SIZE + UPGRADE_PADDING;
+        return upgradePanelWidth(slots, UPGRADE_ROWS);
     }
 
-    private static int upgradeColumns(int slots) {
-        return Math.max(1, (slots + UPGRADE_ROWS - 1) / UPGRADE_ROWS);
+    /**
+     * Calculates an upgrade panel's width like {@link #upgradePanelWidth(int)} for columns of a chosen length.
+     *
+     * @param slots     nonnegative slot count; zero still reserves one column
+     * @param perColumn slots in a full column, at least one; AE2 uses {@link #UPGRADE_ROWS}
+     * @return panel width in pixels
+     */
+    public static int upgradePanelWidth(int slots, int perColumn) {
+        return upgradeColumns(slots, perColumn) * SLOT_SIZE + UPGRADE_PADDING;
+    }
+
+    private static int upgradeColumns(int slots, int perColumn) {
+        int rows = Math.max(1, perColumn);
+        return Math.max(1, (slots + rows - 1) / rows);
     }
 
     /**
@@ -368,7 +381,19 @@ public class AE2Theme {
      * @return x offset in pixels
      */
     public static int upgradeSlotX(int index) {
-        return index / UPGRADE_ROWS * SLOT_SIZE;
+        return upgradeSlotX(index, UPGRADE_ROWS);
+    }
+
+    /**
+     * Returns the left edge of an item slot widget in an upgrade panel with columns of a chosen length.
+     *
+     * @param index     zero-based slot index; slots fill each column from the top
+     * @param perColumn slots in a full column, at least one
+     * @return x offset in pixels
+     * @see #upgradeSlotX(int)
+     */
+    public static int upgradeSlotX(int index, int perColumn) {
+        return index / Math.max(1, perColumn) * SLOT_SIZE;
     }
 
     /**
@@ -379,7 +404,18 @@ public class AE2Theme {
      * @see #upgradeSlotX(int)
      */
     public static int upgradeSlotY(int index) {
-        return UPGRADE_PADDING + index % UPGRADE_ROWS * SLOT_SIZE;
+        return upgradeSlotY(index, UPGRADE_ROWS);
+    }
+
+    /**
+     * Returns the top edge of an item slot widget in an upgrade panel with columns of a chosen length.
+     *
+     * @param index     zero-based slot index
+     * @param perColumn slots in a full column, at least one
+     * @return y offset in pixels
+     */
+    public static int upgradeSlotY(int index, int perColumn) {
+        return UPGRADE_PADDING + index % Math.max(1, perColumn) * SLOT_SIZE;
     }
 
     /**
@@ -389,7 +425,19 @@ public class AE2Theme {
      * @return panel height in pixels
      */
     public static int upgradePanelHeight(int slots) {
-        return UPGRADE_PADDING * 2 + UPGRADE_SHADOW + Math.max(1, Math.min(slots, UPGRADE_ROWS)) * SLOT_SIZE;
+        return upgradePanelHeight(slots, UPGRADE_ROWS);
+    }
+
+    /**
+     * Calculates an upgrade panel's height for columns of a chosen length.
+     *
+     * @param slots     nonnegative slot count; zero still reserves one row
+     * @param perColumn slots in a full column, at least one
+     * @return panel height in pixels
+     */
+    public static int upgradePanelHeight(int slots, int perColumn) {
+        int rows = Math.max(1, Math.min(slots, Math.max(1, perColumn)));
+        return UPGRADE_PADDING * 2 + UPGRADE_SHADOW + rows * SLOT_SIZE;
     }
 
     /**
@@ -407,9 +455,26 @@ public class AE2Theme {
      * @see #upgradeSlotX(int)
      */
     public static void drawUpgradePanel(Variant variant, int x, int y, int slots) {
+        drawUpgradePanel(variant, x, y, slots, UPGRADE_ROWS);
+    }
+
+    /**
+     * Draws an upgrade panel like {@link #drawUpgradePanel(Variant, int, int, int)} with columns of a chosen length,
+     * such as a single row of slots with {@code perColumn} 1.
+     *
+     * @param variant   non-null AE2 variant
+     * @param x         panel left edge
+     * @param y         panel top edge
+     * @param slots     nonnegative number of slots to draw
+     * @param perColumn slots in a full column, at least one
+     * @see #upgradePanelWidth(int, int)
+     * @see #upgradePanelHeight(int, int)
+     * @see #upgradeSlotX(int, int)
+     */
+    public static void drawUpgradePanel(Variant variant, int x, int y, int slots, int perColumn) {
         if (slots <= 0) return;
-        int columns = upgradeColumns(slots), rows = Math.min(slots, UPGRADE_ROWS), width = upgradePanelWidth(slots),
-            height = upgradePanelHeight(slots);
+        int perRow = Math.max(1, perColumn), columns = upgradeColumns(slots, perRow), rows = Math.min(slots, perRow),
+            width = upgradePanelWidth(slots, perRow), height = upgradePanelHeight(slots, perRow);
         GlStateManager.color(1, 1, 1, 1);
         variant.upgradeFrame.draw(x + 1, y, width - 1, height);
         GuiDraw.drawRect(x, y + PANEL_EDGE, 1, height - PANEL_EDGE - PANEL_BOTTOM_EDGE, variant.colors.panel);
@@ -417,7 +482,7 @@ public class AE2Theme {
         GuiDraw.drawRect(x, blockY, blockWidth, blockHeight, variant.colors.edge);
         GuiDraw.drawRect(x + 1, blockY + 1, blockWidth - 2, blockHeight - 2, variant.colors.panel);
         for (int i = 0; i < slots; i++) {
-            int wellX = x + upgradeSlotX(i) + 1, wellY = y + upgradeSlotY(i) + 1;
+            int wellX = x + upgradeSlotX(i, perRow) + 1, wellY = y + upgradeSlotY(i, perRow) + 1;
             GuiDraw.drawRect(wellX, wellY, ICON_SIZE, 1, variant.colors.well);
             GuiDraw.drawRect(wellX, wellY + 1, ICON_SIZE, ICON_SIZE - 1, variant.colors.raised);
         }
@@ -795,10 +860,9 @@ public class AE2Theme {
     }
 
     /**
-     * Creates a tab-button background and icon.
-     * <p>
-     * AE2 tabs occupy 20 by 20 pixels and draw a 22-by-22-pixel background while hovered. Other themes use the
-     * supplied drawing area's size. This drawable does not install input handlers.
+     * Creates a tab-button background and icon, drawn at the widget's size; AE2's tabs are {@link #TAB_BUTTON_SIZE}
+     * pixels square, and other sizes stretch the tab's fill while keeping its frame. The icon stays 16 by 16, centred.
+     * This drawable does not install input handlers.
      *
      * @param widget    widget supplying hover state
      * @param icon      supplier of the displayed icon
@@ -817,9 +881,14 @@ public class AE2Theme {
                 return;
             }
             GlStateManager.color(1, 1, 1, 1);
-            if (lit) variant.tabButtonHover.draw(x, y, TAB_HOVER_SIZE, TAB_HOVER_SIZE);
-            else variant.tabButton.draw(x, y, TAB_BUTTON_SIZE, TAB_BUTTON_SIZE);
-            shown.drawIcon(context, theme, variant, x + 2, y + 1, on);
+            (lit ? variant.tabButtonHover : variant.tabButton).draw(x, y, width, height);
+            shown.drawIcon(
+                context,
+                theme,
+                variant,
+                x + (width - ICON_SIZE) / 2,
+                y + Math.max(0, (height - ICON_SIZE) / 2 - 1),
+                on);
         };
     }
 
@@ -828,7 +897,9 @@ public class AE2Theme {
      * <p>
      * AE2 tabs are 22 by 22 pixels, stacked {@link #PAGE_TAB_PITCH} apart and placed {@link #PAGE_TAB_INSET} pixels
      * inside the panel's right edge, after the panel: the selected tab then covers the panel border and joins the
-     * panel, the others stand out as separate tabs. Other themes use the button look, hovered while selected.
+     * panel, the others stand out as separate tabs. The tab is drawn at the widget's size: other sizes stretch its fill
+     * and keep its frame and the three columns that cover the panel border; the icon stays 16 by 16, centred on the
+     * part outside the panel. Other themes use the button look, hovered while selected.
      *
      * @param widget   widget supplying hover state
      * @param icon     supplier of the displayed icon
@@ -861,9 +932,14 @@ public class AE2Theme {
                 return;
             }
             GlStateManager.color(1, 1, 1, 1);
-            (chosen ? variant.pageTabSelected : lit ? variant.pageTabHover : variant.pageTab)
-                .draw(x, y, PAGE_TAB_SIZE, PAGE_TAB_SIZE);
-            shown.drawIcon(context, theme, variant, x + 3, y + 2, on);
+            (chosen ? variant.pageTabSelected : lit ? variant.pageTabHover : variant.pageTab).draw(x, y, width, height);
+            shown.drawIcon(
+                context,
+                theme,
+                variant,
+                x + (width + 1 - ICON_SIZE) / 2,
+                y + Math.max(0, (height - ICON_SIZE) / 2 - 1),
+                on);
         };
     }
 
@@ -1102,6 +1178,19 @@ public class AE2Theme {
             .build();
     }
 
+    // Tab sprites are a frame around a flat fill, two pixels at the top and four at the bottom with the shadow, so they
+    // stretch to any size; the page tab's three left columns are the panel border it covers.
+    private static UITexture tabSprite(String folder, String name, int x, int y, int size, int left) {
+        return UITexture.builder()
+            .location(texture(folder, "states"))
+            .imageSize(SHEET, SHEET)
+            .subAreaXYWH(x, y, size, size)
+            .adaptable(left, 2, 2, 4)
+            .nonOpaque()
+            .name("gtnllib_" + folder + "_" + name)
+            .build();
+    }
+
     private static UITexture sprite(String folder, String sheet, int size, int x, int y, int width, int height) {
         return UITexture.builder()
             .location(texture(folder, sheet))
@@ -1328,25 +1417,29 @@ public class AE2Theme {
             iconButton = frame(folder, "icon_button", 176, 128);
             iconButtonHover = frame(folder, "icon_button_hover", 212, 128);
             iconButtonSelected = frame(folder, "icon_button_selected", 194, 128);
-            tabButton = sprite(folder, "states", SHEET, 160, 192, TAB_BUTTON_SIZE, TAB_BUTTON_SIZE);
-            tabButtonHover = sprite(folder, "states", SHEET, 160, 224, TAB_HOVER_SIZE, TAB_HOVER_SIZE);
-            pageTab = sprite(folder, "states", SHEET, PAGE_TAB_U, PAGE_TAB_V, PAGE_TAB_SIZE, PAGE_TAB_SIZE);
-            pageTabSelected = sprite(
+            tabButton = tabSprite(folder, "tab_button", TAB_BUTTON_U, TAB_BUTTON_V, TAB_BUTTON_SIZE, TAB_BORDER_LEFT);
+            tabButtonHover = tabSprite(
                 folder,
-                "states",
-                SHEET,
+                "tab_button_hover",
+                TAB_BUTTON_U,
+                TAB_HOVER_V,
+                TAB_BUTTON_SIZE,
+                TAB_BORDER_LEFT);
+            pageTab = tabSprite(folder, "page_tab", PAGE_TAB_U, PAGE_TAB_V, PAGE_TAB_SIZE, PAGE_TAB_BORDER_LEFT);
+            pageTabSelected = tabSprite(
+                folder,
+                "page_tab_selected",
                 PAGE_TAB_U,
                 PAGE_TAB_V + PAGE_TAB_SIZE,
                 PAGE_TAB_SIZE,
-                PAGE_TAB_SIZE);
-            pageTabHover = sprite(
+                PAGE_TAB_BORDER_LEFT);
+            pageTabHover = tabSprite(
                 folder,
-                "states",
-                SHEET,
+                "page_tab_hover",
                 PAGE_TAB_U + PAGE_TAB_SIZE,
                 PAGE_TAB_V,
                 PAGE_TAB_SIZE,
-                PAGE_TAB_SIZE);
+                PAGE_TAB_BORDER_LEFT);
             switchOff = checkbox(folder, "switch_off", 0, 28);
             switchOffHover = checkbox(folder, "switch_off_hover", 22, 28);
             switchOn = checkbox(folder, "switch_on", 0, 40);
