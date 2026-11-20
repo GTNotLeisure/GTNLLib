@@ -23,7 +23,9 @@ import com.gtnllib.gui.theme.AE2Theme.Variant;
  * Scrolling is smooth by default. {@link #rows(int)} enables immediate scrolling snapped to row boundaries. Scroll
  * shadows are never drawn. Like AE2, a press on the track beside the handle pages a third of the view towards the
  * pointer; inside a {@link GTNLListWidget} holding the button keeps paging, first after
- * {@value #FIRST_REPEAT_MILLIS} ms and then every {@value #REPEAT_MILLIS} ms.
+ * {@value #FIRST_REPEAT_MILLIS} ms and then every {@value #REPEAT_MILLIS} ms. Such a press changes this scroll
+ * data's offset at once and does not start a drag. A widget that drives the scroll area itself and expects a press
+ * beside the handle to start a drag can turn paging off with {@link #pageOnTrackPress(boolean)}.
  */
 public class HandleScrollData extends VerticalScrollData implements IPersistentScrollbar {
 
@@ -35,6 +37,7 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
     private int rowHeight;
     private int dragMouse, dragScroll, pageDirection;
     private long nextPage;
+    private boolean pages = true;
 
     /**
      * Creates scroll data with a large handle.
@@ -74,6 +77,18 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
         return this;
     }
 
+    /**
+     * Chooses what a press on the track beside the handle does.
+     *
+     * @param pages {@code true}, the default, to page towards the pointer like AE2; {@code false} to start a drag
+     *              that first moves the handle's centre to the pointer
+     * @return this scroll data
+     */
+    public HandleScrollData pageOnTrackPress(boolean pages) {
+        this.pages = pages;
+        return this;
+    }
+
     @Override
     public int getScrollBarLength(ScrollArea area) {
         return Math.min(AE2Theme.SCROLLER_HEIGHT, getFullVisibleSize(area));
@@ -94,7 +109,8 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
 
     /**
      * Handles a press on an active track: a press on the handle starts a drag anchored to the current scroll offset,
-     * and a press beside the handle pages towards the pointer instead.
+     * and a press beside the handle pages towards the pointer instead, or, with paging turned off, starts a drag
+     * that targets the offset centring the handle on the pointer.
      *
      * @param area         owning scroll area
      * @param mainAxisPos  mouse Y coordinate relative to the scroll area
@@ -109,7 +125,8 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
         if (!isScrollBarActive(area) || !super.onMouseClicked(area, track, crossAxisPos, button)) return false;
         int length = getScrollBarLength(area), visible = getFullVisibleSize(area);
         int start = getScrollBarStart(area, length, visible);
-        if (track < start || track > start + length) {
+        boolean beside = track < start || track > start + length;
+        if (beside && pages) {
             dragging = false;
             pageDirection = track < start ? -1 : 1;
             nextPage = System.currentTimeMillis() + FIRST_REPEAT_MILLIS;
@@ -117,7 +134,7 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
             return true;
         }
         dragMouse = track;
-        dragScroll = getScroll();
+        dragScroll = beside ? offsetAt(track - clickOffset, visible, length) : getScroll();
         return true;
     }
 
@@ -148,7 +165,8 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
         int visible = getFullVisibleSize(area);
         int step = rowHeight > 0 ? Math.max(1, visible / rowHeight / PAGE_PARTS) * rowHeight
             : Math.max(1, visible / PAGE_PARTS);
-        scrollBy(area, pageDirection * step);
+        int max = Math.max(0, getScrollSize() - visible), from = isAnimating() ? getAnimatingTo() : getScroll();
+        animateTo(area, Math.max(0, Math.min(max, from + pageDirection * step)));
     }
 
     /**

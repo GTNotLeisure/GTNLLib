@@ -250,6 +250,10 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
             inside.add(false);
             if (row.options() == null || !row.text()
                 .equals(expanded)) continue;
+            if (!row.available()) {
+                expanded = null;
+                continue;
+            }
             for (Row option : row.options()) {
                 flat.add(option);
                 inside.add(true);

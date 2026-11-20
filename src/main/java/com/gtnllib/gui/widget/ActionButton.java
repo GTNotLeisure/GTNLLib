@@ -24,7 +24,8 @@ public class ActionButton extends ButtonWidget<ActionButton> {
     /**
      * Creates a text button. The caller sets its size.
      *
-     * @param label  supplier of the label, read every frame; trimmed to the button width
+     * @param label  supplier of the label, read every frame; under AE2 themes a label wider than the button scrolls
+     *               inside it, other themes trim it to the button width
      * @param action run on a left click while the button is available
      * @return the button
      */

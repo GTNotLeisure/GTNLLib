@@ -1,5 +1,7 @@
 package com.gtnllib.gui.widget;
 
+import org.jetbrains.annotations.NotNull;
+
 import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.theme.WidgetThemeEntry;
@@ -61,6 +63,15 @@ public class GTNLListWidget<I extends IWidget, W extends ListWidget<I, W>> exten
     public void onUpdate() {
         super.onUpdate();
         if (getScrollData() instanceof HandleScrollData handle) handle.repeatPaging(getScrollArea());
+    }
+
+    // MUI2 treats every mouse button on the scroll bar as a left press; AE2 scroll bars react to the left one only.
+    @Override
+    public @NotNull Result onMousePressed(int mouseButton) {
+        ModularGuiContext context = getContext();
+        if (mouseButton != 0 && getScrollArea().isInsideScrollbarArea(context.getMouseX(), context.getMouseY()))
+            return Result.IGNORE;
+        return super.onMousePressed(mouseButton);
     }
 
     @Override

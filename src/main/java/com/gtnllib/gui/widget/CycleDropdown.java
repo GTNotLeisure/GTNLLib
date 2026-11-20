@@ -27,6 +27,15 @@ import com.gtnllib.gui.widget.AE2ButtonDrawable.State;
 
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 
+/**
+ * A dropdown whose menu stays inside the panel, follows values changed elsewhere, cycles with the mouse wheel and
+ * marks itself with a caret. It can be built on either side, so it also works in GUIs the server opens.
+ * <p>
+ * Under AE2 themes the shown value reads like a button label: text widgets in it that have no color of their own,
+ * and the caret, use the button text color of the current state, and the shown value sinks with the button face on
+ * hover. The sinking uses the shown widget's {@code transform} hook, so a transform set on it by
+ * {@code optionToWidget} is replaced.
+ */
 public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
 
     /** Height of an {@link #iconOption} row and of its icon in pixels. */
@@ -68,7 +77,7 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
 
     // The shown value is a plain text widget, which MUI2 colors with the panel text color rather than the button's.
     private void followButtonText(IWidget widget) {
-        if (widget instanceof TextWidget<?>text) text.color(this::labelColor);
+        if (widget instanceof TextWidget<?>text && text.getColor() == null) text.color(this::labelColor);
         for (IWidget child : widget.getChildren()) followButtonText(child);
     }
 

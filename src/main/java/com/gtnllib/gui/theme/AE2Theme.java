@@ -481,7 +481,8 @@ public class AE2Theme {
     }
 
     /**
-     * Measures an untrimmed radio indicator and label using the current font.
+     * Measures an untrimmed radio indicator and label using the current font. Client only: it reads the client font,
+     * so call it while drawing or laying out on the client, not while a GUI is built on the server.
      *
      * @param label display text
      * @return required width in pixels
@@ -815,7 +816,8 @@ public class AE2Theme {
     }
 
     /**
-     * Measures an untrimmed AE2 switch and label using the current font.
+     * Measures an untrimmed AE2 switch and label using the current font. Client only: it reads the client font, so
+     * call it while drawing or laying out on the client, not while a GUI is built on the server.
      *
      * @param label display text
      * @return required width in pixels
@@ -825,7 +827,7 @@ public class AE2Theme {
     }
 
     /**
-     * Draws text and resets the OpenGL color to opaque white.
+     * Draws text and resets the OpenGL color to opaque white. Client only, like every direct drawing method here.
      *
      * @param text   display text
      * @param x      text left edge
