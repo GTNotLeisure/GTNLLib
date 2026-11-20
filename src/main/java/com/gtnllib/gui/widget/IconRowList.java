@@ -12,7 +12,6 @@ import net.minecraft.item.ItemStack;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
 import com.cleanroommc.modularui.api.UpOrDown;
@@ -36,8 +35,10 @@ import it.unimi.dsi.fastutil.ints.IntList;
  * switch, a dropdown whose options open as indented rows under it, or a number field. Number fields are
  * {@link NumberEntry} children placed over the visible number rows, so only those rows cost a widget.
  * <p>
- * Under an AE2 theme the list draws as an AE2 inset with AE2 list-row highlights, switches and a small scroll bar;
- * otherwise it keeps its own dark look with MUI2's check boxes.
+ * Under an AE2 theme the list draws as an AE2 inset with AE2 list-row highlights and switches, and AE2's scroll bar
+ * beside the inset; otherwise it keeps its own dark look with MUI2's check boxes and a thin bar. The scroll bar is a
+ * {@link RowScrollbar} child: the wheel and a press beside the handle move one row, as in AE2's network status and
+ * crafting CPU screens. Number fields, like other GTNLLib controls in a scrolling list, leave the wheel to the list.
  */
 public class IconRowList extends ParentWidget<IconRowList> implements Interactable, RecipeViewerIngredientProvider {
 
@@ -52,7 +53,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
      */
     public static final int AE2_SCROLL_COLUMN = AE2Theme.BIG_SCROLLER_WIDTH + 5;
     private static final int AE2_GUTTER = AE2_SCROLL_COLUMN + 1, LIGHT_SHADE = 0x18000000, DARK_SHADE = 0x18FFFFFF,
-        HEADER_LINE_ALPHA = 0x40000000, PAGE_PARTS = 3;
+        HEADER_LINE_ALPHA = 0x40000000;
     private static final float INACTIVE_ALPHA = 0.5F;
 
     /**
@@ -192,12 +193,18 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
     private List<Row> rows = Collections.emptyList();
     private boolean[] nested = new boolean[0];
     private String expanded;
-    private int scroll, edge, gutter = SCROLLBAR, grab = -1, pageDirection;
-    private long nextPage;
-    private boolean ae2, revealSelected;
+    private int scroll, edge, gutter = SCROLLBAR;
+    private boolean revealSelected;
+    private final RowScrollbar scrollbar = new RowScrollbar(() -> scroll, this::maxScroll, row -> scroll = row)
+        .plainBar(BAR, this::visibleRows);
 
     public IconRowList(Supplier<List<Row>> source) {
         this.source = source;
+        child(
+            scrollbar.right(0)
+                .top(0)
+                .heightRel(1f)
+                .width(SCROLLBAR));
     }
 
     public void scrollToTop() {
@@ -242,7 +249,6 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
         super.onUpdate();
         // MUI2 updates hidden widgets too; a hidden list has nothing to rebuild.
         if (!isEnabled()) return;
-        repeatPaging();
         List<Row> flat = new ArrayList<>();
         List<Boolean> inside = new ArrayList<>();
         for (Row row : source.get()) {
@@ -332,10 +338,10 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
 
     private void layout(boolean themed) {
         int nextEdge = themed ? 1 : 0, nextGutter = themed ? AE2_GUTTER : SCROLLBAR;
-        ae2 = themed;
         if (nextEdge == edge && nextGutter == gutter) return;
         edge = nextEdge;
         gutter = nextGutter;
+        scrollbar.width(themed ? AE2Theme.BIG_SCROLLER_WIDTH : SCROLLBAR);
         for (NumberEntry entry : entries) entry.right(gutter + 2);
         entryTops.replaceAll(top -> -1);
         placeEntries();
@@ -350,32 +356,12 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
         return Math.max(0, rows.size() - visibleRows());
     }
 
-    private int handleLength() {
-        if (ae2) return AE2Theme.SCROLLER_HEIGHT;
-        return Math.max(8, getArea().height * visibleRows() / Math.max(1, rows.size()));
-    }
-
-    private int handleRange() {
-        return getArea().height - handleLength() - (ae2 ? 2 : 0);
-    }
-
-    private int handleTop() {
-        return (ae2 ? 1 : 0) + handleRange() * scroll / Math.max(1, maxScroll());
-    }
-
-    private boolean overScrollbar() {
+    private boolean inGutter() {
         return getContext().getMouseX() >= getArea().width - gutter;
     }
 
-    private void dragTo(int mouseY) {
-        int max = maxScroll(), range = handleRange();
-        if (max == 0 || range <= 0) return;
-        int position = mouseY - grab - (ae2 ? 1 : 0);
-        scroll = Math.max(0, Math.min(max, Math.round((float) position * max / range)));
-    }
-
     private int hoveredRow() {
-        if (!isHovering() || overScrollbar()) return -1;
+        if (!isHovering() || inGutter()) return -1;
         int mouseY = getContext().getMouseY() - edge;
         int row = scroll + Math.floorDiv(mouseY, ROW);
         return mouseY >= 0 && row < rows.size() && mouseY < visibleRows() * ROW ? row : -1;
@@ -442,7 +428,6 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
             if (row.header()) drawHeader(variant, font, text, textLeft, top, rowRight);
             else font.drawString(text, textLeft, top + 5, textColor);
         }
-        scrollbar(variant, width, height, visible);
         GL11.glColor4f(1f, 1f, 1f, 1f);
     }
 
@@ -498,32 +483,8 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
         GuiDraw.drawRect(start, top + 10, width, 1, HEADER_LINE_ALPHA | variant.colors.edge() & 0xFFFFFF);
     }
 
-    private void scrollbar(Variant variant, int width, int height, int visible) {
-        boolean scrolls = rows.size() > visible;
-        if (variant == null) {
-            if (scrolls) GuiDraw.drawRect(width - SCROLLBAR, handleTop(), SCROLLBAR, handleLength(), BAR);
-            return;
-        }
-        AE2Theme.drawScrollbar(variant, width - AE2Theme.BIG_SCROLLER_WIDTH, 0, height, handleTop() - 1, scrolls);
-    }
-
     @Override
     public @NotNull Result onMousePressed(int mouseButton) {
-        grab = -1;
-        pageDirection = 0;
-        if (overScrollbar()) {
-            if (mouseButton != 0 || maxScroll() == 0) return Result.SUCCESS;
-            int mouseY = getContext().getMouseY(), top = handleTop(), length = handleLength();
-            if (mouseY >= top && mouseY < top + length) {
-                grab = mouseY - top;
-                dragTo(mouseY);
-            } else {
-                pageDirection = mouseY < top ? -1 : 1;
-                nextPage = System.currentTimeMillis() + HandleScrollData.FIRST_REPEAT_MILLIS;
-                page();
-            }
-            return Result.SUCCESS;
-        }
         int index = hoveredRow();
         if (index < 0) return Result.ACCEPT;
         Row row = rows.get(index);
@@ -551,37 +512,8 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
 
     @Override
     public boolean onMouseScroll(UpOrDown scrollDirection, int amount) {
-        scroll = Math.max(0, Math.min(maxScroll(), scroll - scrollDirection.modifier));
+        scrollbar.scroll(scrollDirection);
         return true;
-    }
-
-    @Override
-    public void onMouseDrag(int mouseButton, long timeSinceClick) {
-        if (grab >= 0) dragTo(getContext().getMouseY());
-    }
-
-    private void page() {
-        scroll = Math.max(0, Math.min(maxScroll(), scroll + pageDirection * Math.max(1, visibleRows() / PAGE_PARTS)));
-    }
-
-    private void repeatPaging() {
-        if (pageDirection == 0) return;
-        if (!Mouse.isButtonDown(0)) {
-            pageDirection = 0;
-            return;
-        }
-        long now = System.currentTimeMillis();
-        if (now < nextPage) return;
-        nextPage = now + HandleScrollData.REPEAT_MILLIS;
-        page();
-    }
-
-    @Override
-    public boolean onMouseRelease(int mouseButton) {
-        boolean dragging = grab >= 0;
-        grab = -1;
-        pageDirection = 0;
-        return dragging;
     }
 
     @Override

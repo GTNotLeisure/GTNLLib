@@ -46,8 +46,10 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
  * characters.
  * <p>
  * Step button sizes are 1, 10, 100 and 1000, or 1, 16, 32 and 64 while Shift or Ctrl is held. The {@code <} and
- * {@code >} buttons and the mouse wheel over the text field step by 1, or by 10 while Shift is held. Steps are
- * clamped to the configured bounds. Increasing a value of one by a step larger than one selects that step value.
+ * {@code >} buttons and the mouse wheel over the text field step by 1, or by 10 while Shift is held. The wheel steps
+ * only while the pointer is over the text field, even after the player has clicked into it, and never when the entry
+ * sits in a scrolling list ({@link GTNLListWidget#inScrollingList}), which keeps the wheel. Steps are clamped to the
+ * configured bounds. Increasing a value of one by a step larger than one selects that step value.
  * Invalid input is treated as zero when applying a step. Right-clicking the text field sets the reset value,
  * clamped to the bounds, so the default reset value of zero becomes one when the minimum is one.
  * <p>
@@ -379,7 +381,8 @@ public class NumberEntry extends ParentWidget<NumberEntry> {
 
         @Override
         public boolean onMouseScroll(UpOrDown scrollDirection, int amount) {
-            if (!isAvailable()) return false;
+            // Why: MUI2 offers the wheel to the focused field first, wherever the pointer is.
+            if (!isAvailable() || !isHovering() || GTNLListWidget.inScrollingList(this)) return false;
             add(scrollDirection.modifier * fineStep());
             return true;
         }

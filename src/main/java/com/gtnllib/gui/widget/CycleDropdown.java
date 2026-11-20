@@ -28,8 +28,9 @@ import com.gtnllib.gui.widget.AE2ButtonDrawable.State;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 
 /**
- * A dropdown whose menu stays inside the panel, follows values changed elsewhere, cycles with the mouse wheel and
- * marks itself with a caret. It can be built on either side, so it also works in GUIs the server opens.
+ * A dropdown whose menu stays inside the panel, follows values changed elsewhere, cycles with the mouse wheel (except
+ * in a scrolling list, which keeps the wheel; see {@link GTNLListWidget#inScrollingList}) and marks itself with a
+ * caret. It can be built on either side, so it also works in GUIs the server opens.
  * <p>
  * Under AE2 themes the shown value reads like a button label: text widgets in it that have no color of their own,
  * and the caret, use the button text color of the current state, and the shown value sinks with the button face on
@@ -135,7 +136,7 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
     @Override
     public boolean onMouseScroll(UpOrDown scrollDirection, int amount) {
         IValue<T> value = getValue();
-        if (value == null || choices.isEmpty()) return false;
+        if (value == null || choices.isEmpty() || GTNLListWidget.inScrollingList(this)) return false;
         int index = Math.max(0, choices.indexOf(value.getValue()));
         setValue(choices.get(Math.floorMod(index - scrollDirection.modifier, choices.size())), true);
         return true;

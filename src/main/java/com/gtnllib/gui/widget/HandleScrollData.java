@@ -21,8 +21,8 @@ import com.gtnllib.gui.theme.AE2Theme.Variant;
  * available vertical track must be at least {@link AE2Theme#SCROLLER_HEIGHT} pixels tall.
  * <p>
  * Scrolling is smooth by default. {@link #rows(int)} enables immediate scrolling snapped to row boundaries. Scroll
- * shadows are never drawn. Like AE2, a press on the track beside the handle pages a third of the view towards the
- * pointer; inside a {@link GTNLListWidget} holding the button keeps paging, first after
+ * shadows are never drawn. A press on the track beside the handle pages a third of the view towards the pointer, as in
+ * AE2's crafting CPU list; inside a {@link GTNLListWidget} holding the button keeps paging, first after
  * {@value #FIRST_REPEAT_MILLIS} ms and then every {@value #REPEAT_MILLIS} ms. Such a press changes this scroll
  * data's offset at once and does not start a drag. A widget that drives the scroll area itself and expects a press
  * beside the handle to start a drag can turn paging off with {@link #pageOnTrackPress(boolean)}.

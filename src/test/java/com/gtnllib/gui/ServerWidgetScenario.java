@@ -23,6 +23,7 @@ import com.gtnllib.gui.widget.HandleScrollData;
 import com.gtnllib.gui.widget.IconRowList;
 import com.gtnllib.gui.widget.ListRow;
 import com.gtnllib.gui.widget.NumberEntry;
+import com.gtnllib.gui.widget.RowScrollbar;
 import com.gtnllib.gui.widget.SlideSwitch;
 import com.gtnllib.gui.widget.ValueStepper;
 import com.gtnllib.gui.widget.VerticalButtonBar;
@@ -70,6 +71,10 @@ public class ServerWidgetScenario implements Runnable {
                 .withAvailable(false));
         new IconRowList(() -> rows);
         new SlideSwitch().value(() -> true);
+        int[] firstRow = { 0 };
+        new RowScrollbar(() -> firstRow[0], () -> 5, row -> firstRow[0] = row).step(2)
+            .small(true)
+            .plainBar(0xFF808090, () -> 3);
         AE2Theme.sliderHandles(new ParentWidget<>().child(new SliderWidget()), AE2Theme.LIGHT_ID);
         AE2Theme.useMenuTheme(AE2Theme.DARK_ID, "gtnllib", "server_scenario", "menu");
         AE2Theme.legacyStates(light);
@@ -86,6 +91,7 @@ public class ServerWidgetScenario implements Runnable {
             .child(new ValueStepper(() -> "LV", step -> {}).size(84, 16))
             .child(new CycleDropdown<>("server_scenario_menu", String.class).choices(Arrays.asList("a", "b")))
             .child(new IconRowList(() -> rows))
+            .child(new RowScrollbar(() -> 0, () -> 0, row -> {}).size(AE2Theme.BIG_SCROLLER_WIDTH, 40))
             .child(new GTNLListWidget<>().scrollDirection(new HandleScrollData(light)));
         WidgetTree.collectSyncValues(new PanelSyncManager(new ModularSyncManager(false), true), panel);
     }
