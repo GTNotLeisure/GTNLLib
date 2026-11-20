@@ -8,7 +8,7 @@ ModularUI 2 builds a GUI that the server opens (a machine, a held item) on both 
 
 | Type | Responsibility |
 | --- | --- |
-| [AE2Theme](src/main/java/com/gtnllib/gui/theme/AE2Theme.java) | Theme registration, variant lookup, drawable factories and direct drawing helpers. Includes the `Variant`, `Colors`, `ButtonText` and `Icon` types. |
+| [AE2Theme](src/main/java/com/gtnllib/gui/theme/AE2Theme.java) | Theme registration, variant lookup, drawable factories and direct drawing helpers. Includes the `Variant`, `Colors`, `ButtonText`, `Icon` and `SwitchHover` types. |
 | [ScreenTheme](src/main/java/com/gtnllib/gui/theme/ScreenTheme.java) | Persistable selection of the default, light, dark or purple dark panel theme. |
 | [HandleScrollData](src/main/java/com/gtnllib/gui/widget/HandleScrollData.java) | Vertical scrolling with a fixed-size handle and optional row snapping; a press on the track beside the handle moves the handle's centre to the pointer and keeps dragging, or pages like AE2 with `pageOnTrackPress(true)`. |
 | [GTNLListWidget](src/main/java/com/gtnllib/gui/widget/GTNLListWidget.java) | List layout, initial scroll position and persistent scroll-bar integration; with paging turned on, keeps paging while a track press is held. |
@@ -21,7 +21,7 @@ ModularUI 2 builds a GUI that the server opens (a machine, a held item) on both 
 | [ActionButton](src/main/java/com/gtnllib/gui/widget/ActionButton.java) | Themed text button or 18×20 toolbar icon button with a left-click action, optional available and selected states; an unavailable button swallows left clicks. |
 | [ValueStepper](src/main/java/com/gtnllib/gui/widget/ValueStepper.java) | `<` value `>` stepper over named values such as voltage tiers; the mouse wheel steps too. |
 | [CycleDropdown](src/main/java/com/gtnllib/gui/widget/CycleDropdown.java) | Dropdown that keeps its menu inside the panel (`menuWidth`); `iconOption` builds an item-icon option row with a scrolling name. Under AE2 themes the shown value and its caret use the button text colors and sink on hover like a button label. |
-| [SlideSwitch](src/main/java/com/gtnllib/gui/widget/SlideSwitch.java) | Theme-driven on/off switch with a label; AE2 themes give it AE2's switch sprites, with the label four pixels below the sprite top as in AE2. |
+| [SlideSwitch](src/main/java/com/gtnllib/gui/widget/SlideSwitch.java) | Theme-driven on/off switch with a label; AE2 themes give it AE2's switch sprites, centred on its height, with the label wrapped and placed as in AE2's check boxes and AE2's hover rule after a click. |
 | [GhostItemSlot](src/main/java/com/gtnllib/gui/widget/GhostItemSlot.java) | Item slot for client-only screens that takes an item dragged from NEI, with an optional filter and change callback. |
 
 AE2 draws its toolbar strip after the panel, anchored three pixels inside the panel's left edge, so the strip's right two pixels hide the panel border and the two read as one piece. Place `VerticalButtonBar` at `panelLeft - WIDTH + OVERLAP` and add it after the panel's other children. A panel that also holds the bar starts its background `WIDTH - OVERLAP` pixels right of its own left edge; `AE2Theme.panelBackground(left, right)` draws the panel texture between such insets.
@@ -42,9 +42,24 @@ AE2's toolbar icon buttons are 16×16 widgets inside a drawn 18×20 frame. `Acti
 
 AE2 attaches the upgrade panel to the right of a screen's panel, `UPGRADE_OVERLAP` pixels inside its right edge: the upgrade panel has no left border, so it covers the main panel's border and the two read as one piece. `AE2Theme.drawUpgradePanel` draws it like that, with a light frame around a block of 16×16 slot wells 18 pixels apart; draw it after the main panel. Put 18×18 item slots at `upgradeSlotX(i)`, `upgradeSlotY(i)` with `disableThemeBackground(true)`, so their theme frame does not cover the wells.
 
-AE2's scroll bars also take the mouse wheel anywhere on the screen. MUI2 offers the wheel to screen-level listeners before any widget and lets none of them keep it, so GTNLLib does not do this by default; a screen that wants it calls `RowScrollbar.scroll(direction)` from its panel's `onMouseScroll` when `super.onMouseScroll` returns false. The small scroll bar (`HandleScrollData(variant, true)`) draws the groove AE2 uses for its small scroll bar in the processing pattern panel: a one-pixel line-colored outline around a raised fill. Scroll-bar handles never stretch in AE2; MUI2 scroll widgets that do not use `HandleScrollData` stretch the theme's small handle to their own length.
+AE2's scroll bars also take the mouse wheel anywhere on the screen. MUI2 offers the wheel to screen-level listeners before any widget and lets none of them keep it, so GTNLLib does not do this by default; a screen that wants it calls `RowScrollbar.scroll(direction)` from its panel's `onMouseScroll` when `super.onMouseScroll` returns false.
+
+The small scroll bar (`HandleScrollData(variant, true)`) draws the groove AE2 uses for its small scroll bar in the processing pattern panel: a one-pixel line-colored outline around a raised fill. Scroll-bar handles never stretch in AE2; MUI2 scroll widgets that do not use `HandleScrollData` stretch the theme's small handle to their own length.
 
 A background set with `background(...)` on a MUI2 `ItemSlot` disappears while the slot holds an item (`ItemSlot.getCurrentBackground` in MUI2 2.3.94). The theme's slot frame is drawn separately and stays, so leave slot frames to the theme or draw them in the panel background.
+
+## Differences From AE2
+
+These differ from AE2 1.21 on purpose; the paragraphs above give the details.
+
+- Buttons lower than 20 pixels use GTNLLib's shadow rule, and taller ones stretch the face.
+- A press on a scroll bar's track moves the handle's centre to the pointer and keeps dragging; AE2 pages. `pageOnTrackPress(true)` restores AE2's paging.
+- Toolbar icon buttons take the mouse on their whole 18×20 frame; AE2's only on the 16×16 icon.
+- Value controls in a scrolling list step with the wheel while the pointer is over them; AE2 has no such controls in its lists.
+- The wheel does not scroll a list from anywhere on the screen by default.
+- Switch and radio labels wrap inside the widget; AE2's switch labels can run four pixels past it.
+
+Two things cannot match AE2: Minecraft 1.7.10 has no keyboard focus for buttons, so AE2's focus look has no counterpart, and MUI2's own buttons place their text themselves.
 
 ## Theme Selection
 
@@ -107,7 +122,7 @@ NumberEntry amount = new NumberEntry(AE2Theme.variant(themeId)).bounds(1, 1_000_
 OptionalLong requested = amount.value();
 ```
 
-The variant passed to the constructor colors the validation feedback, so pass the panel's variant here too. While `available` reports false the entry looks like AE2's disabled amount entry: disabled buttons, the dark uneditable field background and grey text; input is ignored and the field gives up keyboard focus. Invalid input turns the text red and shows AE2's 16×16 warning icon to the right of the field (its tooltip area is the top-left 8×8 pixels, as in AE2). `value()` returns an empty result for invalid input. `follow(LongSupplier)` keeps the field showing a value that other controls can change too, except while the player is typing in it. `isInputValid()` checks the input; inherited `isValid()` reports the MUI2 widget lifecycle. Callback semantics are defined by `NumberEntry.onChange(LongConsumer)`.
+The variant passed to the constructor colors the validation feedback, so pass the panel's variant here too. While `available` reports false the entry looks like AE2's disabled amount entry: disabled buttons, the dark uneditable field background and grey text; input is ignored and the field gives up keyboard focus. Invalid input turns the text red and lists the problems in the field's tooltip; the tall layout also shows AE2's 16×16 warning icon to the right of the field (its tooltip area is the top-left 8×8 pixels, as in AE2). `value()` returns an empty result for invalid input. `follow(LongSupplier)` keeps the field showing a value that other controls can change too, except while the player is typing in it. `isInputValid()` checks the input; inherited `isValid()` reports the MUI2 widget lifecycle. Callback semantics are defined by `NumberEntry.onChange(LongConsumer)`.
 
 The layout follows the size: from 62 pixels high it shows the AE2 step buttons stretched to the width, and lower entries are one row of `<`, the text field and `>`, such as `.size(64, 16)`. The arrows and the mouse wheel over the field step by 1, or 10 with Shift. The wheel steps only while the pointer is over the text field, even after the player has clicked into it, as in AE2. Right-clicking the field applies `resetValue(long)` (default 0) clamped to the bounds.
 
