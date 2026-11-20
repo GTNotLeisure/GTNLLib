@@ -24,10 +24,10 @@ import com.cleanroommc.modularui.widget.Widget;
 import com.gtnewhorizon.gtnhlib.util.data.ItemId;
 
 /**
- * An item slot for client-only screens: drag an item from NEI onto it and it shows and keeps that item; right-click
- * empties it, unless {@link #clearable(boolean)} turned that off. It keeps the item and its meta without NBT, which is
- * what an icon or a filter needs, and never touches
- * the player's inventory. Under the pointer it lights up like MUI2's item slots.
+ * An item slot for client-only screens: drag an item from NEI onto it and it shows and keeps that item. With
+ * {@link #clearable(boolean)} turned on, a right-click empties it. It keeps the item and its meta without NBT, which is
+ * what an icon or a filter needs, and never touches the player's inventory. Under the pointer it lights up like MUI2's
+ * item slots.
  */
 public class GhostItemSlot extends Widget<GhostItemSlot>
     implements RecipeViewerGhostIngredientSlot<ItemStack>, RecipeViewerIngredientProvider, Interactable {
@@ -38,7 +38,7 @@ public class GhostItemSlot extends Widget<GhostItemSlot>
     private Predicate<ItemStack> filter = stack -> true;
     private Consumer<ItemId> onChange = item -> {};
     private Runnable onClear = () -> {};
-    private boolean clearable = true;
+    private boolean clearable;
     private IDrawable drawn = IDrawable.EMPTY;
 
     public GhostItemSlot() {
@@ -63,8 +63,9 @@ public class GhostItemSlot extends Widget<GhostItemSlot>
     }
 
     /**
-     * Sets whether a right-click empties the slot; it does by default. Turn it off for a slot that shows a choice made
-     * elsewhere, which the player should not clear here.
+     * Sets whether a right-click empties the slot; it does not by default. Emptying runs {@link #onClear(Runnable)},
+     * not {@link #onChange(Consumer)}, so a screen that keeps the chosen item through {@code onChange} also needs an
+     * {@code onClear}, or reads {@link #item()} when it saves.
      *
      * @param clearable whether a right-click empties the slot
      * @return this slot

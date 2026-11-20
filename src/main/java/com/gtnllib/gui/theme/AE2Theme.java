@@ -473,8 +473,9 @@ public class AE2Theme {
      */
     public static void drawUpgradePanel(Variant variant, int x, int y, int slots, int perColumn) {
         if (slots <= 0) return;
-        int perRow = Math.max(1, perColumn), columns = upgradeColumns(slots, perRow), rows = Math.min(slots, perRow),
-            width = upgradePanelWidth(slots, perRow), height = upgradePanelHeight(slots, perRow);
+        int columnSlots = Math.max(1, perColumn), columns = upgradeColumns(slots, columnSlots),
+            rows = Math.min(slots, columnSlots), width = upgradePanelWidth(slots, columnSlots),
+            height = upgradePanelHeight(slots, columnSlots);
         GlStateManager.color(1, 1, 1, 1);
         variant.upgradeFrame.draw(x + 1, y, width - 1, height);
         GuiDraw.drawRect(x, y + PANEL_EDGE, 1, height - PANEL_EDGE - PANEL_BOTTOM_EDGE, variant.colors.panel);
@@ -482,7 +483,7 @@ public class AE2Theme {
         GuiDraw.drawRect(x, blockY, blockWidth, blockHeight, variant.colors.edge);
         GuiDraw.drawRect(x + 1, blockY + 1, blockWidth - 2, blockHeight - 2, variant.colors.panel);
         for (int i = 0; i < slots; i++) {
-            int wellX = x + upgradeSlotX(i, perRow) + 1, wellY = y + upgradeSlotY(i, perRow) + 1;
+            int wellX = x + upgradeSlotX(i, columnSlots) + 1, wellY = y + upgradeSlotY(i, columnSlots) + 1;
             GuiDraw.drawRect(wellX, wellY, ICON_SIZE, 1, variant.colors.well);
             GuiDraw.drawRect(wellX, wellY + 1, ICON_SIZE, ICON_SIZE - 1, variant.colors.raised);
         }
@@ -1178,8 +1179,8 @@ public class AE2Theme {
             .build();
     }
 
-    // Tab sprites are a frame around a flat fill, two pixels at the top and four at the bottom with the shadow, so they
-    // stretch to any size; the page tab's three left columns are the panel border it covers.
+    // Why: tab sprites are a frame around a flat fill, two pixels at the top and four at the bottom with the shadow, so
+    // they stretch to any size; the page tab's three left columns are the panel border it covers.
     private static UITexture tabSprite(String folder, String name, int x, int y, int size, int left) {
         return UITexture.builder()
             .location(texture(folder, "states"))
@@ -1457,7 +1458,7 @@ public class AE2Theme {
                 RADIO_SIZE);
             listRow = rowSprite(folder, "list_row", 0);
             listRowSelected = rowSprite(folder, "list_row_selected", LIST_ROW_HEIGHT);
-            buttonBar = adaptable(folder, "button_bar", BUTTON_BAR_WIDTH, BUTTON_BAR_HEIGHT, 0, 2, 0, 4);
+            buttonBar = adaptable(folder, "button_bar", BUTTON_BAR_WIDTH, BUTTON_BAR_HEIGHT, 2, 2, 0, 4);
             progressEmpty = progressSprite(folder, "progress_empty", 0);
             progressFull = progressSprite(folder, "progress_full", PROGRESS_WIDTH);
             invalid = sprite(folder, "states", SHEET, 0, INVALID_Y, ICON_SIZE, ICON_SIZE);
@@ -1675,15 +1676,32 @@ public class AE2Theme {
 
         /**
          * Wraps a MUI2 drawable, such as a {@link UITexture} of a mod's own icon sheet, drawn at 16 by 16 pixels in
-         * every theme.
+         * every theme. A {@link UITexture} fades when the control is unavailable, like the built-in icons; other
+         * drawables are drawn unchanged.
          *
          * @param drawable drawable to show
          * @return the icon
          */
         static IconSource of(IDrawable drawable) {
             return (context, theme, variant, x, y, enabled) -> {
+                if (!(drawable instanceof UITexture texture)) {
+                    drawable.draw(context, x, y, ICON_SIZE, ICON_SIZE, theme);
+                    return;
+                }
+                // Why: UITexture.draw sets an opaque color first and turns blending off for opaque textures, which
+                // would undo the fade.
                 GlStateManager.color(1, 1, 1, enabled ? 1 : INACTIVE_ALPHA);
-                drawable.draw(context, x, y, ICON_SIZE, ICON_SIZE, theme);
+                GuiDraw.drawTexture(
+                    texture.location,
+                    x,
+                    y,
+                    x + ICON_SIZE,
+                    y + ICON_SIZE,
+                    texture.u0,
+                    texture.v0,
+                    texture.u1,
+                    texture.v1,
+                    true);
                 GlStateManager.color(1, 1, 1, 1);
             };
         }

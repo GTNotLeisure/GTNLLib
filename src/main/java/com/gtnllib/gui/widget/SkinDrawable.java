@@ -125,7 +125,16 @@ public class SkinDrawable implements IDrawable, IJsonSerializable {
     }
 
     /**
-     * Draws the skin with its texture multiplied by a color, such as half-transparent white for a disabled control.
+     * Tells whether the skin has a glow layer, the only part of it that takes a color.
+     *
+     * @return whether a glow texture is set
+     */
+    public boolean hasGlow() {
+        return glow != null;
+    }
+
+    /**
+     * Draws the skin with its texture multiplied by a color, such as grey to darken a disabled control.
      *
      * @param x         left edge
      * @param y         top edge

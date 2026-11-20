@@ -108,13 +108,13 @@ public class VerticalButtonBar extends ParentWidget<VerticalButtonBar> {
      * {@code height + 2} pixels apart, and the strip becomes {@code width + 3} pixels wide, so place a bar with other
      * buttons at {@code panelLeft - getArea().width + OVERLAP}. The frame stretches and the icon stays 16 by 16.
      *
-     * @param width  button width in pixels, at least 16
-     * @param height button height in pixels, at least 16
+     * @param width  button width in pixels, at least AE2's 18
+     * @param height button height in pixels, at least AE2's 20
      * @return this bar
      */
     public VerticalButtonBar buttonSize(int width, int height) {
-        buttonWidth = Math.max(AE2Theme.ICON_SIZE, width);
-        buttonHeight = Math.max(AE2Theme.ICON_SIZE, height);
+        buttonWidth = Math.max(AE2Theme.ICON_BUTTON_WIDTH, width);
+        buttonHeight = Math.max(AE2Theme.ICON_BUTTON_HEIGHT, height);
         for (int i = 0; i < buttons.size(); i++) buttons.get(i)
             .pos(BUTTON_X, BUTTON_Y + i * pitch())
             .size(buttonWidth, buttonHeight);

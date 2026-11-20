@@ -11,6 +11,7 @@ import net.minecraft.client.audio.PositionedSoundRecord;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import com.cleanroommc.modularui.api.ITheme;
 import com.cleanroommc.modularui.api.IThemeApi;
@@ -38,25 +39,25 @@ public class StepSlider extends Widget<StepSlider> implements Interactable {
     private static final float LOW_PITCH = 1.15F, HIGH_PITCH = 1.5F;
     private static final int TRACK_THICKNESS = 4, TICK_GAP = 2, MINOR_TICK = 1, MAJOR_TICK = 3, MIN_TICK_SPACING = 2;
     private static final long SOUND_GAP_MILLIS = 40;
-    private static final String COMPACT_CHARS = "0123456789%.-+×sABCDEFGHIJKLMNOPQRSTUVWXYZ /:()=<>!?",
+    private static final String COMPACT_CHARS = "0123456789%.-+×ABCDEFGHIJKLMNOPQRSTUVWXYZ /:()=<>!?",
         NARROW_CHARS = ".: !";
     private static final int[] COMPACT_GLYPHS = { 0b111_101_101_101_111, 0b010_110_010_010_111, 0b111_001_111_100_111,
         0b111_001_111_001_111, 0b101_101_111_001_001, 0b111_100_111_001_111, 0b111_100_111_101_111,
         0b111_001_001_010_010, 0b111_101_111_101_111, 0b111_101_111_001_111, 0b101_001_010_100_101,
         0b000_000_000_000_100, 0b000_000_111_000_000, 0b000_010_111_010_000, 0b000_101_010_101_000,
-        0b000_011_100_001_110, 0b010_101_111_101_101, 0b110_101_110_101_110, 0b011_100_100_100_011,
-        0b110_101_101_101_110, 0b111_100_110_100_111, 0b111_100_110_100_100, 0b011_100_101_101_011,
-        0b101_101_111_101_101, 0b111_010_010_010_111, 0b001_001_001_101_010, 0b101_101_110_101_101,
-        0b100_100_100_100_111, 0b101_111_111_101_101, 0b110_101_101_101_101, 0b010_101_101_101_010,
-        0b110_101_110_100_100, 0b010_101_101_110_011, 0b110_101_110_101_101, 0b011_100_010_001_110,
-        0b111_010_010_010_010, 0b101_101_101_101_111, 0b101_101_101_101_010, 0b101_101_111_111_101,
-        0b101_101_010_101_101, 0b101_101_010_010_010, 0b111_001_010_100_111, 0, 0b001_001_010_100_100,
-        0b000_100_000_100_000, 0b010_100_100_100_010, 0b010_001_001_001_010, 0b000_111_000_111_000,
-        0b001_010_100_010_001, 0b100_010_001_010_100, 0b100_100_100_000_100, 0b110_001_010_000_010 };
+        0b010_101_111_101_101, 0b110_101_110_101_110, 0b011_100_100_100_011, 0b110_101_101_101_110,
+        0b111_100_110_100_111, 0b111_100_110_100_100, 0b011_100_101_101_011, 0b101_101_111_101_101,
+        0b111_010_010_010_111, 0b001_001_001_101_010, 0b101_101_110_101_101, 0b100_100_100_100_111,
+        0b101_111_111_101_101, 0b110_101_101_101_101, 0b010_101_101_101_010, 0b110_101_110_100_100,
+        0b010_101_101_110_011, 0b110_101_110_101_101, 0b011_100_010_001_110, 0b111_010_010_010_010,
+        0b101_101_101_101_111, 0b101_101_101_101_010, 0b101_101_111_111_101, 0b101_101_010_101_101,
+        0b101_101_010_010_010, 0b111_001_010_100_111, 0, 0b001_001_010_100_100, 0b000_100_000_100_000,
+        0b010_100_100_100_010, 0b010_001_001_001_010, 0b000_111_000_111_000, 0b001_010_100_010_001,
+        0b100_010_001_010_100, 0b100_100_100_000_100, 0b110_001_010_000_010 };
     // Why: the track is six pixels across, so an even tag overhangs it by the same amount on both sides.
     private static final int COMPACT_HEIGHT = 5, COMPACT_TAG_HEIGHT = 10, COMPACT_TAG_PADDING = 2;
     private static final int INACTIVE_FILL = 0xFF4A4A50, INACTIVE_TAG = 0xFF707078, INACTIVE_TEXT = 0xFF2A2A2E,
-        OPAQUE = 0xFFFFFFFF, FADED = 0x80FFFFFF;
+        OPAQUE = 0xFFFFFFFF, DIMMED = 0xFFA0A0A0;
 
     private DoubleSupplier getter = () -> 0;
     private DoubleConsumer setter = value -> {};
@@ -110,8 +111,9 @@ public class StepSlider extends Widget<StepSlider> implements Interactable {
     }
 
     /**
-     * Sets when the slider can be used. An unavailable slider is drawn faded, shows no hover, swallows left clicks and
-     * leaves the mouse wheel to the widgets around it.
+     * Sets when the slider can be used. An unavailable slider is drawn in grey (skins without a glow layer, such as
+     * AE2's, are darkened instead), shows no hover, swallows clicks and leaves the mouse wheel to the widgets around
+     * it.
      *
      * @param available supplier read every frame and on every input
      * @return this slider
@@ -229,8 +231,8 @@ public class StepSlider extends Widget<StepSlider> implements Interactable {
 
     @Override
     public @NotNull Result onMousePressed(int mouseButton) {
-        if (mouseButton != 0) return Result.IGNORE;
         if (!available.getAsBoolean()) return Result.STOP;
+        if (mouseButton != 0) return Result.IGNORE;
         dragging = true;
         select(stepAt(mouse(getContext())));
         return Result.SUCCESS;
@@ -277,10 +279,9 @@ public class StepSlider extends Widget<StepSlider> implements Interactable {
         Theme palette = resolveColors(widgetTheme.getTheme());
         int length = length(), thickness = thickness(), current = step();
         boolean on = available.getAsBoolean();
-        // Why: skin textures take no color, so a skinned slider shows that it is unavailable by fading, as AE2 fades
-        // its disabled check boxes.
-        boolean fade = !on && palette.trackSkin != null;
-        int tint = fade ? FADED : OPAQUE;
+        // Why: a skin without a glow layer, like AE2's, ignores the grey colors of an unavailable slider, so its
+        // textures are darkened instead; skins with a glow layer show those colors themselves.
+        int tint = !on && colorless(palette.fillSkin) ? DIMMED : OPAQUE;
         float trackStart = Math.round((thickness - TRACK_THICKNESS) / 2F);
         float cursor = notchPosition(current, steps, length, vertical);
         float origin = notchPosition(0, steps, length, vertical);
@@ -298,7 +299,6 @@ public class StepSlider extends Widget<StepSlider> implements Interactable {
             boolean major = milestone(step);
             if (!major && !minorTicks) continue;
             int color = step <= current && on ? light : major ? palette.milestone : palette.tick;
-            if (fade) color = faded(color);
             bar(
                 notchPosition(step, steps, length, vertical),
                 tickStart,
@@ -329,7 +329,8 @@ public class StepSlider extends Widget<StepSlider> implements Interactable {
             skin.draw(start, side, length, thickness, glow, tint);
             return;
         }
-        // The skins are drawn for a horizontal slider; turning them a quarter left puts their start at the bottom.
+        // Why: skin textures are made for a horizontal slider; a quarter turn left puts their start at the bottom,
+        // where a vertical slider's lowest value is.
         GlStateManager.pushMatrix();
         GlStateManager.translate(side, start + length, 0);
         GlStateManager.rotate(-90, 0, 0, 1);
@@ -337,8 +338,8 @@ public class StepSlider extends Widget<StepSlider> implements Interactable {
         GlStateManager.popMatrix();
     }
 
-    private static int faded(int argb) {
-        return (argb >>> 24) / 2 << 24 | argb & 0xFFFFFF;
+    private static boolean colorless(@Nullable SkinDrawable skin) {
+        return skin != null && !skin.hasGlow();
     }
 
     private void bar(float along, float across, float alongSize, float acrossSize, int acrossStart, int acrossEnd) {
@@ -355,9 +356,8 @@ public class StepSlider extends Widget<StepSlider> implements Interactable {
         int along = clamp(Math.round(cursor + 0.5F - alongSize / 2F), length() - alongSize);
         int across = clamp(Math.round(trackCenter - acrossSize / 2F), thickness() - acrossSize);
         int tagX = vertical ? across : along, tagY = vertical ? along : across;
-        boolean fade = !on && palette.tagSkin != null, held = on && (dragging || isHovering());
-        int tag = on ? palette.cursor : INACTIVE_TAG,
-            textColor = on ? palette.cursorText : fade ? faded(palette.cursorText) : INACTIVE_TEXT;
+        boolean held = on && (dragging || isHovering());
+        int tag = on ? palette.cursor : INACTIVE_TAG, textColor = on ? palette.cursorText : INACTIVE_TEXT;
         if (palette.tagSkin == null) {
             GuiDraw.drawRect(tagX, tagY, tagWidth, tagHeight, shade(tag, held ? 0.75F : 0.55F));
             GuiDraw.drawRect(
@@ -369,8 +369,13 @@ public class StepSlider extends Widget<StepSlider> implements Interactable {
                 tag,
                 shade(tag, 0.88F),
                 shade(tag, 0.88F));
-        } else palette.tagSkin
-            .draw(tagX, tagY, tagWidth, tagHeight, held ? tag : shade(tag, 0.88F), fade ? FADED : OPAQUE);
+        } else palette.tagSkin.draw(
+            tagX,
+            tagY,
+            tagWidth,
+            tagHeight,
+            held ? tag : shade(tag, 0.88F),
+            !on && colorless(palette.tagSkin) ? DIMMED : OPAQUE);
         drawCompact(
             text,
             tagX + Math.round((tagWidth - textWidth) / 2F),
@@ -383,8 +388,7 @@ public class StepSlider extends Widget<StepSlider> implements Interactable {
     }
 
     private static int glyph(char c) {
-        int index = COMPACT_CHARS.indexOf(c);
-        if (index < 0) index = COMPACT_CHARS.indexOf(Character.toUpperCase(c));
+        int index = COMPACT_CHARS.indexOf(Character.toUpperCase(c));
         return index < 0 ? 0 : COMPACT_GLYPHS[index];
     }
 

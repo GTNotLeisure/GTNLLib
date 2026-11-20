@@ -28,7 +28,7 @@ import com.gtnllib.gui.theme.AE2Theme.IconSource;
 public class PageTabs extends ParentWidget<PageTabs> {
 
     private static final int MIN_WIDTH = AE2Theme.PAGE_TAB_INSET + AE2Theme.ICON_SIZE + 2,
-        MIN_HEIGHT = AE2Theme.ICON_SIZE + 2;
+        MIN_HEIGHT = AE2Theme.PAGE_TAB_SIZE;
 
     private final IntSupplier open;
     private final IntConsumer select;
@@ -54,7 +54,7 @@ public class PageTabs extends ParentWidget<PageTabs> {
      * wide as a tab.
      *
      * @param width  tab width in pixels, at least 21 so a 16-pixel icon fits beside the covered panel border
-     * @param height tab height in pixels, at least 18
+     * @param height tab height in pixels, at least 22 so a 16-pixel icon fits between the frame's top and bottom
      * @return these tabs
      */
     public PageTabs tabSize(int width, int height) {
