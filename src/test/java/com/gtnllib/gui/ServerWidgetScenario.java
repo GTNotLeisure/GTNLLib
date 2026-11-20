@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.value.sync.ModularSyncManager;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
@@ -13,6 +14,7 @@ import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.SliderWidget;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.AE2Theme.Icon;
+import com.gtnllib.gui.theme.AE2Theme.IconSource;
 import com.gtnllib.gui.theme.AE2Theme.Variant;
 import com.gtnllib.gui.theme.ScreenTheme;
 import com.gtnllib.gui.wheel.WheelStyle;
@@ -23,8 +25,10 @@ import com.gtnllib.gui.widget.HandleScrollData;
 import com.gtnllib.gui.widget.IconRowList;
 import com.gtnllib.gui.widget.ListRow;
 import com.gtnllib.gui.widget.NumberEntry;
+import com.gtnllib.gui.widget.PageTabs;
 import com.gtnllib.gui.widget.RowScrollbar;
 import com.gtnllib.gui.widget.SlideSwitch;
+import com.gtnllib.gui.widget.StepSlider;
 import com.gtnllib.gui.widget.ValueStepper;
 import com.gtnllib.gui.widget.VerticalButtonBar;
 
@@ -70,7 +74,21 @@ public class ServerWidgetScenario implements Runnable {
             IconRowList.Row.toggle("Auto", true, () -> {})
                 .withAvailable(false));
         new IconRowList(() -> rows);
-        new SlideSwitch().value(() -> true);
+        new SlideSwitch().value(() -> true)
+            .available(() -> false);
+        new StepSlider().range(0, 1, 10)
+            .vertical(true)
+            .available(() -> false);
+        new ValueStepper(() -> "MV", step -> {}).available(() -> false);
+        new CycleDropdown<>("menu_off", String.class).available(() -> false);
+        new VerticalButtonBar().button(() -> IconSource.of(IDrawable.EMPTY), () -> "Custom", () -> {})
+            .available(() -> false);
+        int[] openPage = { 0 };
+        PageTabs tabs = new PageTabs(() -> openPage[0], page -> openPage[0] = page)
+            .tab(() -> Icon.GEAR, () -> "Settings")
+            .tab(() -> Icon.FILE, () -> "Plan")
+            .available(() -> false);
+        tabs.page(1, new ParentWidget<>());
         int[] firstRow = { 0 };
         new RowScrollbar(() -> firstRow[0], () -> 5, row -> firstRow[0] = row).step(2)
             .small(true)
@@ -92,6 +110,8 @@ public class ServerWidgetScenario implements Runnable {
             .child(new CycleDropdown<>("server_scenario_menu", String.class).choices(Arrays.asList("a", "b")))
             .child(new IconRowList(() -> rows))
             .child(new RowScrollbar(() -> 0, () -> 0, row -> {}).size(AE2Theme.BIG_SCROLLER_WIDTH, 40))
+            .child(new PageTabs(() -> 0, page -> {}).tab(() -> Icon.GEAR, () -> "Settings"))
+            .child(new StepSlider().size(60, 12))
             .child(new GTNLListWidget<>().scrollDirection(new HandleScrollData(light)));
         WidgetTree.collectSyncValues(new PanelSyncManager(new ModularSyncManager(false), true), panel);
     }

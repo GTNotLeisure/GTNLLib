@@ -2,6 +2,7 @@ package com.gtnllib.gui.widget;
 
 import java.util.function.BooleanSupplier;
 
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import com.cleanroommc.modularui.api.ITheme;
@@ -45,9 +46,32 @@ public class SlideSwitch extends ButtonWidget<SlideSwitch> {
         return this;
     }
 
-    public SlideSwitch availableWhen(BooleanSupplier available) {
+    /**
+     * Sets when the switch can be used. An unavailable switch is drawn faded, shows no hover and swallows clicks.
+     *
+     * @param available supplier read every frame and on every click
+     * @return this switch
+     */
+    public SlideSwitch available(BooleanSupplier available) {
         this.available = available;
         return this;
+    }
+
+    /**
+     * Same as {@link #available(BooleanSupplier)}.
+     *
+     * @param available supplier read every frame and on every click
+     * @return this switch
+     * @deprecated use {@link #available(BooleanSupplier)}, the name every GTNLLib widget uses
+     */
+    @Deprecated
+    public SlideSwitch availableWhen(BooleanSupplier available) {
+        return available(available);
+    }
+
+    @Override
+    public @NotNull Result onMousePressed(int mouseButton) {
+        return available.getAsBoolean() ? super.onMousePressed(mouseButton) : Result.STOP;
     }
 
     public SlideSwitch label(IKey label) {

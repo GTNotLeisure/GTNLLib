@@ -2,17 +2,21 @@ package com.gtnllib.gui.widget;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.function.BooleanSupplier;
 
 import net.minecraft.item.ItemStack;
 
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import com.cleanroommc.modularui.api.UpOrDown;
+import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.value.IValue;
 import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.drawable.ItemDrawable;
 import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
+import com.cleanroommc.modularui.theme.WidgetTheme;
 import com.cleanroommc.modularui.theme.WidgetThemeEntry;
 import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.widget.Widget;
@@ -36,6 +40,9 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
  * and the caret, use the button text color of the current state, and the shown value sinks with the button face on
  * hover. The sinking uses the shown widget's {@code transform} hook, so a transform set on it by
  * {@code optionToWidget} is replaced.
+ * <p>
+ * While {@link #available(BooleanSupplier)} reports false the dropdown looks like a disabled button, shows no hover,
+ * closes its menu and ignores clicks and the wheel.
  */
 public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
 
@@ -43,11 +50,38 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
     public static final int OPTION_HEIGHT = 16;
     private static final int MENU_EDGE = 1, VALUE_INSET = 3, CARET_SPACE = AE2Theme.CARET_WIDTH + 4;
     private final List<T> choices = new ObjectArrayList<>();
+    private final IDrawable disabledLook = AE2Theme.button(this, () -> false, () -> false);
+    private BooleanSupplier available = () -> true;
     private T shown;
     private int menuWidth;
 
     public CycleDropdown(String panelName, Class<T> valueType) {
         super(panelName, valueType);
+    }
+
+    /**
+     * Sets when the dropdown can be used.
+     *
+     * @param available supplier read every frame and on every input
+     * @return this dropdown
+     */
+    public CycleDropdown<T> available(BooleanSupplier available) {
+        this.available = available;
+        return this;
+    }
+
+    private boolean isAvailable() {
+        return available.getAsBoolean();
+    }
+
+    @Override
+    public @NotNull Result onMousePressed(int mouseButton) {
+        return isAvailable() ? super.onMousePressed(mouseButton) : Result.STOP;
+    }
+
+    @Override
+    public @Nullable IDrawable getThemeBackground(WidgetThemeEntry<?> widgetTheme, WidgetTheme activeTheme) {
+        return isAvailable() ? super.getThemeBackground(widgetTheme, activeTheme) : disabledLook;
     }
 
     // MUI2 keeps the menu of a removed dropdown open, or open until its closing animation ends, and a click meanwhile
@@ -84,7 +118,8 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
 
     private int labelColor() {
         Variant variant = AE2Theme.active(getContext());
-        if (variant != null) return variant.colors.button(State.of(this, true, false));
+        if (variant != null) return variant.colors.button(State.of(this, isAvailable(), false));
+        if (!isAvailable()) return AE2Theme.panelTextColor(getContext(), false);
         return getContext().getTheme()
             .getFallback()
             .getTheme()
@@ -94,15 +129,16 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
     private int labelSink() {
         if (AE2Theme.active(getContext()) == null) return 0;
         int height = getArea().height;
-        return AE2ButtonDrawable.textY(State.of(this, true, false), height)
+        return AE2ButtonDrawable.textY(State.of(this, isAvailable(), false), height)
             - AE2ButtonDrawable.textY(State.NORMAL, height);
     }
 
     @Override
     public void draw(ModularGuiContext context, WidgetThemeEntry<?> widgetTheme) {
         super.draw(context, widgetTheme);
-        int color = AE2Theme.active(context) == null ? widgetTheme.getTheme()
-            .getTextColor() : labelColor();
+        int color = AE2Theme.active(context) != null || !isAvailable() ? labelColor()
+            : widgetTheme.getTheme()
+                .getTextColor();
         AE2Theme.drawCaret(
             getArea().width - CARET_SPACE + 1,
             (getArea().height - AE2Theme.CARET_HEIGHT) / 2 + labelSink(),
@@ -122,6 +158,7 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
         super.onUpdate();
         IValue<T> value = getValue();
         if (value != null && isValid() && !Objects.equals(value.getValue(), shown)) setValue(value.getValue(), false);
+        if (!isAvailable() && isValid() && isOpen()) closeMenu(false);
     }
 
     public CycleDropdown<T> choices(List<T> choices) {
@@ -136,7 +173,7 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
     @Override
     public boolean onMouseScroll(UpOrDown scrollDirection, int amount) {
         IValue<T> value = getValue();
-        if (value == null || choices.isEmpty()) return false;
+        if (value == null || choices.isEmpty() || !isAvailable()) return false;
         int index = Math.max(0, choices.indexOf(value.getValue()));
         setValue(choices.get(Math.floorMod(index - scrollDirection.modifier, choices.size())), true);
         return true;

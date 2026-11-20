@@ -6,6 +6,7 @@ import java.util.function.Supplier;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
@@ -16,6 +17,7 @@ import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.drawable.GuiDraw;
 import com.cleanroommc.modularui.drawable.GuiTextures;
+import com.cleanroommc.modularui.drawable.ItemDrawable;
 import com.cleanroommc.modularui.drawable.Rectangle;
 import com.cleanroommc.modularui.drawable.Stencil;
 import com.cleanroommc.modularui.drawable.UITexture;
@@ -394,7 +396,7 @@ public class AE2Theme {
      * Draws an upgrade panel and its empty slot wells as AE2 does. The panel has no left border: its first column
      * covers the right border of the panel it belongs to, so draw it after that panel at
      * {@code panelRight - UPGRADE_OVERLAP}. A light frame surrounds the block of 16-by-16 wells, which sit 18 pixels
-     * apart in columns of {@link #UPGRADE_ROWS}.
+     * apart in columns of {@link #UPGRADE_ROWS}. With no slots nothing is drawn, as in AE2.
      *
      * @param variant non-null AE2 variant
      * @param x       panel left edge
@@ -405,8 +407,9 @@ public class AE2Theme {
      * @see #upgradeSlotX(int)
      */
     public static void drawUpgradePanel(Variant variant, int x, int y, int slots) {
-        int columns = upgradeColumns(slots), rows = Math.max(1, Math.min(slots, UPGRADE_ROWS)),
-            width = upgradePanelWidth(slots), height = upgradePanelHeight(slots);
+        if (slots <= 0) return;
+        int columns = upgradeColumns(slots), rows = Math.min(slots, UPGRADE_ROWS), width = upgradePanelWidth(slots),
+            height = upgradePanelHeight(slots);
         GlStateManager.color(1, 1, 1, 1);
         variant.upgradeFrame.draw(x + 1, y, width - 1, height);
         GuiDraw.drawRect(x, y + PANEL_EDGE, 1, height - PANEL_EDGE - PANEL_BOTTOM_EDGE, variant.colors.panel);
@@ -750,7 +753,8 @@ public class AE2Theme {
      * @param available supplier of the visual enabled state
      * @return combined background and icon drawable; the standard size is 18 by 20 pixels
      */
-    public static IDrawable iconButton(Widget<?> widget, Supplier<Icon> icon, BooleanSupplier available) {
+    public static IDrawable iconButton(Widget<?> widget, Supplier<? extends IconSource> icon,
+        BooleanSupplier available) {
         return iconButton(widget, icon, available, () -> false);
     }
 
@@ -765,23 +769,28 @@ public class AE2Theme {
      * @return combined background and icon drawable; the standard size is 18 by 20 pixels
      * @see #iconButton(Widget, Supplier, BooleanSupplier)
      */
-    public static IDrawable iconButton(Widget<?> widget, Supplier<Icon> icon, BooleanSupplier available,
+    public static IDrawable iconButton(Widget<?> widget, Supplier<? extends IconSource> icon, BooleanSupplier available,
         BooleanSupplier selected) {
         return (context, x, y, width, height, theme) -> {
             boolean on = available.getAsBoolean(), lit = on && widget.isHovering(), chosen = selected.getAsBoolean();
             Variant variant = active(context);
-            UITexture sprite = icon.get()
-                .texture(variant);
+            IconSource shown = icon.get();
             if (variant == null) {
                 themeButton(context, lit || chosen ? State.HOVER : State.NORMAL, x, y, width, height);
-                drawIcon(sprite, x + (width - ICON_SIZE) / 2, y + (height - ICON_SIZE) / 2, on);
+                shown.drawIcon(context, theme, null, x + (width - ICON_SIZE) / 2, y + (height - ICON_SIZE) / 2, on);
                 return;
             }
             int sink = lit ? 1 : 0;
             GlStateManager.color(1, 1, 1, 1);
             (lit ? variant.iconButtonHover : chosen ? variant.iconButtonSelected : variant.iconButton)
                 .draw(x, y + sink, width, height);
-            drawIcon(sprite, x + (width - ICON_SIZE) / 2, y + Math.max(0, (height - ICON_SIZE) / 2 - 1) + sink, on);
+            shown.drawIcon(
+                context,
+                theme,
+                variant,
+                x + (width - ICON_SIZE) / 2,
+                y + Math.max(0, (height - ICON_SIZE) / 2 - 1) + sink,
+                on);
         };
     }
 
@@ -796,21 +805,21 @@ public class AE2Theme {
      * @param available supplier of the visual enabled state
      * @return combined tab background and icon drawable
      */
-    public static IDrawable tabButton(Widget<?> widget, Supplier<Icon> icon, BooleanSupplier available) {
+    public static IDrawable tabButton(Widget<?> widget, Supplier<? extends IconSource> icon,
+        BooleanSupplier available) {
         return (context, x, y, width, height, theme) -> {
             boolean on = available.getAsBoolean(), lit = on && widget.isHovering();
             Variant variant = active(context);
-            UITexture sprite = icon.get()
-                .texture(variant);
+            IconSource shown = icon.get();
             if (variant == null) {
                 themeButton(context, lit ? State.HOVER : State.NORMAL, x, y, width, height);
-                drawIcon(sprite, x + (width - ICON_SIZE) / 2, y + (height - ICON_SIZE) / 2, on);
+                shown.drawIcon(context, theme, null, x + (width - ICON_SIZE) / 2, y + (height - ICON_SIZE) / 2, on);
                 return;
             }
             GlStateManager.color(1, 1, 1, 1);
             if (lit) variant.tabButtonHover.draw(x, y, TAB_HOVER_SIZE, TAB_HOVER_SIZE);
             else variant.tabButton.draw(x, y, TAB_BUTTON_SIZE, TAB_BUTTON_SIZE);
-            drawIcon(sprite, x + 2, y + 1, on);
+            shown.drawIcon(context, theme, variant, x + 2, y + 1, on);
         };
     }
 
@@ -826,21 +835,35 @@ public class AE2Theme {
      * @param selected supplier of the selected state
      * @return combined tab background and icon drawable
      */
-    public static IDrawable pageTab(Widget<?> widget, Supplier<Icon> icon, BooleanSupplier selected) {
+    public static IDrawable pageTab(Widget<?> widget, Supplier<? extends IconSource> icon, BooleanSupplier selected) {
+        return pageTab(widget, icon, selected, () -> true);
+    }
+
+    /**
+     * Creates a page-tab background and icon like {@link #pageTab(Widget, Supplier, BooleanSupplier)} that can also be
+     * unavailable: an unavailable tab shows no hover and draws its icon faded.
+     *
+     * @param widget    widget supplying hover state
+     * @param icon      supplier of the displayed icon
+     * @param selected  supplier of the selected state
+     * @param available supplier of the visual enabled state
+     * @return combined tab background and icon drawable
+     */
+    public static IDrawable pageTab(Widget<?> widget, Supplier<? extends IconSource> icon, BooleanSupplier selected,
+        BooleanSupplier available) {
         return (context, x, y, width, height, theme) -> {
-            boolean chosen = selected.getAsBoolean(), lit = widget.isHovering();
+            boolean chosen = selected.getAsBoolean(), on = available.getAsBoolean(), lit = on && widget.isHovering();
             Variant variant = active(context);
-            UITexture sprite = icon.get()
-                .texture(variant);
+            IconSource shown = icon.get();
             if (variant == null) {
                 themeButton(context, lit || chosen ? State.HOVER : State.NORMAL, x, y, width, height);
-                drawIcon(sprite, x + (width - ICON_SIZE) / 2, y + (height - ICON_SIZE) / 2, true);
+                shown.drawIcon(context, theme, null, x + (width - ICON_SIZE) / 2, y + (height - ICON_SIZE) / 2, on);
                 return;
             }
             GlStateManager.color(1, 1, 1, 1);
             (chosen ? variant.pageTabSelected : lit ? variant.pageTabHover : variant.pageTab)
                 .draw(x, y, PAGE_TAB_SIZE, PAGE_TAB_SIZE);
-            drawIcon(sprite, x + 3, y + 2, true);
+            shown.drawIcon(context, theme, variant, x + 3, y + 2, on);
         };
     }
 
@@ -939,6 +962,25 @@ public class AE2Theme {
         GlStateManager.color(1, 1, 1, 1);
     }
 
+    /**
+     * Returns the color of text drawn on the panel: the AE2 text color, or the muted one for something unavailable,
+     * under AE2 themes, and the screen theme's text color, or MUI2's disabled grey, otherwise.
+     *
+     * @param context   current drawing context
+     * @param available whether the text belongs to something that can be used
+     * @return ARGB text color
+     */
+    public static int panelTextColor(GuiContext context, boolean available) {
+        Variant variant = active(context);
+        if (variant != null) return available ? variant.colors.text : variant.colors.muted;
+        if (!available) return DISABLED_TEXT;
+        ITheme screen = screenTheme(context);
+        return screen == null ? VANILLA_TEXT
+            : screen.getFallback()
+                .getTheme()
+                .getTextColor();
+    }
+
     private static void plainText(GuiContext context, String text, int x, int y) {
         ITheme screen = screenTheme(context);
         WidgetTheme look = screen == null ? null
@@ -990,7 +1032,7 @@ public class AE2Theme {
         GlStateManager.color(1, 1, 1, 1);
     }
 
-    private static void drawIcon(UITexture icon, int x, int y, boolean active) {
+    private static void drawSprite(UITexture icon, int x, int y, boolean active) {
         GlStateManager.color(1, 1, 1, active ? 1 : INACTIVE_ALPHA);
         icon.draw(x, y, ICON_SIZE, ICON_SIZE);
         GlStateManager.color(1, 1, 1, 1);
@@ -1520,8 +1562,52 @@ public class AE2Theme {
         }
     }
 
+    /**
+     * What a toolbar button, a tab or a page tab shows in its 16-by-16 icon square: one of the built-in {@link Icon}s,
+     * which follow the AE2 skin, or any texture or item through {@link #of(IDrawable)} and {@link #of(ItemStack)}.
+     */
+    public interface IconSource {
+
+        /**
+         * Draws the icon at 16 by 16 pixels. Client only.
+         *
+         * @param context drawing context
+         * @param theme   widget theme the control is drawn with
+         * @param variant active AE2 variant, or {@code null} outside the AE2 themes
+         * @param x       left edge
+         * @param y       top edge
+         * @param enabled whether the control is usable; built-in icons and textures fade when it is not
+         */
+        void drawIcon(GuiContext context, WidgetTheme theme, @Nullable Variant variant, int x, int y, boolean enabled);
+
+        /**
+         * Wraps a MUI2 drawable, such as a {@link UITexture} of a mod's own icon sheet, drawn at 16 by 16 pixels in
+         * every theme.
+         *
+         * @param drawable drawable to show
+         * @return the icon
+         */
+        static IconSource of(IDrawable drawable) {
+            return (context, theme, variant, x, y, enabled) -> {
+                GlStateManager.color(1, 1, 1, enabled ? 1 : INACTIVE_ALPHA);
+                drawable.draw(context, x, y, ICON_SIZE, ICON_SIZE, theme);
+                GlStateManager.color(1, 1, 1, 1);
+            };
+        }
+
+        /**
+         * Shows an item, drawn like an item in a slot. Items do not fade when the control is unavailable.
+         *
+         * @param stack item to show; it is not copied, so do not change it afterwards
+         * @return the icon
+         */
+        static IconSource of(ItemStack stack) {
+            return of(new ItemDrawable(stack));
+        }
+    }
+
     /** Shared toolbar icons with AE2 sprites and MUI2 fallback textures. */
-    public enum Icon {
+    public enum Icon implements IconSource {
 
         /** Copy action. */
         COPY(192, 0, GuiTextures.COPY),
@@ -1614,6 +1700,12 @@ public class AE2Theme {
             if (skin == null)
                 skin = skins[variant.ordinal()] = sprite(variant.folder, "icons", SHEET, x, y, ICON_SIZE, ICON_SIZE);
             return skin;
+        }
+
+        @Override
+        public void drawIcon(GuiContext context, WidgetTheme theme, @Nullable Variant variant, int x, int y,
+            boolean enabled) {
+            drawSprite(texture(variant), x, y, enabled);
         }
     }
 

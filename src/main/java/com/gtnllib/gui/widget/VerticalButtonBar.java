@@ -11,12 +11,14 @@ import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.theme.WidgetThemeEntry;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.gtnllib.gui.theme.AE2Theme;
-import com.gtnllib.gui.theme.AE2Theme.Icon;
+import com.gtnllib.gui.theme.AE2Theme.IconSource;
 import com.gtnllib.gui.theme.AE2Theme.Variant;
 
 /**
  * A column of icon buttons on the left of a panel, laid out like AE2 1.21's vertical toolbar: 18-by-20-pixel
- * buttons 22 pixels apart on a background strip.
+ * buttons 22 pixels apart on a background strip. Icons are built-in {@code Icon}s or any texture or item through
+ * {@link IconSource#of}. {@link #available(BooleanSupplier)} makes the button added last unavailable when it should
+ * not be used: it then looks disabled and swallows clicks, as every GTNLLib widget's {@code available} does.
  * <p>
  * Place the bar at {@code panelLeft - WIDTH + OVERLAP} and add it after the panel's other children: its right
  * {@link #OVERLAP} pixels are drawn over the panel's left border, so the strip and the panel read as one piece
@@ -30,6 +32,7 @@ public class VerticalButtonBar extends ParentWidget<VerticalButtonBar> {
     private static final int BUTTON_X = 3, BUTTON_Y = 3, EDGES = 6;
     private static final IDrawable PLAIN_STRIP = AE2Theme.panelBackground(0, 0);
     private int count;
+    private ActionButton last;
 
     public VerticalButtonBar() {
         size(WIDTH, EDGES);
@@ -43,7 +46,7 @@ public class VerticalButtonBar extends ParentWidget<VerticalButtonBar> {
      * @param action  run on a left click
      * @return this bar
      */
-    public VerticalButtonBar button(Supplier<Icon> icon, Supplier<String> tooltip, Runnable action) {
+    public VerticalButtonBar button(Supplier<? extends IconSource> icon, Supplier<String> tooltip, Runnable action) {
         return button(icon, lines -> lines.addLine(tooltip.get()), mouse -> {
             if (mouse != 0) return false;
             action.run();
@@ -59,7 +62,8 @@ public class VerticalButtonBar extends ParentWidget<VerticalButtonBar> {
      * @param click   receives the pressed mouse button (0 left, 1 right) and returns whether it handled it
      * @return this bar
      */
-    public VerticalButtonBar button(Supplier<Icon> icon, Consumer<RichTooltip> tooltip, IntPredicate click) {
+    public VerticalButtonBar button(Supplier<? extends IconSource> icon, Consumer<RichTooltip> tooltip,
+        IntPredicate click) {
         return add(icon, tooltip, click, () -> false);
     }
 
@@ -72,7 +76,8 @@ public class VerticalButtonBar extends ParentWidget<VerticalButtonBar> {
      * @param flip    run on a left click
      * @return this bar
      */
-    public VerticalButtonBar toggle(Supplier<Icon> icon, Supplier<String> tooltip, BooleanSupplier on, Runnable flip) {
+    public VerticalButtonBar toggle(Supplier<? extends IconSource> icon, Supplier<String> tooltip, BooleanSupplier on,
+        Runnable flip) {
         return add(icon, lines -> lines.addLine(tooltip.get()), mouse -> {
             if (mouse != 0) return false;
             flip.run();
@@ -80,15 +85,29 @@ public class VerticalButtonBar extends ParentWidget<VerticalButtonBar> {
         }, on);
     }
 
-    private VerticalButtonBar add(Supplier<Icon> icon, Consumer<RichTooltip> tooltip, IntPredicate click,
-        BooleanSupplier selected) {
-        child(
-            ActionButton.icon(icon, () -> {})
-                .selected(selected)
-                .pos(BUTTON_X, BUTTON_Y + count * PITCH)
-                .tooltipAutoUpdate(true)
-                .tooltipBuilder(tooltip)
-                .onMousePressed(click::test));
+    /**
+     * Sets when the button added last can be used; while it cannot, it looks disabled, shows no hover and swallows
+     * clicks.
+     *
+     * @param available supplier read every frame and on every click
+     * @return this bar
+     * @throws IllegalStateException if no button was added yet
+     */
+    public VerticalButtonBar available(BooleanSupplier available) {
+        if (last == null) throw new IllegalStateException("Add a button before setting when it is available");
+        last.available(available);
+        return this;
+    }
+
+    private VerticalButtonBar add(Supplier<? extends IconSource> icon, Consumer<RichTooltip> tooltip,
+        IntPredicate click, BooleanSupplier selected) {
+        last = ActionButton.icon(icon, () -> {})
+            .selected(selected)
+            .pos(BUTTON_X, BUTTON_Y + count * PITCH)
+            .tooltipAutoUpdate(true)
+            .tooltipBuilder(tooltip)
+            .onMousePressed(click::test);
+        child(last);
         count++;
         height(count * PITCH + EDGES);
         return this;

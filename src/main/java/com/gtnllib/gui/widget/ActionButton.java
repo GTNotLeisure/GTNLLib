@@ -9,14 +9,14 @@ import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.api.layout.IViewportStack;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.gtnllib.gui.theme.AE2Theme;
-import com.gtnllib.gui.theme.AE2Theme.Icon;
+import com.gtnllib.gui.theme.AE2Theme.IconSource;
 
 /**
  * A button drawn by the active theme: a text button ({@link AE2Theme#button} with {@link AE2Theme#label}) or a
  * toolbar icon button ({@link AE2Theme#iconButton}). It reacts to the left mouse button only, unless a mouse handler
- * set afterwards replaces the action. While it is not available it looks disabled and swallows left clicks, so they
- * never reach a widget below it. An icon button takes the mouse on its whole frame; AE2's react only on the 16-by-16
- * icon square. It can be built on either side, so it also works in GUIs the server opens.
+ * set afterwards replaces the action. While it is not available it looks disabled, shows no hover and swallows every
+ * mouse button, so clicks never reach a widget below it. An icon button takes the mouse on its whole frame; AE2's react
+ * only on the 16-by-16 icon square. It can be built on either side, so it also works in GUIs the server opens.
  */
 public class ActionButton extends ButtonWidget<ActionButton> {
 
@@ -43,11 +43,12 @@ public class ActionButton extends ButtonWidget<ActionButton> {
      * Creates a toolbar icon button of the standard {@link AE2Theme#ICON_BUTTON_WIDTH} by
      * {@link AE2Theme#ICON_BUTTON_HEIGHT} size.
      *
-     * @param icon   supplier of the icon, read every frame
+     * @param icon   supplier of the icon, read every frame: a built-in {@code Icon}, or any texture or item through
+     *               {@link IconSource#of}
      * @param action run on a left click while the button is available
      * @return the button
      */
-    public static ActionButton icon(Supplier<Icon> icon, Runnable action) {
+    public static ActionButton icon(Supplier<? extends IconSource> icon, Runnable action) {
         ActionButton button = new ActionButton();
         IDrawable look = AE2Theme.iconButton(button, icon, button::isAvailable, button::isSelected);
         return button.background(look)
@@ -101,6 +102,6 @@ public class ActionButton extends ButtonWidget<ActionButton> {
 
     @Override
     public @NotNull Result onMousePressed(int button) {
-        return button == 0 && !isAvailable() ? Result.STOP : super.onMousePressed(button);
+        return isAvailable() ? super.onMousePressed(button) : Result.STOP;
     }
 }
