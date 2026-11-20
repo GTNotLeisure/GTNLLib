@@ -58,6 +58,18 @@ public class GTNLListWidget<I extends IWidget, W extends ListWidget<I, W>> exten
     }
 
     @Override
+    public void onUpdate() {
+        super.onUpdate();
+        if (getScrollData() instanceof HandleScrollData handle) handle.repeatPaging(getScrollArea());
+    }
+
+    @Override
+    public boolean onMouseRelease(int mouseButton) {
+        if (getScrollData() instanceof HandleScrollData handle) handle.stopPaging();
+        return super.onMouseRelease(mouseButton);
+    }
+
+    @Override
     public void postResize() {
         super.postResize();
         getScrollData().clamp(getScrollArea());

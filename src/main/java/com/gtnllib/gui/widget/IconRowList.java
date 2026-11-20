@@ -12,6 +12,7 @@ import net.minecraft.item.ItemStack;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
 import com.cleanroommc.modularui.api.UpOrDown;
@@ -21,6 +22,7 @@ import com.cleanroommc.modularui.drawable.ItemDrawable;
 import com.cleanroommc.modularui.integration.recipeviewer.RecipeViewerIngredientProvider;
 import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.theme.WidgetThemeEntry;
+import com.cleanroommc.modularui.utils.GlStateManager;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.AE2Theme.Variant;
@@ -46,11 +48,12 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
     public static final int GOOD = 0xFF60E060, BAD = 0xFFFF6060;
     /**
      * Width taken by the scroll bar right of the inset under AE2 themes, like AE2's lists: the groove sits on the panel
-     * background, seven pixels from the inset's edge.
+     * background, eight pixels from the inset's edge, as in AE2's network status and crafting CPU screens.
      */
-    public static final int AE2_SCROLL_COLUMN = AE2Theme.BIG_SCROLLER_WIDTH + 4;
+    public static final int AE2_SCROLL_COLUMN = AE2Theme.BIG_SCROLLER_WIDTH + 5;
     private static final int AE2_GUTTER = AE2_SCROLL_COLUMN + 1, LIGHT_SHADE = 0x18000000, DARK_SHADE = 0x18FFFFFF,
-        HEADER_LINE_ALPHA = 0x40000000;
+        HEADER_LINE_ALPHA = 0x40000000, PAGE_PARTS = 3;
+    private static final float INACTIVE_ALPHA = 0.5F;
 
     /**
      * The number field of a row.
@@ -67,29 +70,31 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
      * One row. Only one of click, options, toggle and number is normally set; options turn the row into a
      * dropdown, a non-null toggle draws a switch whose state is that value, and a number puts a {@link NumberEntry}
      * on the right of the row. A right click runs {@code secondary} when it is set. A nonzero {@code detailColor}
-     * colors only the detail; zero uses {@code color} for both.
+     * colors only the detail; zero uses {@code color} for both. An unavailable row is drawn muted with a faded switch,
+     * does not highlight and ignores clicks; its number field looks disabled.
      */
     public record Row(ItemStack icon, String text, String detail, int color, boolean selected, boolean header,
-        Runnable click, List<Row> options, Boolean toggle, Numeric number, Runnable secondary, int detailColor) {
+        Runnable click, List<Row> options, Boolean toggle, Numeric number, Runnable secondary, int detailColor,
+        boolean available) {
 
         public static Row header(String text) {
-            return new Row(null, text, "", HEADER, false, true, null, null, null, null, null, 0);
+            return new Row(null, text, "", HEADER, false, true, null, null, null, null, null, 0, true);
         }
 
         public static Row item(ItemStack icon, String text, String detail, boolean selected, Runnable click) {
-            return new Row(icon, text, detail, TEXT, selected, false, click, null, null, null, null, 0);
+            return new Row(icon, text, detail, TEXT, selected, false, click, null, null, null, null, 0, true);
         }
 
         public static Row colored(ItemStack icon, String text, String detail, int color) {
-            return new Row(icon, text, detail, color, false, false, null, null, null, null, null, 0);
+            return new Row(icon, text, detail, color, false, false, null, null, null, null, null, 0, true);
         }
 
         public static Row toggle(String text, boolean on, Runnable click) {
-            return new Row(null, text, "", TEXT, false, false, click, null, on, null, null, 0);
+            return new Row(null, text, "", TEXT, false, false, click, null, on, null, null, 0, true);
         }
 
         public static Row dropdown(ItemStack icon, String text, String detail, boolean selected, List<Row> options) {
-            return new Row(icon, text, detail, TEXT, selected, false, null, options, null, null, null, 0);
+            return new Row(icon, text, detail, TEXT, selected, false, null, options, null, null, null, 0, true);
         }
 
         public static Row number(String text, long value, long min, long max, long reset, LongConsumer set) {
@@ -105,7 +110,31 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
                 null,
                 new Numeric(value, min, max, reset, set),
                 null,
-                0);
+                0,
+                true);
+        }
+
+        /**
+         * Returns a copy of this row that can or cannot be used.
+         *
+         * @param available whether the row reacts to the mouse
+         * @return the new row
+         */
+        public Row withAvailable(boolean available) {
+            return new Row(
+                icon,
+                text,
+                detail,
+                color,
+                selected,
+                header,
+                click,
+                options,
+                toggle,
+                number,
+                secondary,
+                detailColor,
+                available);
         }
 
         /**
@@ -127,7 +156,8 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
                 toggle,
                 number,
                 action,
-                detailColor);
+                detailColor,
+                available);
         }
 
         /**
@@ -150,7 +180,8 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
                 toggle,
                 number,
                 secondary,
-                color);
+                color,
+                available);
         }
     }
 
@@ -161,7 +192,8 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
     private List<Row> rows = Collections.emptyList();
     private boolean[] nested = new boolean[0];
     private String expanded;
-    private int scroll, edge, gutter = SCROLLBAR, grab = -1;
+    private int scroll, edge, gutter = SCROLLBAR, grab = -1, pageDirection;
+    private long nextPage;
     private boolean ae2, revealSelected;
 
     public IconRowList(Supplier<List<Row>> source) {
@@ -210,6 +242,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
         super.onUpdate();
         // MUI2 updates hidden widgets too; a hidden list has nothing to rebuild.
         if (!isEnabled()) return;
+        repeatPaging();
         List<Row> flat = new ArrayList<>();
         List<Boolean> inside = new ArrayList<>();
         for (Row row : source.get()) {
@@ -277,6 +310,10 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
         NumberEntry entry = new NumberEntry(null).right(gutter + 2)
             .top(0)
             .size(NUMBER_WIDTH, ROW - 2)
+            .available(() -> {
+                Row row = entryRows.get(index);
+                return row == null || row.available();
+            })
             .onChange(value -> {
                 Row row = entryRows.get(index);
                 if (row != null && row.number() != null) row.number()
@@ -354,11 +391,16 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
             int index = scroll + i;
             Row row = rows.get(index);
             int top = edge + i * ROW, left = edge + (nested[index] ? INDENT : 0);
-            int textColor = color(variant, row.color(), variant == null ? TEXT : variant.colors.text());
-            int detailColor = color(
-                variant,
-                row.detailColor() != 0 ? row.detailColor() : row.color(),
-                variant == null ? TEXT : variant.colors.secondary());
+            boolean usable = row.available(), lit = usable && index == hovered;
+            int muted = variant == null ? HEADER : variant.colors.muted();
+            int textColor = usable ? color(variant, row.color(), variant == null ? TEXT : variant.colors.text())
+                : muted;
+            int detailColor = usable
+                ? color(
+                    variant,
+                    row.detailColor() != 0 ? row.detailColor() : row.color(),
+                    variant == null ? TEXT : variant.colors.secondary())
+                : muted;
             if (nested[index]) GuiDraw.drawRect(edge, top, rowRight - edge, ROW, variant == null ? NESTED : shade);
             if (row.selected()) {
                 if (variant == null) GuiDraw.drawRect(left, top, rowRight - left, ROW, SELECTED);
@@ -367,8 +409,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
                     textColor = detailColor = variant.highlightText;
                 }
             }
-            if (index == hovered && !row.header() && !row.selected())
-                GuiDraw.drawRect(left, top, rowRight - left, ROW, shade);
+            if (lit && !row.header() && !row.selected()) GuiDraw.drawRect(left, top, rowRight - left, ROW, shade);
             int textLeft = left + 3;
             if (row.icon() != null) {
                 new ItemDrawable(row.icon()).draw(context, left + 1, top + 1, 16, 16, widgetTheme.getTheme());
@@ -385,7 +426,11 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
                     variant == null ? ACCENT : textColor);
                 right -= CARET;
             }
-            if (row.toggle() != null) right -= drawSwitch(variant, textRight, top, row.toggle(), index == hovered) + 3;
+            if (row.toggle() != null) {
+                GlStateManager.color(1, 1, 1, usable ? 1 : INACTIVE_ALPHA);
+                right -= drawSwitch(variant, textRight, top, row.toggle(), lit) + 3;
+                GlStateManager.color(1, 1, 1, 1);
+            }
             String detail = row.detail() == null ? "" : row.detail();
             int detailWidth = detail.isEmpty() ? 0 : font.getStringWidth(detail) + 3;
             if (!detail.isEmpty()) font.drawString(detail, right - detailWidth + 3, top + 5, detailColor);
@@ -461,16 +506,24 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
     @Override
     public @NotNull Result onMousePressed(int mouseButton) {
         grab = -1;
+        pageDirection = 0;
         if (overScrollbar()) {
             if (mouseButton != 0 || maxScroll() == 0) return Result.SUCCESS;
             int mouseY = getContext().getMouseY(), top = handleTop(), length = handleLength();
-            grab = mouseY >= top && mouseY < top + length ? mouseY - top : length / 2;
-            dragTo(mouseY);
+            if (mouseY >= top && mouseY < top + length) {
+                grab = mouseY - top;
+                dragTo(mouseY);
+            } else {
+                pageDirection = mouseY < top ? -1 : 1;
+                nextPage = System.currentTimeMillis() + HandleScrollData.FIRST_REPEAT_MILLIS;
+                page();
+            }
             return Result.SUCCESS;
         }
         int index = hoveredRow();
         if (index < 0) return Result.ACCEPT;
         Row row = rows.get(index);
+        if (!row.available()) return Result.STOP;
         if (mouseButton == 1) {
             if (row.secondary() == null) return Result.ACCEPT;
             row.secondary()
@@ -503,10 +556,27 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
         if (grab >= 0) dragTo(getContext().getMouseY());
     }
 
+    private void page() {
+        scroll = Math.max(0, Math.min(maxScroll(), scroll + pageDirection * Math.max(1, visibleRows() / PAGE_PARTS)));
+    }
+
+    private void repeatPaging() {
+        if (pageDirection == 0) return;
+        if (!Mouse.isButtonDown(0)) {
+            pageDirection = 0;
+            return;
+        }
+        long now = System.currentTimeMillis();
+        if (now < nextPage) return;
+        nextPage = now + HandleScrollData.REPEAT_MILLIS;
+        page();
+    }
+
     @Override
     public boolean onMouseRelease(int mouseButton) {
         boolean dragging = grab >= 0;
         grab = -1;
+        pageDirection = 0;
         return dragging;
     }
 

@@ -23,6 +23,7 @@ import com.cleanroommc.modularui.utils.GlStateManager;
 import com.cleanroommc.modularui.utils.JsonHelper;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.google.gson.JsonObject;
+import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.utils.TextRenderUtils;
 
 public class SlideSwitch extends ButtonWidget<SlideSwitch> {
@@ -104,13 +105,14 @@ public class SlideSwitch extends ButtonWidget<SlideSwitch> {
             if (colors.knobSkin != null) colors.knobSkin.draw(knobX, top, switchHeight, switchHeight, knob);
             else GuiDraw.drawRect(knobX, top, switchHeight, switchHeight, knob);
         }
+        int labelY = sprite != null ? top + AE2Theme.SWITCH_LABEL_Y : LABEL_Y;
         TextRenderUtils.drawTextFitted(
             label.get(),
             labelX,
-            LABEL_Y,
+            labelY,
             width - labelX,
-            height,
-            Alignment.CenterLeft,
+            sprite != null ? height - labelY : height,
+            sprite != null ? Alignment.TopLeft : Alignment.CenterLeft,
             textColor(colors, on, lit, open),
             lit && colors.getTextShadow(),
             style.textScale);

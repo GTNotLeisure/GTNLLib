@@ -11,15 +11,12 @@ import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.AE2Theme.Icon;
 
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
-
 /**
  * A button drawn by the active theme: a text button ({@link AE2Theme#button} with {@link AE2Theme#label}) or a
- * toolbar icon button ({@link AE2Theme#iconButton}). It reacts to the left mouse button only. While it is not
- * available it looks disabled and swallows left clicks, so they never reach a widget below it.
+ * toolbar icon button ({@link AE2Theme#iconButton}). It reacts to the left mouse button only, unless a mouse handler
+ * set afterwards replaces the action. While it is not available it looks disabled and swallows left clicks, so they
+ * never reach a widget below it. It can be built on either side, so it also works in GUIs the server opens.
  */
-@SideOnly(Side.CLIENT)
 public class ActionButton extends ButtonWidget<ActionButton> {
 
     private BooleanSupplier available = () -> true, selected = () -> false;

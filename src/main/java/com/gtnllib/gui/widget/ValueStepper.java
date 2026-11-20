@@ -10,15 +10,12 @@ import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
-
 /**
  * Steps through a list of named values: {@code <} and {@code >} buttons around the current value's name, and the
  * mouse wheel anywhere over it. It holds no values itself; the step callback moves the owner's selection, so it suits
- * values that are not numbers, such as voltage tiers. For numbers use {@link NumberEntry}.
+ * values that are not numbers, such as voltage tiers. For numbers use {@link NumberEntry}. It can be built on either
+ * side, so it also works in GUIs the server opens.
  */
-@SideOnly(Side.CLIENT)
 public class ValueStepper extends ParentWidget<ValueStepper> implements Interactable {
 
     /** Width of each arrow button in pixels. */

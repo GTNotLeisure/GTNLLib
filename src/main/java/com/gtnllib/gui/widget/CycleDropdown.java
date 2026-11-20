@@ -17,11 +17,13 @@ import com.cleanroommc.modularui.theme.WidgetThemeEntry;
 import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widgets.ScrollingTextWidget;
+import com.cleanroommc.modularui.widgets.TextWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.menu.DropdownWidget;
 import com.cleanroommc.modularui.widgets.menu.Menu;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.AE2Theme.Variant;
+import com.gtnllib.gui.widget.AE2ButtonDrawable.State;
 
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 
@@ -54,20 +56,46 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
     @Override
     protected IWidget valueToWidget(T value, boolean forSelectedDisplay) {
         IWidget widget = super.valueToWidget(value, forSelectedDisplay);
-        if (widget instanceof Widget<?>option)
+        if (widget instanceof Widget<?>option) {
             option.margin(VALUE_INSET, forSelectedDisplay ? CARET_SPACE : VALUE_INSET, 0, 0);
+            if (forSelectedDisplay) {
+                option.transform((self, stack) -> stack.translate(0, labelSink()));
+                followButtonText(option);
+            }
+        }
         return widget;
+    }
+
+    // The shown value is a plain text widget, which MUI2 colors with the panel text color rather than the button's.
+    private void followButtonText(IWidget widget) {
+        if (widget instanceof TextWidget<?>text) text.color(this::labelColor);
+        for (IWidget child : widget.getChildren()) followButtonText(child);
+    }
+
+    private int labelColor() {
+        Variant variant = AE2Theme.active(getContext());
+        if (variant != null) return variant.colors.button(State.of(this, true, false));
+        return getContext().getTheme()
+            .getFallback()
+            .getTheme()
+            .getTextColor();
+    }
+
+    private int labelSink() {
+        if (AE2Theme.active(getContext()) == null) return 0;
+        int height = getArea().height;
+        return AE2ButtonDrawable.textY(State.of(this, true, false), height)
+            - AE2ButtonDrawable.textY(State.NORMAL, height);
     }
 
     @Override
     public void draw(ModularGuiContext context, WidgetThemeEntry<?> widgetTheme) {
         super.draw(context, widgetTheme);
-        Variant variant = AE2Theme.active(context);
-        int color = variant == null ? widgetTheme.getTheme()
-            .getTextColor() : variant.colors.text();
+        int color = AE2Theme.active(context) == null ? widgetTheme.getTheme()
+            .getTextColor() : labelColor();
         AE2Theme.drawCaret(
             getArea().width - CARET_SPACE + 1,
-            (getArea().height - AE2Theme.CARET_HEIGHT) / 2,
+            (getArea().height - AE2Theme.CARET_HEIGHT) / 2 + labelSink(),
             isOpen(),
             color);
     }

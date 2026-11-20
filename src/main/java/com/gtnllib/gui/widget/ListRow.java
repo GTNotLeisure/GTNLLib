@@ -14,13 +14,11 @@ import com.cleanroommc.modularui.api.widget.Interactable;
 import com.cleanroommc.modularui.drawable.GuiDraw;
 import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.theme.WidgetThemeEntry;
+import com.cleanroommc.modularui.utils.GlStateManager;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widget.Widget;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.AE2Theme.Variant;
-
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
 
 /**
  * One list row made of widgets and drawn like an {@link IconRowList} row: a one-line label on the left and, against
@@ -30,18 +28,18 @@ import cpw.mods.fml.relauncher.SideOnly;
  * The row is meant to sit inside a list inset, like {@link IconRowList}'s rows: a row as wide as that list's inset
  * places its label {@link #TEXT_INSET} pixels and its control {@link #END_INSET} pixels from the inset's edges, the
  * same as the list's own rows. Use it where a list mixes MUI2 controls such as {@link NumberEntry} and
- * {@link CycleDropdown} with plain rows.
+ * {@link CycleDropdown} with plain rows. It can be built on either side, so it also works in GUIs the server opens.
  */
-@SideOnly(Side.CLIENT)
 public class ListRow extends ParentWidget<ListRow> implements Interactable {
 
     /** Pixels from the row's left edge to the label and from its right edge to the control or switch. */
     public static final int TEXT_INSET = 4, END_INSET = 3;
     private static final int EDGE = 1, GAP = 4, TEXT_Y = 5;
+    private static final float INACTIVE_ALPHA = 0.5F;
     private final Supplier<String> label;
     private final boolean header;
     private IntPredicate click;
-    private BooleanSupplier toggle;
+    private BooleanSupplier toggle, available = () -> true;
     private Widget<?> control;
     private int controlWidth;
     private boolean cut;
@@ -119,6 +117,18 @@ public class ListRow extends ParentWidget<ListRow> implements Interactable {
         return this;
     }
 
+    /**
+     * Sets when the row can be used. An unavailable row draws its label muted and its switch faded, does not
+     * highlight, and swallows clicks without running its action.
+     *
+     * @param available supplier read every frame and on every click
+     * @return this row
+     */
+    public ListRow available(BooleanSupplier available) {
+        this.available = available;
+        return this;
+    }
+
     // MUI2 lets the mouse fall through a parent widget without a theme background; this one draws its own.
     @Override
     public boolean canHover() {
@@ -127,7 +137,9 @@ public class ListRow extends ParentWidget<ListRow> implements Interactable {
 
     @Override
     public @NotNull Result onMousePressed(int mouseButton) {
-        if (click == null || !click.test(mouseButton)) return Result.IGNORE;
+        if (click == null) return Result.IGNORE;
+        if (!available.getAsBoolean()) return Result.STOP;
+        if (!click.test(mouseButton)) return Result.IGNORE;
         Interactable.playButtonClickSound();
         return Result.SUCCESS;
     }
@@ -136,10 +148,14 @@ public class ListRow extends ParentWidget<ListRow> implements Interactable {
     public void draw(ModularGuiContext context, WidgetThemeEntry<?> widgetTheme) {
         Variant variant = AE2Theme.active(context);
         int width = getArea().width;
-        boolean hovered = click != null && isHovering();
+        boolean usable = available.getAsBoolean(), hovered = usable && click != null && isHovering();
         if (hovered) GuiDraw.drawRect(EDGE, 0, width - 2 * EDGE, getArea().height, IconRowList.hoverColor(variant));
         int right = width - END_INSET;
-        if (toggle != null) right -= IconRowList.drawSwitch(variant, right, 0, toggle.getAsBoolean(), hovered) + GAP;
+        if (toggle != null) {
+            GlStateManager.color(1, 1, 1, usable ? 1 : INACTIVE_ALPHA);
+            right -= IconRowList.drawSwitch(variant, right, 0, toggle.getAsBoolean(), hovered) + GAP;
+            GlStateManager.color(1, 1, 1, 1);
+        }
         if (control != null) right -= controlWidth + GAP;
         FontRenderer font = Minecraft.getMinecraft().fontRenderer;
         String full = label.get();
@@ -147,7 +163,7 @@ public class ListRow extends ParentWidget<ListRow> implements Interactable {
         cut = shown.length() < full.length();
         if (header) IconRowList.drawHeader(variant, font, shown, TEXT_INSET, 0, width - EDGE);
         else {
-            boolean muted = control != null && !control.isEnabled();
+            boolean muted = !usable || control != null && !control.isEnabled();
             int color = variant == null ? muted ? IconRowList.HEADER : IconRowList.TEXT
                 : muted ? variant.colors.muted() : variant.colors.text();
             AE2Theme.text(shown, TEXT_INSET, TEXT_Y, color, false);

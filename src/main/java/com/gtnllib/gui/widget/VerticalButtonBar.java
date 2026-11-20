@@ -5,20 +5,14 @@ import java.util.function.Consumer;
 import java.util.function.IntPredicate;
 import java.util.function.Supplier;
 
-import com.cleanroommc.modularui.api.ITheme;
 import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.screen.RichTooltip;
 import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
-import com.cleanroommc.modularui.theme.WidgetTheme;
 import com.cleanroommc.modularui.theme.WidgetThemeEntry;
 import com.cleanroommc.modularui.widget.ParentWidget;
-import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.AE2Theme.Icon;
 import com.gtnllib.gui.theme.AE2Theme.Variant;
-
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
 
 /**
  * A column of icon buttons on the left of a panel, laid out like AE2 1.21's vertical toolbar: 18-by-20-pixel
@@ -27,14 +21,14 @@ import cpw.mods.fml.relauncher.SideOnly;
  * Place the bar at {@code panelLeft - WIDTH + OVERLAP} and add it after the panel's other children: its right
  * {@link #OVERLAP} pixels are drawn over the panel's left border, so the strip and the panel read as one piece
  * without a dividing line. The height grows with each added button. Outside AE2 themes the strip uses the panel
- * background of the current theme.
+ * background of the current theme. It can be built on either side, so it also works in GUIs the server opens.
  */
-@SideOnly(Side.CLIENT)
 public class VerticalButtonBar extends ParentWidget<VerticalButtonBar> {
 
     /** Strip width, distance between button tops and pixels drawn over the panel's left border. */
     public static final int WIDTH = 21, PITCH = 22, OVERLAP = 2;
     private static final int BUTTON_X = 3, BUTTON_Y = 3, EDGES = 6;
+    private static final IDrawable PLAIN_STRIP = AE2Theme.panelBackground(0, 0);
     private int count;
 
     public VerticalButtonBar() {
@@ -88,13 +82,10 @@ public class VerticalButtonBar extends ParentWidget<VerticalButtonBar> {
 
     private VerticalButtonBar add(Supplier<Icon> icon, Consumer<RichTooltip> tooltip, IntPredicate click,
         BooleanSupplier selected) {
-        ButtonWidget<?> button = new ButtonWidget<>();
-        IDrawable look = AE2Theme.iconButton(button, icon, () -> true, selected);
         child(
-            button.background(look)
-                .hoverBackground(look)
+            ActionButton.icon(icon, () -> {})
+                .selected(selected)
                 .pos(BUTTON_X, BUTTON_Y + count * PITCH)
-                .size(AE2Theme.ICON_BUTTON_WIDTH, AE2Theme.ICON_BUTTON_HEIGHT)
                 .tooltipAutoUpdate(true)
                 .tooltipBuilder(tooltip)
                 .onMousePressed(click::test));
@@ -107,14 +98,7 @@ public class VerticalButtonBar extends ParentWidget<VerticalButtonBar> {
     public void draw(ModularGuiContext context, WidgetThemeEntry<?> widgetTheme) {
         int width = getArea().width, height = getArea().height;
         Variant variant = AE2Theme.active(context);
-        if (variant != null) {
-            AE2Theme.drawButtonBar(variant, 0, 0, width, height);
-            return;
-        }
-        ITheme theme = context.getTheme();
-        WidgetTheme panel = theme.getPanelTheme()
-            .getTheme();
-        IDrawable background = panel.getBackground();
-        if (background != null) background.draw(context, 0, 0, width, height, panel);
+        if (variant != null) AE2Theme.drawButtonBar(variant, 0, 0, width, height);
+        else PLAIN_STRIP.draw(context, 0, 0, width, height, widgetTheme.getTheme());
     }
 }

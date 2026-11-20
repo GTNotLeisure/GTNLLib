@@ -1,6 +1,7 @@
 package com.gtnllib.gui.widget;
 
 import org.jetbrains.annotations.Nullable;
+import org.lwjgl.input.Mouse;
 
 import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
@@ -11,26 +12,29 @@ import com.cleanroommc.modularui.widget.scroll.VerticalScrollData;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.AE2Theme.Variant;
 
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
-
 /**
- * Client-side vertical scroll data with a fixed-size AE2 or vanilla handle.
+ * Vertical scroll data with a fixed-size AE2 or vanilla handle. It can be built on either side, so it also works in
+ * GUIs the server opens.
  * <p>
  * {@link GTNLListWidget} reserves the track width and draws the disabled handle when the content fits. Other scroll
  * widgets must reserve {@link #getThickness()} pixels on the right and draw the inactive track themselves. The
  * available vertical track must be at least {@link AE2Theme#SCROLLER_HEIGHT} pixels tall.
  * <p>
  * Scrolling is smooth by default. {@link #rows(int)} enables immediate scrolling snapped to row boundaries. Scroll
- * shadows are never drawn.
+ * shadows are never drawn. Like AE2, a press on the track beside the handle pages a third of the view towards the
+ * pointer; inside a {@link GTNLListWidget} holding the button keeps paging, first after
+ * {@value #FIRST_REPEAT_MILLIS} ms and then every {@value #REPEAT_MILLIS} ms.
  */
-@SideOnly(Side.CLIENT)
 public class HandleScrollData extends VerticalScrollData implements IPersistentScrollbar {
 
+    /** Delay before a held track press pages again, and the interval between later pages, in milliseconds. */
+    public static final int FIRST_REPEAT_MILLIS = 250, REPEAT_MILLIS = 150;
+    private static final int PAGE_PARTS = 3;
     private final @Nullable Variant variant;
     private final boolean small;
     private int rowHeight;
-    private int dragMouse, dragScroll;
+    private int dragMouse, dragScroll, pageDirection;
+    private long nextPage;
 
     /**
      * Creates scroll data with a large handle.
@@ -89,27 +93,62 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
     }
 
     /**
-     * Starts a drag when the press lands on an active track.
-     * <p>
-     * The drag is anchored to the scroll offset at the press. A press on the handle keeps that offset; a press
-     * elsewhere on the track targets the offset that centres the handle on the pointer.
+     * Handles a press on an active track: a press on the handle starts a drag anchored to the current scroll offset,
+     * and a press beside the handle pages towards the pointer instead.
      *
      * @param area         owning scroll area
      * @param mainAxisPos  mouse Y coordinate relative to the scroll area
      * @param crossAxisPos mouse X coordinate relative to the scroll area
      * @param button       mouse button
-     * @return whether a drag started
+     * @return whether the press landed on the track
      */
     @Override
     public boolean onMouseClicked(ScrollArea area, int mainAxisPos, int crossAxisPos, int button) {
         int track = mainAxisPos - trackTop(area);
+        pageDirection = 0;
         if (!isScrollBarActive(area) || !super.onMouseClicked(area, track, crossAxisPos, button)) return false;
         int length = getScrollBarLength(area), visible = getFullVisibleSize(area);
         int start = getScrollBarStart(area, length, visible);
+        if (track < start || track > start + length) {
+            dragging = false;
+            pageDirection = track < start ? -1 : 1;
+            nextPage = System.currentTimeMillis() + FIRST_REPEAT_MILLIS;
+            page(area);
+            return true;
+        }
         dragMouse = track;
-        dragScroll = track < start || track > start + length ? offsetAt(track - clickOffset, visible, length)
-            : getScroll();
+        dragScroll = getScroll();
         return true;
+    }
+
+    /**
+     * Pages again while a track press is held, at most once per {@link #REPEAT_MILLIS}. {@link GTNLListWidget} calls it
+     * every client tick; other scroll widgets page once per press.
+     *
+     * @param area owning scroll area
+     */
+    public void repeatPaging(ScrollArea area) {
+        if (pageDirection == 0) return;
+        if (!Mouse.isButtonDown(0)) {
+            pageDirection = 0;
+            return;
+        }
+        long now = System.currentTimeMillis();
+        if (now < nextPage) return;
+        nextPage = now + REPEAT_MILLIS;
+        page(area);
+    }
+
+    /** Stops paging after the mouse button is released. */
+    public void stopPaging() {
+        pageDirection = 0;
+    }
+
+    private void page(ScrollArea area) {
+        int visible = getFullVisibleSize(area);
+        int step = rowHeight > 0 ? Math.max(1, visible / rowHeight / PAGE_PARTS) * rowHeight
+            : Math.max(1, visible / PAGE_PARTS);
+        scrollBy(area, pageDirection * step);
     }
 
     /**

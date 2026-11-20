@@ -16,6 +16,7 @@ import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.drawable.GuiDraw;
 import com.cleanroommc.modularui.drawable.GuiTextures;
 import com.cleanroommc.modularui.drawable.Rectangle;
+import com.cleanroommc.modularui.drawable.Stencil;
 import com.cleanroommc.modularui.drawable.UITexture;
 import com.cleanroommc.modularui.screen.viewport.GuiContext;
 import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
@@ -46,7 +47,7 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Client-side AE2 light and dark themes, widget drawables and drawing helpers for ModularUI 2.
+ * AE2 light and dark themes, widget drawables and drawing helpers for ModularUI 2.
  * <p>
  * Select a panel theme through {@link ScreenTheme}. Panel backgrounds, fields, slots, switches and button styles
  * are supplied by the registered theme. Use {@link #useMenuTheme(String, String, String, String...)} to map child
@@ -55,11 +56,14 @@ import cpw.mods.fml.relauncher.SideOnly;
  * Drawable factories resolve the active theme when drawn and use the current MUI2 theme outside AE2 panels. Direct
  * drawing methods use the supplied {@link Variant}; only parameters marked nullable support a fallback. Drawing
  * coordinates and dimensions are GUI pixels relative to the current widget.
+ * <p>
+ * The class loads on both sides: constants, {@link Variant} lookups and drawable factories may be used while a GUI is
+ * built on the server, as ModularUI 2 builds GUIs opened by the server on both sides. Drawing, measuring text and
+ * theme registration run on the client only.
  *
  * @see Variant
  * @see HandleScrollData
  */
-@SideOnly(Side.CLIENT)
 public class AE2Theme {
 
     /** Light panel theme identifier. */
@@ -82,14 +86,16 @@ public class AE2Theme {
     /** ARGB fluix-purple selection fill, top edge and shadow of the purple dark variant. */
     public static final int PURPLE_HIGHLIGHT = 0xFF644595, PURPLE_HIGHLIGHT_TOP = 0xFFE2A3E3,
         PURPLE_HIGHLIGHT_SHADOW = 0xFF212040;
+    /** ARGB text color of a text field that cannot be edited, as Minecraft draws uneditable fields. */
+    public static final int FIELD_DISABLED_TEXT = 0xFF707070;
     /**
      * Widget dimensions, label offsets, border widths and layout spacing in GUI pixels; {@code UPGRADE_ROWS} is a
      * count.
      */
     public static final int BUTTON_HEIGHT = 20, TEXT_FIELD_HEIGHT = 12, ICON_SIZE = 16, ICON_BUTTON_WIDTH = 18,
         ICON_BUTTON_HEIGHT = 20, TAB_BUTTON_SIZE = 20, SWITCH_WIDTH = 22, SWITCH_HEIGHT = 12, SWITCH_LABEL_X = 26,
-        SWITCH_LABEL_Y = 2, SCROLLBAR_WIDTH = 7, INSET_TOP = 3, INSET_EDGE = 1, BIG_SCROLLER_WIDTH = 12,
-        SCROLLER_HEIGHT = 15, RADIO_SIZE = 14, RADIO_LABEL_X = 16, RADIO_LABEL_Y = 3, LIST_ROW_HEIGHT = 22,
+        SWITCH_LABEL_Y = 4, SCROLLBAR_WIDTH = 7, INSET_TOP = 3, INSET_EDGE = 1, BIG_SCROLLER_WIDTH = 12,
+        SCROLLER_HEIGHT = 15, RADIO_SIZE = 14, RADIO_LABEL_X = 16, RADIO_LABEL_Y = 4, LIST_ROW_HEIGHT = 22,
         PROGRESS_WIDTH = 6, PROGRESS_HEIGHT = 18, BUTTON_BAR_MARGIN = 2, BUTTON_BAR_SPACING = 6, UPGRADE_PADDING = 5,
         UPGRADE_ROWS = 8, VALIDATION_ICON_SIZE = 8, PANEL_EDGE = 2, PANEL_BOTTOM_EDGE = 4;
     /**
@@ -120,6 +126,7 @@ public class AE2Theme {
     // theme's framed button; a transparent rectangle keeps menu options flat.
     private static final IDrawable FLAT_OPTION = new Rectangle().color(0);
     private static final float INACTIVE_ALPHA = 0.5F;
+    private static final double MARQUEE_SECONDS_PER_PIXEL = 0.5, MARQUEE_MIN_PERIOD = 3;
     /** Shared sizing and spacing used by both AE2 variants. */
     public static final ThemeStyle STYLE = new ThemeStyle(
         ThemeStyle.DEFAULT.cornerLength(),
@@ -141,6 +148,7 @@ public class AE2Theme {
      * GTNLLib installs the themes during client initialization and invokes this method on theme reload. Consumers
      * select a theme identifier without registering these definitions themselves.
      */
+    @SideOnly(Side.CLIENT)
     public static void register() {
         for (Variant variant : Variant.values()) {
             replace(variant.id, variant.theme());
@@ -278,7 +286,9 @@ public class AE2Theme {
     }
 
     /**
-     * Draws a five-pixel groove and a fixed 7-by-15-pixel AE2 handle.
+     * Draws a five-pixel groove and a fixed 7-by-15-pixel AE2 handle. The groove looks like the one AE2 draws for its
+     * small scroll bar in the processing pattern panel: a one-pixel line-colored outline around a raised fill whose
+     * top row is shaded.
      *
      * @param variant non-null AE2 variant
      * @param x       left edge of the handle; the groove starts one pixel to its right
@@ -288,8 +298,11 @@ public class AE2Theme {
      * @param enabled whether to draw the enabled handle
      */
     public static void drawSmallScrollbar(Variant variant, int x, int y, int height, int handleY, boolean enabled) {
+        int grooveX = x + SMALL_GROOVE_X, inner = SMALL_GROOVE_WIDTH - 2;
+        GuiDraw.drawRect(grooveX, y, SMALL_GROOVE_WIDTH, height, variant.colors.line);
+        GuiDraw.drawRect(grooveX + 1, y + 1, inner, 1, variant.colors.well);
+        GuiDraw.drawRect(grooveX + 1, y + 2, inner, height - 3, variant.colors.raised);
         GlStateManager.color(1, 1, 1, 1);
-        variant.inset.draw(x + SMALL_GROOVE_X, y, SMALL_GROOVE_WIDTH, height);
         (enabled ? variant.scroller : variant.scrollerDisabled)
             .draw(x, y + 1 + handleY, SCROLLBAR_WIDTH, SCROLLER_HEIGHT);
     }
@@ -452,16 +465,7 @@ public class AE2Theme {
             if (variant == null) {
                 (checked ? GuiTextures.CHECK_BOX_FULL : GuiTextures.CHECK_BOX_EMPTY).draw(x, y, RADIO_SIZE, RADIO_SIZE);
                 GlStateManager.color(1, 1, 1, 1);
-                ITheme screen = screenTheme(context);
-                WidgetTheme look = screen == null ? null
-                    : screen.getFallback()
-                        .getTheme();
-                text(
-                    fitted,
-                    x + RADIO_LABEL_X,
-                    y + RADIO_LABEL_Y,
-                    look == null ? VANILLA_TEXT : look.getTextColor(),
-                    look != null && look.getTextShadow());
+                plainText(context, fitted, x + RADIO_LABEL_X, y + (RADIO_SIZE - LABEL_HEIGHT) / 2);
                 return;
             }
             variant.radioSprite(checked, lit)
@@ -627,7 +631,8 @@ public class AE2Theme {
     }
 
     /**
-     * Creates a centered, width-trimmed button label matching {@link #button}.
+     * Creates a centered button label matching {@link #button}. Under AE2 themes a label wider than the button scrolls
+     * back and forth inside it, as AE2 buttons do; other themes trim it to the width.
      *
      * @param widget    widget supplying hover state
      * @param text      supplier of non-null display text
@@ -641,9 +646,29 @@ public class AE2Theme {
             State state = State.of(widget, available.getAsBoolean(), selected.getAsBoolean());
             ButtonText style = buttonText(context, state, height);
             FontRenderer font = Minecraft.getMinecraft().fontRenderer;
-            String fitted = font.trimStringToWidth(text.get(), Math.max(0, width - LABEL_PADDING * 2));
-            text(fitted, x + (width - font.getStringWidth(fitted)) / 2, y + style.y(), style.color(), style.shadow());
+            String full = text.get();
+            int room = Math.max(0, width - LABEL_PADDING * 2), overflow = font.getStringWidth(full) - room;
+            if (overflow <= 0 || active(context) == null) {
+                String fitted = font.trimStringToWidth(full, room);
+                text(
+                    fitted,
+                    x + (width - font.getStringWidth(fitted)) / 2,
+                    y + style.y(),
+                    style.color(),
+                    style.shadow());
+                return;
+            }
+            Stencil.apply(x + LABEL_PADDING, y, room, height, context);
+            text(full, x + LABEL_PADDING - marquee(overflow), y + style.y(), style.color(), style.shadow());
+            Stencil.remove();
         };
+    }
+
+    private static int marquee(int overflow) {
+        double seconds = Minecraft.getSystemTime() / 1000D,
+            period = Math.max(overflow * MARQUEE_SECONDS_PER_PIXEL, MARQUEE_MIN_PERIOD);
+        double phase = Math.sin(Math.PI / 2 * Math.cos(Math.PI * 2 * seconds / period)) / 2 + 0.5;
+        return (int) (phase * overflow);
     }
 
     /**
@@ -771,16 +796,11 @@ public class AE2Theme {
             if (variant == null) {
                 drawSwitch(null, x, y, checked, lit);
                 GlStateManager.color(1, 1, 1, 1);
-                ITheme screen = screenTheme(context);
-                WidgetTheme look = screen == null ? null
-                    : screen.getFallback()
-                        .getTheme();
-                text(
+                plainText(
+                    context,
                     fitted,
                     x + SWITCH_HEIGHT + LABEL_PADDING * 2,
-                    y + (SWITCH_HEIGHT - LABEL_HEIGHT) / 2,
-                    look == null ? VANILLA_TEXT : look.getTextColor(),
-                    look != null && look.getTextShadow());
+                    y + (SWITCH_HEIGHT - LABEL_HEIGHT) / 2);
                 return;
             }
             drawSwitch(variant, x, y, checked, lit);
@@ -817,6 +837,14 @@ public class AE2Theme {
         Platform.setupDrawFont();
         Minecraft.getMinecraft().fontRenderer.drawString(text, x, y, color, shadow);
         GlStateManager.color(1, 1, 1, 1);
+    }
+
+    private static void plainText(GuiContext context, String text, int x, int y) {
+        ITheme screen = screenTheme(context);
+        WidgetTheme look = screen == null ? null
+            : screen.getFallback()
+                .getTheme();
+        text(text, x, y, look == null ? VANILLA_TEXT : look.getTextColor(), look != null && look.getTextShadow());
     }
 
     private static @Nullable ITheme screenTheme(GuiContext context) {
@@ -1022,7 +1050,7 @@ public class AE2Theme {
                 0xFF8F2B23,
                 0xFF144673,
                 0xFF7A4A00,
-                0xFFCE2401),
+                0xFFFF1900),
             HIGHLIGHT, HIGHLIGHT_TOP, HIGHLIGHT_SHADOW),
         /** Dark AE2 palette. */
         DARK(DARK_ID, DARK_MENU_ID, "ae2_dark", darkColors(0xFF517497), HIGHLIGHT, HIGHLIGHT_TOP, HIGHLIGHT_SHADOW),
@@ -1060,6 +1088,8 @@ public class AE2Theme {
         public final UITexture bigScroller, bigScrollerDisabled;
         /** Resizable text-field background with a native height of 12 pixels. */
         public final UITexture textField;
+        /** Dark background of a text field that cannot be edited, with the same borders as {@link #textField}. */
+        public final UITexture textFieldDisabled;
         /** Normal, hovered and selected toolbar-button frames, natively 18 by 20 pixels. */
         public final UITexture iconButton, iconButtonHover, iconButtonSelected;
         /** Normal 20-by-20 and hovered 22-by-22 tab-button backgrounds. */
@@ -1080,7 +1110,10 @@ public class AE2Theme {
         public final UITexture buttonBar;
         /** Empty and filled inscriber progress textures, 6 by 18 pixels, intended for upward filling. */
         public final UITexture progressEmpty, progressFull;
-        /** Validation warning sprite, drawn at {@link AE2Theme#VALIDATION_ICON_SIZE} in number entries. */
+        /**
+         * Validation warning sprite, 16 by 16 pixels and drawn at that size like AE2's; number entries use
+         * {@link AE2Theme#VALIDATION_ICON_SIZE} only for its hover area.
+         */
         public final UITexture invalid;
 
         Variant(String id, String menuId, String folder, Colors colors, int highlight, int highlightTop,
@@ -1135,17 +1168,12 @@ public class AE2Theme {
                 INSET_EDGE);
             slotItem = adaptable(folder, "slot_item", SLOT_SIZE, SLOT_SIZE, 1, 1, 1, 1);
             slotFluid = adaptable(folder, "slot_fluid", SLOT_SIZE, SLOT_SIZE, 1, 1, 1, 1);
-            scroller = adaptable(folder, "scroller", SCROLLBAR_WIDTH, SCROLLER_HEIGHT, 2, 2, 2, 3);
+            scroller = adaptable(folder, "scroller", SCROLLBAR_WIDTH, SCROLLER_HEIGHT, 2, 2, 2, 4);
             scrollerDisabled = image(folder, "scroller_disabled", SCROLLBAR_WIDTH, SCROLLER_HEIGHT);
             bigScroller = image(folder, "big_scroller", BIG_SCROLLER_WIDTH, SCROLLER_HEIGHT);
             bigScrollerDisabled = image(folder, "big_scroller_disabled", BIG_SCROLLER_WIDTH, SCROLLER_HEIGHT);
-            textField = UITexture.builder()
-                .location(texture(folder, "text_field"))
-                .imageSize(FIELD_WIDTH, FIELD_WIDTH)
-                .subAreaXYWH(0, 0, FIELD_WIDTH, TEXT_FIELD_HEIGHT)
-                .adaptable(1, 3, 1, 1)
-                .name("gtnllib_" + folder + "_text_field")
-                .build();
+            textField = fieldSprite(folder, "text_field", 0);
+            textFieldDisabled = fieldSprite(folder, "text_field_disabled", TEXT_FIELD_HEIGHT);
             iconButton = frame(folder, "icon_button", 176, 128);
             iconButtonHover = frame(folder, "icon_button_hover", 212, 128);
             iconButtonSelected = frame(folder, "icon_button_selected", 194, 128);
@@ -1219,6 +1247,16 @@ public class AE2Theme {
                 .imageSize(LIST_ROW_WIDTH, LIST_ROW_HEIGHT * 2)
                 .subAreaXYWH(0, y, LIST_ROW_WIDTH, LIST_ROW_HEIGHT)
                 .adaptable(1, 1, 1, 2)
+                .name("gtnllib_" + folder + "_" + name)
+                .build();
+        }
+
+        private static UITexture fieldSprite(String folder, String name, int y) {
+            return UITexture.builder()
+                .location(texture(folder, "text_field"))
+                .imageSize(FIELD_WIDTH, FIELD_WIDTH)
+                .subAreaXYWH(0, y, FIELD_WIDTH, TEXT_FIELD_HEIGHT)
+                .adaptable(1, 3, 1, 1)
                 .name("gtnllib_" + folder + "_" + name)
                 .build();
         }
@@ -1471,6 +1509,7 @@ public class AE2Theme {
     }
 
     /** Client event listener that reinstalls the theme definitions before a MUI2 theme reload. */
+    @SideOnly(Side.CLIENT)
     public static class Reloader {
 
         /**
