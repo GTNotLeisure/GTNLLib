@@ -722,7 +722,8 @@ public class AE2Theme {
 
     /**
      * Creates a centered button label matching {@link #button}. Under AE2 themes a label wider than the button scrolls
-     * back and forth inside it, as AE2 buttons do; other themes trim it to the width.
+     * back and forth inside it, as AE2 buttons do, and stays at the height of a hovered button's label in every state;
+     * other themes trim it to the width.
      *
      * @param widget    widget supplying hover state
      * @param text      supplier of non-null display text
@@ -748,8 +749,11 @@ public class AE2Theme {
                     style.shadow());
                 return;
             }
+            // Why: AE2Button draws a scrolling label at the hovered label's height whatever the state; only a
+            // centred label sinks and rises with the face.
+            int scrollY = AE2ButtonDrawable.textY(State.HOVER, height);
             Stencil.apply(x + LABEL_PADDING, y, room, height, context);
-            text(full, x + LABEL_PADDING - marquee(overflow), y + style.y(), style.color(), style.shadow());
+            text(full, x + LABEL_PADDING - marquee(overflow), y + scrollY, style.color(), style.shadow());
             Stencil.remove();
         };
     }
