@@ -5,8 +5,6 @@ import org.jetbrains.annotations.NotNull;
 import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.theme.WidgetThemeEntry;
-import com.cleanroommc.modularui.widget.AbstractScrollWidget;
-import com.cleanroommc.modularui.widget.scroll.ScrollArea;
 import com.cleanroommc.modularui.widget.scroll.ScrollData;
 import com.cleanroommc.modularui.widgets.ListWidget;
 
@@ -39,26 +37,6 @@ public class GTNLListWidget<I extends IWidget, W extends ListWidget<I, W>> exten
     public GTNLListWidget(int initialScrollY) {
         super();
         this.initialScrollY = initialScrollY;
-    }
-
-    /**
-     * Returns whether a widget sits inside a list that scrolls with the mouse wheel: a MUI2 scroll widget with a scroll
-     * axis, such as this list, or an {@link IconRowList}. GTNLLib controls that step their value with the wheel leave
-     * it to such a list, so turning the wheel over a list always scrolls it and never changes a value on the way.
-     *
-     * @param widget widget to check
-     * @return whether an enclosing widget scrolls with the wheel
-     */
-    public static boolean inScrollingList(IWidget widget) {
-        for (IWidget parent = widget; parent.hasParent();) {
-            parent = parent.getParent();
-            if (parent instanceof IconRowList) return true;
-            if (parent instanceof AbstractScrollWidget<?, ?>scroll) {
-                ScrollArea area = scroll.getScrollArea();
-                if (area.getScrollX() != null || area.getScrollY() != null) return true;
-            }
-        }
-        return false;
     }
 
     @Override

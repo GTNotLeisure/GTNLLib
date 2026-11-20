@@ -204,7 +204,7 @@ public class StepSlider extends Widget<StepSlider> implements Interactable {
 
     @Override
     public boolean onMouseScroll(UpOrDown scrollDirection, int amount) {
-        if (!active.getAsBoolean() || GTNLListWidget.inScrollingList(this)) return false;
+        if (!active.getAsBoolean()) return false;
         int notches = milestoneEvery > 0 && Interactable.hasShiftDown() ? milestoneEvery : 1;
         if (select(step() + (scrollDirection.isUp() ? notches : -notches)) && onRelease != null) onRelease.run();
         return true;
