@@ -53,7 +53,8 @@ public class StepSlider extends Widget<StepSlider> implements Interactable {
         0b101_101_010_101_101, 0b101_101_010_010_010, 0b111_001_010_100_111, 0, 0b001_001_010_100_100,
         0b000_100_000_100_000, 0b010_100_100_100_010, 0b010_001_001_001_010, 0b000_111_000_111_000,
         0b001_010_100_010_001, 0b100_010_001_010_100, 0b100_100_100_000_100, 0b110_001_010_000_010 };
-    private static final int COMPACT_HEIGHT = 5, COMPACT_TAG_HEIGHT = 9, COMPACT_TAG_PADDING = 2;
+    // Why: the track is six pixels across, so an even tag overhangs it by the same amount on both sides.
+    private static final int COMPACT_HEIGHT = 5, COMPACT_TAG_HEIGHT = 10, COMPACT_TAG_PADDING = 2;
     private static final int INACTIVE_FILL = 0xFF4A4A50, INACTIVE_TAG = 0xFF707078, INACTIVE_TEXT = 0xFF2A2A2E,
         OPAQUE = 0xFFFFFFFF, FADED = 0x80FFFFFF;
 
@@ -349,6 +350,7 @@ public class StepSlider extends Widget<StepSlider> implements Interactable {
     private void drawTag(String text, float cursor, float trackCenter, boolean on, Theme palette) {
         int textWidth = compactWidth(text), tagHeight = COMPACT_TAG_HEIGHT;
         int tagWidth = this.tagWidth > 0 ? this.tagWidth : fittedTagWidth(text);
+        if (vertical && this.tagWidth <= 0) tagWidth += tagWidth & 1;
         int alongSize = vertical ? tagHeight : tagWidth, acrossSize = vertical ? tagWidth : tagHeight;
         int along = clamp(Math.round(cursor + 0.5F - alongSize / 2F), length() - alongSize);
         int across = clamp(Math.round(trackCenter - acrossSize / 2F), thickness() - acrossSize);
