@@ -33,7 +33,6 @@ import com.cleanroommc.modularui.utils.JsonBuilder;
 import com.cleanroommc.modularui.utils.Platform;
 import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widgets.SliderWidget;
-import com.cleanroommc.modularui.widgets.textfield.BaseTextFieldWidget;
 import com.gtnllib.GTNLLib;
 import com.gtnllib.gui.theme.ThemeSkin.Part;
 import com.gtnllib.gui.wheel.WheelStyle;
@@ -90,8 +89,6 @@ public class AE2Theme {
         PURPLE_HIGHLIGHT_SHADOW = 0xFF212040;
     /** ARGB text color of a text field that cannot be edited, as Minecraft draws uneditable fields. */
     public static final int FIELD_DISABLED_TEXT = 0xFF707070;
-    /** Pixels between an AE2 text field's background edge and its text; MUI2's text fields use four. */
-    public static final int TEXT_FIELD_PADDING = 2;
     /**
      * Widget dimensions, label offsets, border widths and layout spacing in GUI pixels; {@code UPGRADE_ROWS} is a
      * count.
@@ -117,7 +114,7 @@ public class AE2Theme {
         "textures/guis/states.png"),
         AE2_LEGACY_TERMINAL = new ResourceLocation("appliedenergistics2", "textures/guis/terminal.png"),
         CREATIVE_TABS = new ResourceLocation("textures/gui/container/creative_inventory/tabs.png");
-    private static final int PAGE_TAB_U = 128, PAGE_TAB_V = 128, MUI_TEXT_FIELD_PADDING = 4, CHECKBOX_LINES_Y = 1;
+    private static final int PAGE_TAB_U = 128, PAGE_TAB_V = 128, CHECKBOX_LINES_Y = 1;
     private static final int PANEL_SIZE = 256, INSET_WIDTH = 8, INSET_HEIGHT = 9, SLOT_SIZE = 18, FIELD_WIDTH = 128,
         SHEET = 256, SWITCH_SHEET = 64, TAB_HOVER_SIZE = 22, LABEL_PADDING = 2, LABEL_HEIGHT = 8, TRACK_WIDTH = 8,
         TRACK_HEIGHT = 6, FILL_SIZE = 4, TAG_WIDTH = 6, TAG_HEIGHT = 9, DIVIDER_WIDTH = 4, DIVIDER_HEIGHT = 2,
@@ -573,26 +570,6 @@ public class AE2Theme {
         float u = index % LEGACY_CELLS * ICON_SIZE / (float) SHEET,
             v = index / LEGACY_CELLS * ICON_SIZE / (float) SHEET, span = ICON_SIZE / (float) SHEET;
         GuiDraw.drawTexture(legacyStates(variant), x, y, x + size, y + size, u, v, u + span, v + span, true);
-    }
-
-    /**
-     * Makes a MUI2 text field place its text as AE2's text fields do: {@link #TEXT_FIELD_PADDING} pixels from the
-     * edges of its background under AE2 themes, and MUI2's own four pixels under other themes. It follows the theme
-     * of the screen while the screen is open, from the first client update on. It can be called on either side.
-     *
-     * @param field text field to adjust; a later {@code padding} call on it is overridden
-     * @param <W>   text field type
-     * @return the same text field
-     */
-    public static <W extends BaseTextFieldWidget<W>> W textFieldPadding(W field) {
-        return field.onUpdateListener(self -> {
-            int padding = active(self.getContext()) == null ? MUI_TEXT_FIELD_PADDING : TEXT_FIELD_PADDING;
-            if (self.getArea()
-                .getPadding()
-                .getLeft() == padding) return;
-            self.padding(padding, 0);
-            self.scheduleResize();
-        }, true);
     }
 
     /**

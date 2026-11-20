@@ -38,7 +38,7 @@ AE2 buttons are 20 pixels high, and at that height `AE2ButtonDrawable` matches A
 
 Switch and radio labels wrap at the widget's width as in AE2's `AECheckbox` (`AE2Theme.checkboxLabel`): one line starts four pixels below the sprite's top, several lines start one pixel below it. After a switch flips under the pointer it shows its plain sprite until the pointer leaves, as AE2's does (`AE2Theme.SwitchHover`); radio buttons keep their hover look. AE2 wraps at the widget width minus 22, which lets a switch label run four pixels past the widget; GTNLLib wraps inside the widget.
 
-AE2's toolbar icon buttons are 16×16 widgets inside a drawn 18×20 frame. `ActionButton.icon` and the `VerticalButtonBar` buttons take the mouse on the whole 18×20 frame, on purpose. AE2's text fields draw their text two pixels from the background's edge, MUI2's four; `AE2Theme.textFieldPadding(field)` gives a MUI2 text field AE2's spacing under AE2 themes, and `NumberEntry` uses it.
+AE2's toolbar icon buttons are 16×16 widgets inside a drawn 18×20 frame. `ActionButton.icon` and the `VerticalButtonBar` buttons take the mouse on the whole 18×20 frame, on purpose. AE2's text fields draw their text two pixels from the background's edge; GTNLLib's text fields, `NumberEntry` included, keep MUI2's four pixels.
 
 AE2 attaches the upgrade panel to the right of a screen's panel, `UPGRADE_OVERLAP` pixels inside its right edge: the upgrade panel has no left border, so it covers the main panel's border and the two read as one piece. `AE2Theme.drawUpgradePanel` draws it like that, with a light frame around a block of 16×16 slot wells 18 pixels apart; draw it after the main panel. Put 18×18 item slots at `upgradeSlotX(i)`, `upgradeSlotY(i)` with `disableThemeBackground(true)`, so their theme frame does not cover the wells.
 
@@ -55,6 +55,7 @@ These differ from AE2 1.21 on purpose; the paragraphs above give the details.
 - Buttons lower than 20 pixels use GTNLLib's shadow rule, and taller ones stretch the face.
 - A press on a scroll bar's track moves the handle's centre to the pointer and keeps dragging; AE2 pages. `pageOnTrackPress(true)` restores AE2's paging.
 - Toolbar icon buttons take the mouse on their whole 18×20 frame; AE2's only on the 16×16 icon.
+- Text fields keep MUI2's four-pixel text inset; AE2's is two pixels.
 - Value controls in a scrolling list step with the wheel while the pointer is over them; AE2 has no such controls in its lists.
 - The wheel does not scroll a list from anywhere on the screen by default.
 - Switch and radio labels wrap inside the widget; AE2's switch labels can run four pixels past it.
