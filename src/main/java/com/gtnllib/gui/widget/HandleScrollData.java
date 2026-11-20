@@ -21,13 +21,11 @@ import com.gtnllib.gui.theme.AE2Theme.Variant;
  * available vertical track must be at least {@link AE2Theme#SCROLLER_HEIGHT} pixels tall.
  * <p>
  * Scrolling is smooth by default. {@link #rows(int)} enables immediate scrolling snapped to row boundaries. Scroll
- * shadows are never drawn. A press on the track beside the handle moves one wheel step (MUI2's scroll speed, one row
- * after {@link #rows(int)}) towards the pointer, as AE2 moves its scroll bars by the same page size for the wheel and
- * the track; set a larger step with {@code setScrollSpeed} after {@code rows}, such as a multiple of the row height.
- * Inside a {@link GTNLListWidget} holding the button keeps paging, first after
- * {@value #FIRST_REPEAT_MILLIS} ms and then every {@value #REPEAT_MILLIS} ms. Such a press changes this scroll
- * data's offset at once and does not start a drag. A widget that drives the scroll area itself and expects a press
- * beside the handle to start a drag can turn paging off with {@link #pageOnTrackPress(boolean)}.
+ * shadows are never drawn. A press on the track beside the handle moves the handle's centre to the pointer at once,
+ * and the same press keeps dragging from there. {@link #pageOnTrackPress(boolean) pageOnTrackPress(true)} pages like
+ * AE2 instead: the press moves one wheel step (MUI2's scroll speed, one row after {@link #rows(int)}) towards the
+ * pointer, and inside a {@link GTNLListWidget} holding the button keeps paging, first after
+ * {@value #FIRST_REPEAT_MILLIS} ms and then every {@value #REPEAT_MILLIS} ms.
  */
 public class HandleScrollData extends VerticalScrollData implements IPersistentScrollbar {
 
@@ -38,7 +36,7 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
     private int rowHeight;
     private int dragMouse, dragScroll, pageDirection;
     private long nextPage;
-    private boolean pages = true;
+    private boolean pages;
 
     /**
      * Creates scroll data with a large handle.
@@ -81,8 +79,8 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
     /**
      * Chooses what a press on the track beside the handle does.
      *
-     * @param pages {@code true}, the default, to page towards the pointer like AE2; {@code false} to start a drag
-     *              that first moves the handle's centre to the pointer
+     * @param pages {@code true} to page one wheel step towards the pointer like AE2; {@code false}, the default, to
+     *              move the handle's centre to the pointer and keep dragging
      * @return this scroll data
      */
     public HandleScrollData pageOnTrackPress(boolean pages) {
@@ -110,8 +108,8 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
 
     /**
      * Handles a press on an active track: a press on the handle starts a drag anchored to the current scroll offset,
-     * and a press beside the handle pages towards the pointer instead, or, with paging turned off, starts a drag
-     * that targets the offset centring the handle on the pointer.
+     * and a press beside the handle scrolls at once to the offset centring the handle on the pointer and drags from
+     * there, or, with paging turned on, pages towards the pointer instead.
      *
      * @param area         owning scroll area
      * @param mainAxisPos  mouse Y coordinate relative to the scroll area
@@ -134,8 +132,10 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
             page(area);
             return true;
         }
+        // Why: MUI2 moves the content only once the pointer moves, so a still press would not jump.
+        if (beside) scrollTo(area, offsetAt(track - clickOffset, visible, length));
         dragMouse = track;
-        dragScroll = beside ? offsetAt(track - clickOffset, visible, length) : getScroll();
+        dragScroll = getScroll();
         return true;
     }
 

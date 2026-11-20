@@ -37,7 +37,7 @@ import it.unimi.dsi.fastutil.ints.IntList;
  * <p>
  * Under an AE2 theme the list draws as an AE2 inset with AE2 list-row highlights and switches, and AE2's scroll bar
  * beside the inset; otherwise it keeps its own dark look with MUI2's check boxes and a thin bar. The scroll bar is a
- * {@link RowScrollbar} child: the wheel and a press beside the handle move one row, as in AE2's network status and
+ * {@link RowScrollbar} child: the wheel moves one row, as in AE2's network status and
  * crafting CPU screens. The wheel over a number field steps its value; anywhere else it scrolls the list.
  */
 public class IconRowList extends ParentWidget<IconRowList> implements Interactable, RecipeViewerIngredientProvider {

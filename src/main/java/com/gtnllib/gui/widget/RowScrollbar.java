@@ -23,13 +23,14 @@ import com.gtnllib.gui.theme.AE2Theme.Variant;
  * position. For a MUI2 list of child widgets use {@link HandleScrollData} instead. It can be built on either side, so
  * it also works in GUIs the server opens.
  * <p>
- * It behaves like AE2's scroll bar. The left button drags the handle; the drag is anchored to the position at the
- * press, so a handle held still never moves long lists, and a handle pushed to either end reaches the first or last
- * position. A press on the track beside the handle moves one {@link #step(int) step} towards the pointer, again after
- * {@value HandleScrollData#FIRST_REPEAT_MILLIS} ms and then every {@value HandleScrollData#REPEAT_MILLIS} ms while
- * the button is held. The mouse wheel over the bar moves one step per notch; an owner forwards the wheel over its
- * content with {@link #scroll(UpOrDown)}. Without a range the bar draws its disabled handle at the top and swallows
- * left presses.
+ * The left button drags the handle; the drag is anchored to the position at the press, so a handle held still never
+ * moves long lists, and a handle pushed to either end reaches the first or last position. A press on the track beside
+ * the handle moves the handle's centre to the pointer at once, and the same press keeps dragging from there.
+ * {@link #pageOnTrackPress(boolean) pageOnTrackPress(true)} makes such a press page like AE2's scroll bar instead: one
+ * {@link #step(int) step} towards the pointer, again after {@value HandleScrollData#FIRST_REPEAT_MILLIS} ms and then
+ * every {@value HandleScrollData#REPEAT_MILLIS} ms while the button is held. The mouse wheel over the bar moves one
+ * step per notch; an owner forwards the wheel over its content with {@link #scroll(UpOrDown)}. Without a range the
+ * bar draws its disabled handle at the top and swallows left presses.
  * <p>
  * The look follows the theme of the screen when drawn. Under AE2 themes it is AE2's groove with the fixed 12-by-15
  * handle, or with {@link #small(boolean)} the 5-pixel groove and 7-by-15 handle; make it
@@ -46,7 +47,7 @@ public class RowScrollbar extends Widget<RowScrollbar> implements Interactable {
     private @Nullable IntSupplier plainVisible;
     private int step = 1, plainColor, grab = -1, pressMouse, pressPosition, pageDirection;
     private long nextPage;
-    private boolean small;
+    private boolean small, pages;
 
     /**
      * Creates a scroll bar over an owner's position. The caller sets its size.
@@ -65,15 +66,28 @@ public class RowScrollbar extends Widget<RowScrollbar> implements Interactable {
     }
 
     /**
-     * Sets how far a wheel notch and a press beside the handle move, like the page size of AE2's scroll bar. AE2's
-     * network status and crafting screens move one row, its terminals a sixth of the visible rows and its crafting
-     * CPU list a third.
+     * Sets how far a wheel notch moves, and a press beside the handle when paging is on, like the page size of AE2's
+     * scroll bar. AE2's network status and crafting screens move one row, its terminals a sixth of the visible rows
+     * and its crafting CPU list a third.
      *
      * @param step positions per notch and per page, at least one; the default is one
      * @return this scroll bar
      */
     public RowScrollbar step(int step) {
         this.step = Math.max(1, step);
+        return this;
+    }
+
+    /**
+     * Chooses what a press on the track beside the handle does.
+     *
+     * @param pages {@code true} to page one {@link #step(int) step} towards the pointer like AE2, repeating while the
+     *              button is held; {@code false}, the default, to move the handle's centre to the pointer and keep
+     *              dragging
+     * @return this scroll bar
+     */
+    public RowScrollbar pageOnTrackPress(boolean pages) {
+        this.pages = pages;
         return this;
     }
 
@@ -174,15 +188,24 @@ public class RowScrollbar extends Widget<RowScrollbar> implements Interactable {
         if (mouseButton != 0) return Result.IGNORE;
         if (max() == 0) return Result.SUCCESS;
         Variant variant = AE2Theme.active(getContext());
-        int mouseY = getContext().getMouseY(), top = border(variant) + handleOffset(variant);
-        if (mouseY >= top && mouseY < top + handleLength(variant)) {
+        int mouseY = getContext().getMouseY(), top = border(variant) + handleOffset(variant),
+            length = handleLength(variant);
+        if (mouseY >= top && mouseY < top + length) {
             grab = mouseY - top;
             pressMouse = mouseY;
             pressPosition = position();
-        } else {
+        } else if (pages) {
             pageDirection = mouseY < top ? -1 : 1;
             nextPage = System.currentTimeMillis() + HandleScrollData.FIRST_REPEAT_MILLIS;
             page();
+        } else {
+            int max = max(), travel = travel(variant);
+            int target = travel <= 0 ? position()
+                : (int) Math.round((double) (mouseY - border(variant) - length / 2) * max / travel);
+            pressPosition = Math.max(0, Math.min(max, target));
+            moveTo(pressPosition);
+            grab = length / 2;
+            pressMouse = mouseY;
         }
         return Result.SUCCESS;
     }
