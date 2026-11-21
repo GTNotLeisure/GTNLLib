@@ -37,6 +37,7 @@ import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widgets.SliderWidget;
 import com.gtnllib.GTNLLib;
 import com.gtnllib.gui.theme.ThemeSkin.Part;
+import com.gtnllib.gui.theme.ae2.AE2Look;
 import com.gtnllib.gui.wheel.WheelStyle;
 import com.gtnllib.gui.widget.AE2ButtonDrawable;
 import com.gtnllib.gui.widget.AE2ButtonDrawable.State;
@@ -205,14 +206,15 @@ public class AE2Theme {
     }
 
     /**
-     * Resolves the variant currently used by a modular GUI context.
+     * Resolves the variant currently used by a modular GUI context, as {@link AE2Look#of(GuiContext)} does. A panel can
+     * use a theme other than its screen's; {@link AE2Look#of(IWidget)} resolves the panel's.
      *
      * @param context current drawing context
      * @return the active variant, or {@code null} for another theme or a non-modular context
      */
     public static @Nullable Variant active(GuiContext context) {
-        ITheme theme = screenTheme(context);
-        return theme == null ? null : variant(theme.getId());
+        return AE2Look.of(context)
+            .variant();
     }
 
     /**
@@ -1631,6 +1633,7 @@ public class AE2Theme {
                     new SlideSwitch.Theme.Builder().text(colors.text, colors.muted, colors.text)
                         .sprites(switchOff, switchOffHover, switchOn, switchOnHover))
                 .hoverBackground(SlideSwitch.Theme.KEY, IDrawable.EMPTY)
+                .widgetTheme(AE2Look.KEY, new AE2Look.Marker.Builder().skin(folder))
                 .widgetTheme(
                     LayoutTheme.KEY,
                     new LayoutTheme.Builder().values(STYLE.layout())

@@ -17,6 +17,7 @@ import com.gtnllib.gui.theme.AE2Theme.Icon;
 import com.gtnllib.gui.theme.AE2Theme.IconSource;
 import com.gtnllib.gui.theme.AE2Theme.Variant;
 import com.gtnllib.gui.theme.ScreenTheme;
+import com.gtnllib.gui.theme.ae2.AE2Look;
 import com.gtnllib.gui.wheel.WheelStyle;
 import com.gtnllib.gui.widget.ActionButton;
 import com.gtnllib.gui.widget.CycleDropdown;
@@ -40,7 +41,9 @@ public class ServerWidgetScenario implements Runnable {
 
     @Override
     public void run() {
-        for (ScreenTheme theme : ScreenTheme.values()) AE2Theme.variant(theme.themeId);
+        for (ScreenTheme theme : ScreenTheme.values()) AE2Look.of(AE2Theme.variant(theme.themeId));
+        AE2Look.skin(AE2Look.KEY.getFullName());
+        new AE2Look.Marker.Builder().skin(Variant.DARK.folder);
         Variant light = AE2Theme.variant(AE2Theme.LIGHT_ID);
         ButtonWidget<?> plain = new ButtonWidget<>();
         plain.background(AE2Theme.button(plain, () -> true, () -> false))
