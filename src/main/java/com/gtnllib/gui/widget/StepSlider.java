@@ -68,7 +68,7 @@ public class StepSlider extends Widget<StepSlider> implements Interactable {
     private int steps = 10, milestoneEvery = 5;
     private int[] colors, tickColors;
     private int tagWidth;
-    private boolean vertical, dragging;
+    private boolean vertical, dragging, wheel;
     private long lastSound;
 
     public StepSlider() {
@@ -137,6 +137,18 @@ public class StepSlider extends Widget<StepSlider> implements Interactable {
 
     public StepSlider onRelease(Runnable onRelease) {
         this.onRelease = onRelease;
+        return this;
+    }
+
+    /**
+     * Sets whether the mouse wheel over the slider moves it one step per notch, or one milestone while Shift is held.
+     * Off by default, so the wheel goes to the widgets around it, such as a scrolling list.
+     *
+     * @param wheel true to let the wheel move the slider
+     * @return this slider
+     */
+    public StepSlider wheel(boolean wheel) {
+        this.wheel = wheel;
         return this;
     }
 
@@ -245,7 +257,7 @@ public class StepSlider extends Widget<StepSlider> implements Interactable {
 
     @Override
     public boolean onMouseScroll(UpOrDown scrollDirection, int amount) {
-        if (!available.getAsBoolean()) return false;
+        if (!wheel || !available.getAsBoolean()) return false;
         int notches = milestoneEvery > 0 && Interactable.hasShiftDown() ? milestoneEvery : 1;
         if (select(step() + (scrollDirection.isUp() ? notches : -notches)) && onRelease != null) onRelease.run();
         return true;

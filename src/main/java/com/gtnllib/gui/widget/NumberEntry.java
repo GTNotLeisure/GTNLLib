@@ -19,6 +19,7 @@ import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.theme.WidgetTheme;
 import com.cleanroommc.modularui.theme.WidgetThemeEntry;
+import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.utils.MathUtils;
 import com.cleanroommc.modularui.utils.ParseResult;
 import com.cleanroommc.modularui.value.StringValue;
@@ -46,9 +47,10 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
  * characters.
  * <p>
  * Step button sizes are 1, 10, 100 and 1000, or 1, 16, 32 and 64 while Shift or Ctrl is held. The {@code <} and
- * {@code >} buttons and the mouse wheel over the text field step by 1, or by 10 while Shift is held. The wheel steps
- * only while the pointer is over the text field, even after the player has clicked into it; elsewhere it is left to
- * the widgets under the pointer, such as a list around the entry. Steps are clamped to the configured bounds.
+ * {@code >} buttons step by 1, or by 10 while Shift is held, and so does the mouse wheel over the text field after
+ * {@link #wheel(boolean) wheel(true)}. The wheel steps only while the pointer is over the text field, even after the
+ * player has clicked into it; elsewhere, or with the wheel off, it is left to the widgets under the pointer, such as a
+ * list around the entry. Steps are clamped to the configured bounds.
  * Increasing a value of one by a step larger than one selects that step value.
  * Invalid input is treated as zero when applying a step. Right-clicking the text field sets the reset value,
  * clamped to the bounds, so the default reset value of zero becomes one when the minimum is one.
@@ -81,7 +83,7 @@ public class NumberEntry extends ParentWidget<NumberEntry> {
     private final List<String> messages = new ObjectArrayList<>();
     private String text = "0";
     private long min, max = Long.MAX_VALUE, value, reset;
-    private boolean inputValid = true;
+    private boolean inputValid = true, wheel;
     private LongConsumer listener = ignored -> {};
     private BooleanSupplier available = () -> true;
 
@@ -258,6 +260,29 @@ public class NumberEntry extends ParentWidget<NumberEntry> {
     }
 
     /**
+     * Sets where the text sits inside the field, such as {@link Alignment#Center} for a centred number.
+     *
+     * @param alignment placement of the text inside the field; MUI2's default is {@link Alignment#CenterLeft}
+     * @return this widget
+     */
+    public NumberEntry textAlignment(Alignment alignment) {
+        field.setTextAlignment(alignment);
+        return this;
+    }
+
+    /**
+     * Sets whether the mouse wheel over the text field steps the value by 1, or by 10 while Shift is held. Off by
+     * default, so the wheel goes to the widgets around the entry, such as a scrolling list.
+     *
+     * @param wheel true to let the wheel step the value
+     * @return this widget
+     */
+    public NumberEntry wheel(boolean wheel) {
+        this.wheel = wheel;
+        return this;
+    }
+
+    /**
      * Returns the accepted value of the current text.
      *
      * @return the integer value, or an empty result while the input is invalid
@@ -382,7 +407,7 @@ public class NumberEntry extends ParentWidget<NumberEntry> {
         @Override
         public boolean onMouseScroll(UpOrDown scrollDirection, int amount) {
             // Why: MUI2 offers the wheel to the focused field first, wherever the pointer is.
-            if (!isAvailable() || !isHovering()) return false;
+            if (!wheel || !isAvailable() || !isHovering()) return false;
             add(scrollDirection.modifier * fineStep());
             return true;
         }

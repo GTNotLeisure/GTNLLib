@@ -38,7 +38,8 @@ import it.unimi.dsi.fastutil.ints.IntList;
  * Under an AE2 theme the list draws as an AE2 inset with AE2 list-row highlights and switches, and AE2's scroll bar
  * beside the inset; otherwise it keeps its own dark look with MUI2's check boxes and a thin bar. The scroll bar is a
  * {@link RowScrollbar} child: the wheel moves one row, as in AE2's network status and
- * crafting CPU screens. The wheel over a number field steps its value; anywhere else it scrolls the list.
+ * crafting CPU screens. The wheel scrolls the list everywhere, also over number fields, unless
+ * {@link #numberWheel(boolean) numberWheel(true)} lets it step the field under the pointer instead.
  */
 public class IconRowList extends ParentWidget<IconRowList> implements Interactable, RecipeViewerIngredientProvider {
 
@@ -194,7 +195,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
     private boolean[] nested = new boolean[0];
     private String expanded;
     private int scroll, edge, gutter = SCROLLBAR, rowHeight = ROW, numberWidth = NUMBER_WIDTH;
-    private boolean revealSelected;
+    private boolean revealSelected, numberWheel;
     private final RowScrollbar scrollbar = new RowScrollbar(() -> scroll, this::maxScroll, row -> scroll = row)
         .plainBar(BAR, this::visibleRows);
 
@@ -243,6 +244,19 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
     public IconRowList numberWidth(int numberWidth) {
         this.numberWidth = Math.max(MIN_NUMBER_WIDTH, numberWidth);
         resizeEntries();
+        return this;
+    }
+
+    /**
+     * Sets whether the mouse wheel over a number row's field steps its value, as {@link NumberEntry#wheel(boolean)}
+     * does. Off by default, so the wheel scrolls the list there too.
+     *
+     * @param numberWheel true to let the wheel step number fields
+     * @return this list
+     */
+    public IconRowList numberWheel(boolean numberWheel) {
+        this.numberWheel = numberWheel;
+        for (NumberEntry entry : entries) entry.wheel(numberWheel);
         return this;
     }
 
@@ -351,6 +365,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
         NumberEntry entry = new NumberEntry(null).right(gutter + 2)
             .top(0)
             .size(numberWidth, rowHeight - 2)
+            .wheel(numberWheel)
             .available(() -> {
                 Row row = entryRows.get(index);
                 return row == null || row.available();

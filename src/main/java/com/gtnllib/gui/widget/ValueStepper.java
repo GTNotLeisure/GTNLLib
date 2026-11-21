@@ -15,11 +15,12 @@ import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.gtnllib.gui.theme.AE2Theme;
 
 /**
- * Steps through a list of named values: {@code <} and {@code >} buttons around the current value's name, and the
- * mouse wheel anywhere over it. It holds no values itself; the step callback moves the owner's selection, so it suits
- * values that are not numbers, such as voltage tiers. For numbers use {@link NumberEntry}. While
- * {@link #available(BooleanSupplier)} reports false the arrows look disabled, the name is greyed out, and clicks and
- * the wheel do nothing. It can be built on either side, so it also works in GUIs the server opens.
+ * Steps through a list of named values: {@code <} and {@code >} buttons around the current value's name, and, after
+ * {@link #wheel(boolean) wheel(true)}, the mouse wheel anywhere over it. It holds no values itself; the step callback
+ * moves the owner's selection, so it suits values that are not numbers, such as voltage tiers. For numbers use
+ * {@link NumberEntry}. While {@link #available(BooleanSupplier)} reports false the arrows look disabled, the name is
+ * greyed out, and clicks and the wheel do nothing. It can be built on either side, so it also works in GUIs the server
+ * opens.
  */
 public class ValueStepper extends ParentWidget<ValueStepper> implements Interactable {
 
@@ -27,6 +28,7 @@ public class ValueStepper extends ParentWidget<ValueStepper> implements Interact
     public static final int ARROW_WIDTH = 12;
     private final IntConsumer step;
     private BooleanSupplier available = () -> true;
+    private boolean wheel;
 
     /**
      * Creates a stepper; the caller sets its size, and the arrows fill its height.
@@ -70,6 +72,18 @@ public class ValueStepper extends ParentWidget<ValueStepper> implements Interact
         return this;
     }
 
+    /**
+     * Sets whether the mouse wheel over the stepper steps it. Off by default, so the wheel goes to the widgets around
+     * it, such as a scrolling list.
+     *
+     * @param wheel true to step one value per wheel notch
+     * @return this stepper
+     */
+    public ValueStepper wheel(boolean wheel) {
+        this.wheel = wheel;
+        return this;
+    }
+
     private boolean isAvailable() {
         return available.getAsBoolean();
     }
@@ -86,7 +100,7 @@ public class ValueStepper extends ParentWidget<ValueStepper> implements Interact
 
     @Override
     public boolean onMouseScroll(UpOrDown scrollDirection, int amount) {
-        if (!isAvailable()) return false;
+        if (!wheel || !isAvailable()) return false;
         step.accept(scrollDirection.modifier);
         return true;
     }

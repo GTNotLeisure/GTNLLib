@@ -32,9 +32,9 @@ import com.gtnllib.gui.widget.AE2ButtonDrawable.State;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 
 /**
- * A dropdown whose menu stays inside the panel, follows values changed elsewhere, cycles with the mouse wheel while
- * the pointer is over it and marks itself with a caret. It can be built on either side, so it also works in GUIs the
- * server opens.
+ * A dropdown whose menu stays inside the panel, follows values changed elsewhere and marks itself with a caret; after
+ * {@link #wheel(boolean) wheel(true)} it also cycles with the mouse wheel while the pointer is over it. It can be built
+ * on either side, so it also works in GUIs the server opens.
  * <p>
  * Under AE2 themes the shown value reads like a button label: text widgets in it that have no color of their own,
  * and the caret, use the button text color of the current state, and the shown value sinks with the button face on
@@ -54,6 +54,7 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
     private BooleanSupplier available = () -> true;
     private T shown;
     private int menuWidth;
+    private boolean wheel;
 
     public CycleDropdown(String panelName, Class<T> valueType) {
         super(panelName, valueType);
@@ -67,6 +68,18 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
      */
     public CycleDropdown<T> available(BooleanSupplier available) {
         this.available = available;
+        return this;
+    }
+
+    /**
+     * Sets whether the mouse wheel over the closed dropdown moves to the previous or next choice, wrapping around at
+     * the ends. Off by default, so the wheel goes to the widgets around it, such as a scrolling list.
+     *
+     * @param wheel true to cycle one choice per wheel notch
+     * @return this dropdown
+     */
+    public CycleDropdown<T> wheel(boolean wheel) {
+        this.wheel = wheel;
         return this;
     }
 
@@ -173,7 +186,7 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
     @Override
     public boolean onMouseScroll(UpOrDown scrollDirection, int amount) {
         IValue<T> value = getValue();
-        if (value == null || choices.isEmpty() || !isAvailable()) return false;
+        if (!wheel || value == null || choices.isEmpty() || !isAvailable()) return false;
         int index = Math.max(0, choices.indexOf(value.getValue()));
         setValue(choices.get(Math.floorMod(index - scrollDirection.modifier, choices.size())), true);
         return true;
@@ -201,6 +214,20 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
      * @return the row, {@value #OPTION_HEIGHT} pixels high and as wide as the dropdown
      */
     public static IWidget iconOption(@Nullable ItemStack icon, String name) {
+        return iconOption(icon, name, Alignment.CenterLeft);
+    }
+
+    /**
+     * Creates an option row like {@link #iconOption(ItemStack, String)} with the name placed by the given alignment
+     * in the space right of the icon, such as {@link Alignment#Center} for centred tier names. Formatting codes in the
+     * name, such as GT's tier colors, are kept.
+     *
+     * @param icon      item drawn as a {@value #OPTION_HEIGHT}-pixel icon, or {@code null} for none
+     * @param name      option name
+     * @param alignment placement of the name
+     * @return the row, {@value #OPTION_HEIGHT} pixels high and as wide as the dropdown
+     */
+    public static IWidget iconOption(@Nullable ItemStack icon, String name, Alignment alignment) {
         Flow row = Flow.row()
             .widthRel(1f)
             .height(OPTION_HEIGHT)
@@ -209,7 +236,7 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
             new ItemDrawable(icon).asWidget()
                 .size(OPTION_HEIGHT, OPTION_HEIGHT));
         return row.child(
-            new ScrollingTextWidget(IKey.str(name)).alignment(Alignment.CenterLeft)
+            new ScrollingTextWidget(IKey.str(name)).alignment(alignment)
                 .expanded()
                 .heightRel(1f));
     }
