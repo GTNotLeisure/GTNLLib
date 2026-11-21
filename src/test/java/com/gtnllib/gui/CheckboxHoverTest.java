@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
-import com.gtnllib.gui.theme.ae2.AE2Checkboxes.CheckboxHover;
+import com.gtnllib.gui.theme.ae2.AE2CheckboxPainter.CheckboxHover;
 
 public class CheckboxHoverTest {
 

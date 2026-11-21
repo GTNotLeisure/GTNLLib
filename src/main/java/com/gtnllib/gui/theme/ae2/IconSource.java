@@ -4,8 +4,6 @@ import static com.gtnllib.gui.theme.AE2Theme.ICON_SIZE;
 
 import net.minecraft.item.ItemStack;
 
-import org.jetbrains.annotations.Nullable;
-
 import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.drawable.ItemDrawable;
 import com.cleanroommc.modularui.drawable.UITexture;
@@ -23,23 +21,23 @@ public interface IconSource {
      *
      * @param context drawing context
      * @param theme   widget theme the control is drawn with
-     * @param variant active AE2 variant, or {@code null} outside the AE2 themes
+     * @param look    look of the panel the control is in
      * @param x       left edge
      * @param y       top edge
      * @param enabled whether the control is usable; built-in icons and textures fade when it is not
      */
-    void drawIcon(GuiContext context, WidgetTheme theme, @Nullable AE2Variant variant, int x, int y, boolean enabled);
+    void drawIcon(GuiContext context, WidgetTheme theme, AE2Look look, int x, int y, boolean enabled);
 
     /**
-     * Wraps a MUI2 drawable, such as a {@link UITexture} of a mod's own icon sheet, drawn at 16 by 16 pixels in
-     * every theme. A {@link UITexture} fades when the control is unavailable, like the built-in icons; other
-     * drawables are drawn unchanged.
+     * Wraps a MUI2 drawable, such as a {@link UITexture} of a mod's own icon sheet, drawn at 16 by 16 pixels in every
+     * theme. A {@link UITexture} fades when the control is unavailable, like the built-in icons; other drawables are
+     * drawn unchanged.
      *
      * @param drawable drawable to show
      * @return the icon
      */
     static IconSource of(IDrawable drawable) {
-        return (context, theme, variant, x, y, enabled) -> {
+        return (context, theme, look, x, y, enabled) -> {
             if (!(drawable instanceof UITexture texture)) {
                 drawable.draw(context, x, y, ICON_SIZE, ICON_SIZE, theme);
                 return;

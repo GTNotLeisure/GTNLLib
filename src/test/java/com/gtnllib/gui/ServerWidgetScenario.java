@@ -19,12 +19,12 @@ import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.SliderWidget;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.ScreenTheme;
-import com.gtnllib.gui.theme.ae2.AE2Buttons;
-import com.gtnllib.gui.theme.ae2.AE2Checkboxes;
+import com.gtnllib.gui.theme.ae2.AE2ButtonPainter;
+import com.gtnllib.gui.theme.ae2.AE2CheckboxPainter;
 import com.gtnllib.gui.theme.ae2.AE2Icon;
 import com.gtnllib.gui.theme.ae2.AE2Legacy;
 import com.gtnllib.gui.theme.ae2.AE2Look;
-import com.gtnllib.gui.theme.ae2.AE2Panels;
+import com.gtnllib.gui.theme.ae2.AE2PanelPainter;
 import com.gtnllib.gui.theme.ae2.AE2Variant;
 import com.gtnllib.gui.theme.ae2.IconSource;
 import com.gtnllib.gui.wheel.WheelStyle;
@@ -59,16 +59,16 @@ public class ServerWidgetScenario implements Runnable {
         new AE2Look.Marker.Builder().skin(AE2Variant.DARK.folder);
         AE2Variant light = AE2Theme.variant(AE2Theme.LIGHT_ID);
         ButtonWidget<?> plain = new ButtonWidget<>();
-        plain.background(AE2Buttons.button(plain, () -> true, () -> false))
-            .overlay(AE2Buttons.label(plain, () -> "Apply", () -> true, () -> false));
-        AE2Buttons.iconButton(plain, () -> AE2Icon.ADD, () -> true, () -> false);
-        AE2Buttons.tabButton(plain, () -> AE2Icon.GEAR, () -> true);
-        AE2Buttons.pageTab(plain, () -> AE2Icon.FILE, () -> true);
-        AE2Checkboxes.checkbox(plain, () -> true, () -> "Auto", () -> true);
-        AE2Checkboxes.radio(plain, () -> true, () -> "Tier", () -> true);
-        AE2Panels.listRow(() -> false);
-        AE2Panels.well(60);
-        AE2Panels.panelBackground(0, 0);
+        plain.background(AE2ButtonPainter.button(plain, () -> true, () -> false))
+            .overlay(AE2ButtonPainter.label(plain, () -> "Apply", () -> true, () -> false));
+        AE2ButtonPainter.iconButton(plain, () -> AE2Icon.ADD, () -> true, () -> false);
+        AE2ButtonPainter.tabButton(plain, () -> AE2Icon.GEAR, () -> true);
+        AE2ButtonPainter.pageTab(plain, () -> AE2Icon.FILE, () -> true);
+        AE2CheckboxPainter.checkbox(plain, () -> true, () -> "Auto", () -> true);
+        AE2CheckboxPainter.radio(plain, () -> true, () -> "Tier", () -> true);
+        AE2PanelPainter.listRow(plain, () -> false);
+        AE2PanelPainter.well(plain, 60);
+        AE2PanelPainter.panelBackground(plain, 0, 0);
         new AE2Button(() -> "Apply", () -> {}).available(() -> false)
             .selected(() -> false);
         new IconButton(() -> AE2Icon.REFRESH, () -> {});
@@ -76,7 +76,7 @@ public class ServerWidgetScenario implements Runnable {
             .value(3)
             .available(() -> false);
         new NumberEntryWidget().size(64, 16);
-        new ListRow(() -> "Row").toggle(() -> true, () -> {})
+        new ListRow(() -> "Row").checkbox(() -> true, () -> {})
             .available(() -> false);
         ListRow.header(() -> "Header");
         new VerticalButtonBar().button(() -> AE2Icon.GEAR, () -> "Settings", () -> {})
@@ -88,7 +88,7 @@ public class ServerWidgetScenario implements Runnable {
         new HandleScrollData(null).look(AE2Look.plain());
         new CycleDropdown<>("menu", String.class).choices(Arrays.asList("a", "b"));
         List<IconRowList.Row> rows = Collections.singletonList(
-            IconRowList.Row.toggle("Auto", true, () -> {})
+            IconRowList.Row.checkbox("Auto", true, () -> {})
                 .withAvailable(false));
         new IconRowList(() -> rows);
         new SlideSwitch().value(() -> true)
@@ -131,14 +131,18 @@ public class ServerWidgetScenario implements Runnable {
         new ProgressBar().value(new DoubleValue(0.4));
         AE2Theme.sliderHandles(new ParentWidget<>().child(new SliderWidget()), AE2Theme.LIGHT_ID);
         AE2Theme.useMenuTheme(AE2Theme.DARK_ID, "gtnllib", "server_scenario", "menu");
-        AE2Legacy.legacyStates(light);
-        AE2Legacy.legacyTerminal(null);
-        light.wheel(WheelStyle.builder());
+        AE2Legacy.legacyStates(AE2Look.of(light));
+        AE2Legacy.legacyTerminal(AE2Look.plain());
+        WheelStyle.builder()
+            .skin(light);
+        AE2Look.plain()
+            .scrollbarWidth();
+        new ListRow(() -> "Stepper row").control(new ValueStepper(() -> "HV", step -> {}), 84, 16);
 
         ModularPanel panel = ModularPanel.defaultPanel("server_scenario");
         panel.child(new AE2Button(() -> "Apply", () -> {}).size(40, 20))
             .child(new NumberEntryWidget())
-            .child(new ListRow(() -> "Row").toggle(() -> false, () -> {}))
+            .child(new ListRow(() -> "Row").checkbox(() -> false, () -> {}))
             .child(new VerticalButtonBar().button(() -> AE2Icon.ADD, () -> "Add", () -> {}))
             .child(new ValueStepper(() -> "LV", step -> {}).size(84, 16))
             .child(new CycleDropdown<>("server_scenario_menu", String.class).choices(Arrays.asList("a", "b")))

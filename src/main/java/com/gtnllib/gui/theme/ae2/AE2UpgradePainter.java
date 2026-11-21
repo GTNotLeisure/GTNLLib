@@ -14,19 +14,16 @@ import com.gtnllib.gui.theme.AE2Theme;
 /**
  * Layout and drawing of AE2's upgrade panel, the strip of upgrade slots on the right of a screen.
  */
-public class AE2Upgrades {
+public class AE2UpgradePainter {
 
     private static final int UPGRADE_SHADOW = 2;
 
-    private AE2Upgrades() {}
+    private AE2UpgradePainter() {}
 
     /**
      * Calculates an upgrade panel's width for columns of at most {@link AE2Theme#UPGRADE_SLOTS_PER_COLUMN} slots. AE2
-     * attaches the
-     * panel
-     * to the right of the panel it belongs to, starting {@link AE2Theme#UPGRADE_OVERLAP} pixels inside that panel's
-     * right edge,
-     * so that many of these pixels cover the other panel's border.
+     * attaches the panel to the right of the panel it belongs to, starting {@link AE2Theme#UPGRADE_OVERLAP} pixels
+     * inside that panel's right edge, so that many of these pixels cover the other panel's border.
      *
      * @param slots nonnegative slot count; zero still reserves one column
      * @return panel width in pixels, 23 for one column
@@ -53,8 +50,8 @@ public class AE2Upgrades {
 
     /**
      * Returns the left edge of an 18-by-18 item slot widget in an upgrade panel, relative to the panel; the item sits
-     * one pixel inside, on the slot well the panel draws. Turn off the slot widget's theme background
-     * ({@code disableThemeBackground(true)}), or its own frame covers AE2's wells.
+     * one pixel inside, on the slot well the panel draws. Turn off the slot widget's theme background ({@code
+     * disableThemeBackground(true)}), or its own frame covers AE2's wells.
      *
      * @param index zero-based slot index; slots fill columns of {@link AE2Theme#UPGRADE_SLOTS_PER_COLUMN} from the top
      * @return x offset in pixels

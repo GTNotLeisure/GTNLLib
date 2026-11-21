@@ -11,7 +11,7 @@ import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widget.Widget;
 import com.gtnllib.gui.theme.AE2Theme;
-import com.gtnllib.gui.theme.ae2.AE2Buttons;
+import com.gtnllib.gui.theme.ae2.AE2ButtonPainter;
 import com.gtnllib.gui.theme.ae2.IconSource;
 
 /**
@@ -21,9 +21,9 @@ import com.gtnllib.gui.theme.ae2.IconSource;
  * either side, so it also works in GUIs the server opens.
  * <p>
  * Place the widget at {@code panelRight - AE2Theme.PAGE_TAB_INSET} and add it after the panel's other children: the
- * open tab then covers the panel border and joins the panel, and the others stand out. {@link #page(int, Widget)}
- * shows a page widget only while its tab is open. Other themes draw the tabs as buttons, the open one hovered. A tab
- * made unavailable with {@link #available(BooleanSupplier)} shows no hover, draws its icon faded and swallows clicks.
+ * open tab then covers the panel border and joins the panel, and the others stand out. {@link #page(int, Widget)} shows
+ * a page widget only while its tab is open. Other themes draw the tabs as buttons, the open one hovered. A tab made
+ * unavailable with {@link #available(BooleanSupplier)} shows no hover, draws its icon faded and swallows clicks.
  * {@link #tabSize(int, int)} changes the size of the tabs from AE2's 22 by 22 pixels.
  */
 public class PageTabs extends ParentWidget<PageTabs> {
@@ -34,7 +34,7 @@ public class PageTabs extends ParentWidget<PageTabs> {
     private final IntSupplier open;
     private final IntConsumer select;
     private final List<BooleanSupplier[]> usable = new ArrayList<>();
-    private final List<ThemedButton> buttons = new ArrayList<>();
+    private final List<ThemedButton<?>> buttons = new ArrayList<>();
     private int tabWidth = AE2Theme.PAGE_TAB_SIZE, tabHeight = AE2Theme.PAGE_TAB_SIZE;
 
     /**
@@ -88,8 +88,8 @@ public class PageTabs extends ParentWidget<PageTabs> {
         int index = usable.size();
         BooleanSupplier[] available = { () -> true };
         usable.add(available);
-        ThemedButton tab = new ThemedButton();
-        IDrawable look = AE2Buttons
+        ThemedButton<?> tab = new ThemedButton<>();
+        IDrawable look = AE2ButtonPainter
             .pageTab(tab, icon, () -> open.getAsInt() == index, () -> available[0].getAsBoolean());
         tab.available(() -> available[0].getAsBoolean())
             .background(look)

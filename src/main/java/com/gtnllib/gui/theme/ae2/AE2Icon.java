@@ -89,13 +89,14 @@ public enum AE2Icon implements IconSource {
     }
 
     /**
-     * Resolves this icon's texture, caching the AE2 sprite for each variant.
+     * Resolves this icon's texture in a look, caching the AE2 sprite for each skin.
      *
-     * @param variant AE2 variant, or {@code null} for the MUI2 fallback; icons MUI2 has no equivalent for use the
-     *                dark AE2 sprite there
+     * @param look look to draw in; the plain look gives the MUI2 fallback, or the dark AE2 sprite for an icon MUI2
+     *             has no equivalent for
      * @return icon texture
      */
-    public UITexture texture(@Nullable AE2Variant variant) {
+    public UITexture texture(AE2Look look) {
+        AE2Variant variant = look.variant();
         if (variant == null) {
             if (vanilla != null) return vanilla;
             variant = AE2Variant.DARK;
@@ -107,8 +108,7 @@ public enum AE2Icon implements IconSource {
     }
 
     @Override
-    public void drawIcon(GuiContext context, WidgetTheme theme, @Nullable AE2Variant variant, int x, int y,
-        boolean enabled) {
-        AE2Draw.drawSprite(texture(variant), x, y, enabled);
+    public void drawIcon(GuiContext context, WidgetTheme theme, AE2Look look, int x, int y, boolean enabled) {
+        AE2Draw.drawSprite(texture(look), x, y, enabled);
     }
 }

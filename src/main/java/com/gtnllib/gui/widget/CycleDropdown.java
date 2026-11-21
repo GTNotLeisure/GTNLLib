@@ -28,9 +28,9 @@ import com.cleanroommc.modularui.widgets.menu.Menu;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.ae2.AE2ButtonDrawable;
 import com.gtnllib.gui.theme.ae2.AE2ButtonDrawable.State;
-import com.gtnllib.gui.theme.ae2.AE2Buttons;
+import com.gtnllib.gui.theme.ae2.AE2ButtonPainter;
 import com.gtnllib.gui.theme.ae2.AE2Look;
-import com.gtnllib.gui.theme.ae2.AE2Panels;
+import com.gtnllib.gui.theme.ae2.AE2PanelPainter;
 import com.gtnllib.gui.theme.ae2.ButtonText;
 
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
@@ -40,11 +40,10 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
  * {@link #wheel(boolean) wheel(true)} it also cycles with the mouse wheel while the pointer is over it. It can be built
  * on either side, so it also works in GUIs the server opens.
  * <p>
- * The shown value reads like a button label: text widgets in it that have no color of their own, and the caret, use
- * the button text color and shadow of the current state, under AE2 themes and plain ones alike. Under AE2 themes the
- * shown value also sinks with the button face on hover. The sinking uses the shown widget's {@code transform} hook, so
- * a transform set on it by
- * {@code optionToWidget} is replaced.
+ * The shown value reads like a button label: text widgets in it that have no color of their own, and the caret, use the
+ * button text color and shadow of the current state, under AE2 themes and plain ones alike. Under AE2 themes the shown
+ * value also sinks with the button face on hover. The sinking uses the shown widget's {@code transform} hook, so a
+ * transform set on it by {@code optionToWidget} is replaced.
  * <p>
  * While {@link #available(BooleanSupplier)} reports false the dropdown looks like a disabled button, shows no hover,
  * closes its menu and ignores clicks and the wheel.
@@ -55,13 +54,20 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
     public static final int OPTION_HEIGHT = 16;
     private static final int MENU_EDGE = 1, VALUE_INSET = 3, CARET_SPACE = AE2Theme.CARET_WIDTH + 4;
     private final List<T> choices = new ObjectArrayList<>();
-    private final IDrawable disabledLook = AE2Buttons.button(this, () -> false, () -> false);
+    private final IDrawable disabledLook = AE2ButtonPainter.button(this, () -> false, () -> false);
     private final List<TextWidget<?>> labels = new ObjectArrayList<>();
-    private BooleanSupplier available = () -> true;
+    private final Availability availability = new Availability();
     private T shown;
     private int menuWidth;
     private boolean wheel;
 
+    /**
+     * Creates an empty dropdown. Set its value, its option widgets ({@code optionToWidget}) and its
+     * {@link #choices(List) choices} afterwards; the caller sets its size.
+     *
+     * @param panelName name of the menu panel MUI2 opens for the options, unique within the screen
+     * @param valueType type of the values to choose from
+     */
     public CycleDropdown(String panelName, Class<T> valueType) {
         super(panelName, valueType);
     }
@@ -73,7 +79,7 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
      * @return this dropdown
      */
     public CycleDropdown<T> available(BooleanSupplier available) {
-        this.available = available;
+        availability.set(available);
         return this;
     }
 
@@ -90,12 +96,12 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
     }
 
     private boolean isAvailable() {
-        return available.getAsBoolean();
+        return availability.get();
     }
 
     @Override
     public @NotNull Result onMousePressed(int mouseButton) {
-        return isAvailable() ? super.onMousePressed(mouseButton) : Result.STOP;
+        return availability.press(() -> super.onMousePressed(mouseButton));
     }
 
     @Override
@@ -137,7 +143,8 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
     }
 
     private ButtonText labelText() {
-        return AE2Buttons.buttonText(this, State.of(this, isAvailable(), false), getArea().height);
+        return AE2Look.of(this)
+            .buttonText(State.of(this, isAvailable(), false), getArea().height);
     }
 
     private int labelSink() {
@@ -154,7 +161,7 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
         ButtonText text = labelText();
         for (TextWidget<?> label : labels) label.color(text.color())
             .shadow(text.shadow());
-        AE2Panels.drawCaret(
+        AE2PanelPainter.drawCaret(
             getArea().width - CARET_SPACE + 1,
             (getArea().height - AE2Theme.CARET_HEIGHT) / 2 + labelSink(),
             isOpen(),
@@ -176,6 +183,13 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
         if (!isAvailable() && isValid() && isOpen()) closeMenu(false);
     }
 
+    /**
+     * Sets the values the menu offers and the wheel cycles through, in order. Calling it again with an equal list does
+     * nothing, so it is safe to call every update; a changed list rebuilds the menu.
+     *
+     * @param choices values to offer; the list is copied
+     * @return this dropdown
+     */
     public CycleDropdown<T> choices(List<T> choices) {
         if (this.choices.equals(choices)) return this;
         this.choices.clear();
@@ -195,8 +209,8 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
     }
 
     /**
-     * Makes the opened menu at least this wide so long option names fit; its right edge stays on the dropdown's
-     * right edge, so a dropdown at the right of a panel does not push the menu past it.
+     * Makes the opened menu at least this wide so long option names fit; its right edge stays on the dropdown's right
+     * edge, so a dropdown at the right of a panel does not push the menu past it.
      *
      * @param width menu width in pixels; zero keeps the dropdown's own width
      * @return this dropdown
@@ -220,8 +234,8 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
     }
 
     /**
-     * Creates an option row like {@link #iconOption(ItemStack, String)} with the name placed by the given alignment
-     * in the space right of the icon, such as {@link Alignment#Center} for centred tier names. Formatting codes in the
+     * Creates an option row like {@link #iconOption(ItemStack, String)} with the name placed by the given alignment in
+     * the space right of the icon, such as {@link Alignment#Center} for centred tier names. Formatting codes in the
      * name, such as GT's tier colors, are kept.
      *
      * @param icon      item drawn as a {@value #OPTION_HEIGHT}-pixel icon, or {@code null} for none

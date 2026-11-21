@@ -11,13 +11,13 @@ import com.cleanroommc.modularui.api.layout.IViewportStack;
 import com.cleanroommc.modularui.api.value.IIntValue;
 import com.cleanroommc.modularui.widgets.AbstractCycleButtonWidget;
 import com.gtnllib.gui.theme.AE2Theme;
-import com.gtnllib.gui.theme.ae2.AE2Buttons;
+import com.gtnllib.gui.theme.ae2.AE2ButtonPainter;
 import com.gtnllib.gui.theme.ae2.AE2Icon;
 import com.gtnllib.gui.theme.ae2.IconSource;
 
 /**
- * AE2's setting button: an 18-by-20 toolbar button ({@link AE2Buttons#iconButton}) that shows one icon per value and
- * steps to the next value on a left click and to the previous one on a right click, like AE2's
+ * AE2's setting button: an 18-by-20 toolbar button ({@link AE2ButtonPainter#iconButton}) that shows one icon per value
+ * and steps to the next value on a left click and to the previous one on a right click, like AE2's
  * {@code SettingToggleButton}. With a boolean value it is AE2's two-icon {@code ToggleButton}, where either click flips
  * it. Its tooltip is the {@link #title(IKey) title} followed by the description of the current value.
  * <p>
@@ -30,11 +30,12 @@ import com.gtnllib.gui.theme.ae2.IconSource;
 public class SettingToggleButton extends AbstractCycleButtonWidget<SettingToggleButton> {
 
     private IconSource[] icons = new IconSource[0];
-    private BooleanSupplier available = () -> true;
+    private final Availability availability = new Availability();
     private IKey title = IKey.EMPTY;
 
+    /** Creates a setting button of AE2's toolbar button size. Set its value, then its states. */
     public SettingToggleButton() {
-        IDrawable look = AE2Buttons.iconButton(this, this::icon, this::isAvailable);
+        IDrawable look = AE2ButtonPainter.iconButton(this, this::icon, this::isAvailable);
         background(look).hoverBackground(look)
             .size(AE2Theme.ICON_BUTTON_WIDTH, AE2Theme.ICON_BUTTON_HEIGHT);
     }
@@ -122,12 +123,12 @@ public class SettingToggleButton extends AbstractCycleButtonWidget<SettingToggle
      * @return this button
      */
     public SettingToggleButton available(BooleanSupplier available) {
-        this.available = available;
+        availability.set(available);
         return this;
     }
 
     private boolean isAvailable() {
-        return available.getAsBoolean();
+        return availability.get();
     }
 
     private IconSource icon() {
@@ -142,6 +143,6 @@ public class SettingToggleButton extends AbstractCycleButtonWidget<SettingToggle
 
     @Override
     public @NotNull Result onMousePressed(int mouseButton) {
-        return isAvailable() ? super.onMousePressed(mouseButton) : Result.STOP;
+        return availability.press(() -> super.onMousePressed(mouseButton));
     }
 }

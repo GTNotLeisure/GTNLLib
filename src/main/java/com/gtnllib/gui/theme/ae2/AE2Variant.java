@@ -1,12 +1,13 @@
 package com.gtnllib.gui.theme.ae2;
 
 import static com.gtnllib.gui.theme.AE2Theme.BIG_SCROLLER_WIDTH;
+import static com.gtnllib.gui.theme.AE2Theme.CHECKBOX_HEIGHT;
+import static com.gtnllib.gui.theme.AE2Theme.CHECKBOX_WIDTH;
 import static com.gtnllib.gui.theme.AE2Theme.DARK_FOLDER;
 import static com.gtnllib.gui.theme.AE2Theme.DARK_ID;
 import static com.gtnllib.gui.theme.AE2Theme.DARK_MENU_ID;
 import static com.gtnllib.gui.theme.AE2Theme.DARK_PURPLE_ID;
 import static com.gtnllib.gui.theme.AE2Theme.DARK_PURPLE_MENU_ID;
-import static com.gtnllib.gui.theme.AE2Theme.FIELD_SELECTION;
 import static com.gtnllib.gui.theme.AE2Theme.HIGHLIGHT;
 import static com.gtnllib.gui.theme.AE2Theme.HIGHLIGHT_SHADOW;
 import static com.gtnllib.gui.theme.AE2Theme.HIGHLIGHT_TOP;
@@ -33,42 +34,26 @@ import static com.gtnllib.gui.theme.AE2Theme.SCROLLER_HEIGHT;
 import static com.gtnllib.gui.theme.AE2Theme.SHEET;
 import static com.gtnllib.gui.theme.AE2Theme.SLOT_SIZE;
 import static com.gtnllib.gui.theme.AE2Theme.SMALL_SCROLLER_WIDTH;
-import static com.gtnllib.gui.theme.AE2Theme.STYLE;
-import static com.gtnllib.gui.theme.AE2Theme.SWITCH_HEIGHT;
-import static com.gtnllib.gui.theme.AE2Theme.SWITCH_LABEL_X;
-import static com.gtnllib.gui.theme.AE2Theme.SWITCH_WIDTH;
 import static com.gtnllib.gui.theme.AE2Theme.TAB_BUTTON_SIZE;
 import static com.gtnllib.gui.theme.AE2Theme.TEXT_FIELD_HEIGHT;
 import static com.gtnllib.gui.theme.AE2Theme.texture;
 
 import net.minecraft.util.ResourceLocation;
 
-import com.cleanroommc.modularui.api.IThemeApi;
-import com.cleanroommc.modularui.api.drawable.IDrawable;
-import com.cleanroommc.modularui.drawable.Rectangle;
 import com.cleanroommc.modularui.drawable.UITexture;
-import com.cleanroommc.modularui.theme.SelectableTheme;
-import com.cleanroommc.modularui.theme.ThemeAPI;
-import com.cleanroommc.modularui.theme.ThemeBuilder;
-import com.cleanroommc.modularui.utils.JsonBuilder;
 import com.gtnllib.gui.theme.AE2Theme;
-import com.gtnllib.gui.theme.ButtonPurpose;
-import com.gtnllib.gui.theme.LayoutTheme;
-import com.gtnllib.gui.theme.PaletteThemes;
 import com.gtnllib.gui.theme.SkinDrawable;
 import com.gtnllib.gui.theme.ThemePalette;
 import com.gtnllib.gui.theme.ThemeSkin;
 import com.gtnllib.gui.theme.ThemeSkin.Part;
-import com.gtnllib.gui.theme.ae2.AE2ButtonDrawable.State;
-import com.gtnllib.gui.wheel.WheelStyle;
-import com.gtnllib.gui.widget.SlideSwitch;
 
 /**
- * AE2 panel and menu variants with their palettes and textures.
+ * The three AE2 skins: light, dark and purple dark. A skin is data only: its theme identifiers, its palette, its
+ * selection colors, which match the selected sprites of the skin, and its textures.
  * <p>
- * Colors and resource names are shared by the registered themes and direct drawing helpers. Raw textures do
- * not select a variant from the drawing context. Each variant's selection colors match the selected sprites of
- * its skin.
+ * The registered themes ({@link AE2ThemeDefinitions}) and the AE2 painters both read it. The enum loads on both sides
+ * and builds no theme itself. Drawing code does not pick a skin: it asks {@link AE2Look#of} for the look of its panel
+ * and takes the skin from {@link AE2Look#variant()}.
  */
 public enum AE2Variant {
 
@@ -101,14 +86,11 @@ public enum AE2Variant {
         PURPLE_HIGHLIGHT_TOP, PURPLE_HIGHLIGHT_SHADOW, 0xFFFFFFFF);
 
     private static final int PAGE_TAB_U = 128, PAGE_TAB_V = 128;
-    private static final int PANEL_SIZE = 256, INSET_WIDTH = 8, INSET_HEIGHT = 9, FIELD_WIDTH = 128, SWITCH_SHEET = 64,
-        TAB_BUTTON_U = 160, TAB_BUTTON_V = 192, TAB_HOVER_V = 224, TAB_BORDER_LEFT = 2, PAGE_TAB_BORDER_LEFT = 3,
-        TRACK_WIDTH = 8, TRACK_HEIGHT = 6, FILL_SIZE = 4, TAG_WIDTH = 6, TAG_HEIGHT = 9, DIVIDER_WIDTH = 4,
-        DIVIDER_HEIGHT = 2, WHEEL_DISC_ALPHA = 0xE6000000, LIST_ROW_WIDTH = 67, BUTTON_BAR_WIDTH = 21,
-        BUTTON_BAR_HEIGHT = 26, RADIO_X = 28, INVALID_Y = 128;
-    // IDrawable.EMPTY is saved as JSON null, which the theme loader reads as unset and replaces with the parent
-    // theme's framed button; a transparent rectangle keeps menu options flat.
-    private static final IDrawable FLAT_OPTION = new Rectangle().color(0);
+    private static final int PANEL_SIZE = 256, INSET_WIDTH = 8, INSET_HEIGHT = 9, FIELD_WIDTH = 128,
+        CHECKBOX_SHEET = 64, TAB_BUTTON_U = 160, TAB_BUTTON_V = 192, TAB_HOVER_V = 224, TAB_BORDER_LEFT = 2,
+        PAGE_TAB_BORDER_LEFT = 3, TRACK_WIDTH = 8, TRACK_HEIGHT = 6, FILL_SIZE = 4, TAG_WIDTH = 6, TAG_HEIGHT = 9,
+        DIVIDER_WIDTH = 4, DIVIDER_HEIGHT = 2, LIST_ROW_WIDTH = 67, BUTTON_BAR_WIDTH = 21, BUTTON_BAR_HEIGHT = 26,
+        RADIO_X = 28, INVALID_Y = 128;
 
     /** Registered panel theme identifier. */
     public final String id;
@@ -132,7 +114,9 @@ public enum AE2Variant {
     public final ResourceLocation legacyStates, legacyTerminal;
     /** Resizable panel background and inset list well. */
     public final UITexture panel, inset;
-    /** The panel texture without its left border, for upgrade panels; see {@link AE2Upgrades#drawUpgradePanel}. */
+    /**
+     * The panel texture without its left border, for upgrade panels; see {@link AE2UpgradePainter#drawUpgradePanel}.
+     */
     public final UITexture upgradeFrame;
     /** Empty item and fluid slot backgrounds, natively 18 by 18 pixels. */
     public final UITexture slotItem, slotFluid;
@@ -152,10 +136,10 @@ public enum AE2Variant {
     public final UITexture tabButton, tabButtonHover;
     /** Normal, selected and hovered 22-by-22 page tabs that stick out of a panel's right edge. */
     public final UITexture pageTab, pageTabSelected, pageTabHover;
-    /** Unchecked switch sprites in normal and hovered states, 22 by 12 pixels. */
-    public final UITexture switchOff, switchOffHover;
-    /** Checked switch sprites in normal and hovered states, 22 by 12 pixels. */
-    public final UITexture switchOn, switchOnHover;
+    /** Unchecked check box sprites in normal and hovered states, 22 by 12 pixels. */
+    public final UITexture checkboxOff, checkboxOffHover;
+    /** Checked check box sprites in normal and hovered states, 22 by 12 pixels. */
+    public final UITexture checkboxOn, checkboxOnHover;
     /** Unselected radio sprites in normal and hovered states, 14 by 14 pixels. */
     public final UITexture radioOff, radioOffHover;
     /** Selected radio sprites in normal and hovered states, 14 by 14 pixels. */
@@ -241,17 +225,17 @@ public enum AE2Variant {
             PAGE_TAB_V,
             PAGE_TAB_SIZE,
             PAGE_TAB_BORDER_LEFT);
-        switchOff = checkbox(folder, "switch_off", 0, 28);
-        switchOffHover = checkbox(folder, "switch_off_hover", 22, 28);
-        switchOn = checkbox(folder, "switch_on", 0, 40);
-        switchOnHover = checkbox(folder, "switch_on_hover", 22, 40);
-        radioOff = sprite(folder, "checkbox", SWITCH_SHEET, RADIO_X, 0, RADIO_SIZE, RADIO_SIZE);
-        radioOffHover = sprite(folder, "checkbox", SWITCH_SHEET, RADIO_X + RADIO_SIZE, 0, RADIO_SIZE, RADIO_SIZE);
-        radioOn = sprite(folder, "checkbox", SWITCH_SHEET, RADIO_X, RADIO_SIZE, RADIO_SIZE, RADIO_SIZE);
+        checkboxOff = checkbox(folder, "switch_off", 0, 28);
+        checkboxOffHover = checkbox(folder, "switch_off_hover", 22, 28);
+        checkboxOn = checkbox(folder, "switch_on", 0, 40);
+        checkboxOnHover = checkbox(folder, "switch_on_hover", 22, 40);
+        radioOff = sprite(folder, "checkbox", CHECKBOX_SHEET, RADIO_X, 0, RADIO_SIZE, RADIO_SIZE);
+        radioOffHover = sprite(folder, "checkbox", CHECKBOX_SHEET, RADIO_X + RADIO_SIZE, 0, RADIO_SIZE, RADIO_SIZE);
+        radioOn = sprite(folder, "checkbox", CHECKBOX_SHEET, RADIO_X, RADIO_SIZE, RADIO_SIZE, RADIO_SIZE);
         radioOnHover = sprite(
             folder,
             "checkbox",
-            SWITCH_SHEET,
+            CHECKBOX_SHEET,
             RADIO_X + RADIO_SIZE,
             RADIO_SIZE,
             RADIO_SIZE,
@@ -265,14 +249,14 @@ public enum AE2Variant {
     }
 
     /**
-     * Selects the switch sprite for the supplied state.
+     * Selects the check box sprite for the supplied state.
      *
-     * @param on      switch value
-     * @param hovered whether the switch is hovered and available
-     * @return a 22-by-12-pixel switch sprite
+     * @param on      whether the box is checked
+     * @param hovered whether the check box is hovered and available
+     * @return a 22-by-12-pixel check box sprite
      */
-    public UITexture switchSprite(boolean on, boolean hovered) {
-        return on ? hovered ? switchOnHover : switchOn : hovered ? switchOffHover : switchOff;
+    public UITexture checkboxSprite(boolean on, boolean hovered) {
+        return on ? hovered ? checkboxOnHover : checkboxOn : hovered ? checkboxOffHover : checkboxOff;
     }
 
     /**
@@ -315,25 +299,11 @@ public enum AE2Variant {
             .build();
     }
 
-    /**
-     * Applies this variant's disc, line, text and highlight colors to a wheel style.
-     *
-     * @param style builder to modify
-     * @return the supplied builder
-     */
-    public WheelStyle.Builder wheel(WheelStyle.Builder style) {
-        return style.discColor(WHEEL_DISC_ALPHA | colors.panel() & 0xFFFFFF)
-            .lineColor(colors.line())
-            .textColor(colors.text())
-            .textShadow(false)
-            .highlightColor(highlight);
-    }
-
     private static UITexture checkbox(String folder, String name, int x, int y) {
         return UITexture.builder()
             .location(texture(folder, "checkbox"))
-            .imageSize(SWITCH_SHEET, SWITCH_SHEET)
-            .subAreaXYWH(x, y, SWITCH_WIDTH, SWITCH_HEIGHT)
+            .imageSize(CHECKBOX_SHEET, CHECKBOX_SHEET)
+            .subAreaXYWH(x, y, CHECKBOX_WIDTH, CHECKBOX_HEIGHT)
             .nonOpaque()
             .name("gtnllib_" + folder + "_" + name)
             .build();
@@ -368,92 +338,6 @@ public enum AE2Variant {
             0x40000000 | colors.text() & 0xFFFFFF,
             0x99000000 | colors.text() & 0xFFFFFF,
             colors.error());
-    }
-
-    public ThemeBuilder<?> menuTheme() {
-        return new ThemeBuilder<>(menuId).parent(id)
-            .background(IThemeApi.PANEL, panel)
-            .background(IThemeApi.BUTTON, FLAT_OPTION)
-            .hoverBackground(IThemeApi.BUTTON, listRowSelected)
-            .textColor(IThemeApi.BUTTON, colors.text())
-            .textHoverColor(IThemeApi.BUTTON, colors.hoverText())
-            .widgetTheme(
-                IThemeApi.TOGGLE_BUTTON,
-                new SelectableTheme.Builder<>().background(FLAT_OPTION)
-                    .textColor(colors.text())
-                    .selectedBackground(listRowSelected)
-                    .selectedTextColor(colors.hoverText()))
-            .widgetThemeHover(
-                IThemeApi.TOGGLE_BUTTON,
-                new SelectableTheme.Builder<>().background(listRowSelected)
-                    .textColor(colors.hoverText())
-                    .selectedBackground(listRowSelected)
-                    .selectedTextColor(colors.hoverText()));
-    }
-
-    public ThemeBuilder<?> panelTheme() {
-        IDrawable button = new AE2ButtonDrawable(State.NORMAL, folder),
-            lit = new AE2ButtonDrawable(State.HOVER, folder);
-        int normal = colors.buttonText(), hover = colors.hoverText();
-        ThemeBuilder<?> theme = PaletteThemes.build(id, ThemeAPI.DEFAULT_ID, palette, STYLE, skin)
-            .defaultTextShadow(false)
-            .background(IThemeApi.BUTTON, button)
-            .hoverBackground(IThemeApi.BUTTON, lit)
-            .textColor(IThemeApi.BUTTON, normal)
-            .textHoverColor(IThemeApi.BUTTON, hover)
-            .textShadow(IThemeApi.BUTTON, false)
-            .textHoverShadow(IThemeApi.BUTTON, false)
-            .widgetTheme(
-                IThemeApi.TOGGLE_BUTTON,
-                new SelectableTheme.Builder<>().background(button)
-                    .textColor(normal)
-                    .selectedBackground(lit)
-                    .selectedTextColor(hover))
-            .widgetThemeHover(
-                IThemeApi.TOGGLE_BUTTON,
-                new SelectableTheme.Builder<>().background(lit)
-                    .textColor(hover)
-                    .selectedBackground(lit)
-                    .selectedTextColor(hover))
-            .background(IThemeApi.CLOSE_BUTTON, button)
-            .hoverBackground(IThemeApi.CLOSE_BUTTON, lit)
-            .textColor(IThemeApi.CLOSE_BUTTON, normal)
-            .textHoverColor(IThemeApi.CLOSE_BUTTON, hover)
-            .textShadow(IThemeApi.CLOSE_BUTTON, false)
-            .textHoverShadow(IThemeApi.CLOSE_BUTTON, false)
-            .background(IThemeApi.FLUID_SLOT, slotFluid)
-            .background(IThemeApi.TEXT_FIELD, textField)
-            .textColor(IThemeApi.TEXT_FIELD, colors.fieldText())
-            .textFieldHintColor(colors.placeholder())
-            .textFieldMarkedColor(FIELD_SELECTION)
-            .background(IThemeApi.SCROLLBAR, scroller)
-            .widgetTheme(
-                SlideSwitch.Theme.KEY,
-                new SlideSwitch.Theme.Builder().text(colors.text(), colors.muted(), colors.text())
-                    .sprites(switchOff, switchOffHover, switchOn, switchOnHover))
-            .hoverBackground(SlideSwitch.Theme.KEY, IDrawable.EMPTY)
-            .widgetTheme(AE2Look.KEY, new AE2Look.Marker.Builder().skin(folder))
-            .widgetTheme(
-                LayoutTheme.KEY,
-                new LayoutTheme.Builder().values(STYLE.layout())
-                    .switches(SWITCH_WIDTH, SWITCH_HEIGHT, SWITCH_LABEL_X - SWITCH_WIDTH))
-            .background(ButtonPurpose.PRIMARY.key, lit)
-            .hoverBackground(ButtonPurpose.PRIMARY.key, lit)
-            .textColor(ButtonPurpose.PRIMARY.key, hover)
-            .textHoverColor(ButtonPurpose.PRIMARY.key, hover)
-            .textShadow(ButtonPurpose.PRIMARY.key, false)
-            .textHoverShadow(ButtonPurpose.PRIMARY.key, false)
-            .background(ButtonPurpose.DANGER.key, button)
-            .hoverBackground(ButtonPurpose.DANGER.key, lit)
-            .textColor(ButtonPurpose.DANGER.key, colors.bad())
-            .textHoverColor(ButtonPurpose.DANGER.key, colors.bad())
-            .background(ButtonPurpose.ICON.key, iconButton)
-            .hoverBackground(ButtonPurpose.ICON.key, iconButtonHover);
-        theme.mergeAdd(
-            IThemeApi.TOGGLE_BUTTON.getFullName(),
-            new JsonBuilder().add(IThemeApi.SELECTED_TEXT_SHADOW, false));
-        PaletteThemes.decorate(theme, palette);
-        return theme;
     }
 
     private static SkinDrawable skin(String folder, String name, int width, int height) {
@@ -547,7 +431,7 @@ public enum AE2Variant {
             .build();
     }
 
-    // Why: tab sprites are a frame around a flat fill, two pixels at the top and four at the bottom with the shadow, so
+    // Tab sprites are a frame around a flat fill, two pixels at the top and four at the bottom with the shadow, so
     // they stretch to any size; the page tab's three left columns are the panel border it covers.
     private static UITexture tabSprite(String folder, String name, int x, int y, int size, int left) {
         return UITexture.builder()

@@ -1,8 +1,6 @@
 package com.gtnllib.gui.theme.ae2;
 
-import static com.gtnllib.gui.theme.AE2Theme.DISABLED_TEXT;
 import static com.gtnllib.gui.theme.AE2Theme.ICON_SIZE;
-import static com.gtnllib.gui.theme.AE2Theme.LABEL_HEIGHT;
 import static com.gtnllib.gui.theme.AE2Theme.LABEL_PADDING;
 
 import java.util.function.BooleanSupplier;
@@ -11,29 +9,25 @@ import java.util.function.Supplier;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 
-import org.jetbrains.annotations.Nullable;
-
-import com.cleanroommc.modularui.api.ITheme;
 import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.drawable.Stencil;
 import com.cleanroommc.modularui.screen.viewport.GuiContext;
 import com.cleanroommc.modularui.theme.WidgetTheme;
-import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.utils.GlStateManager;
 import com.cleanroommc.modularui.widget.Widget;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.ae2.AE2ButtonDrawable.State;
 
 /**
- * AE2 text buttons, toolbar icon buttons, tabs and page tabs as drawables, resolved against the theme of the widget's
- * panel when drawn, with MUI2's button look outside AE2 themes.
+ * AE2 text buttons, toolbar icon buttons, tabs and page tabs as drawables. Each resolves the look of its widget's panel
+ * when drawn ({@link AE2Look#of(IWidget)}); outside AE2 themes the look draws the theme's MUI2 button instead.
  */
-public class AE2Buttons {
+public class AE2ButtonPainter {
 
     private static final double MARQUEE_SECONDS_PER_PIXEL = 0.5, MARQUEE_MIN_PERIOD = 3;
 
-    private AE2Buttons() {}
+    private AE2ButtonPainter() {}
 
     /**
      * Creates a button background resolved against the theme and supplied state at draw time.
@@ -45,56 +39,22 @@ public class AE2Buttons {
      * @see #label(Widget, Supplier, BooleanSupplier, BooleanSupplier)
      */
     public static IDrawable button(Widget<?> widget, BooleanSupplier available, BooleanSupplier selected) {
-        return (context, x, y, width, height, theme) -> {
-            State state = State.of(widget, available.getAsBoolean(), selected.getAsBoolean());
-            ITheme panel = AE2Draw.themeOf(widget, context);
-            AE2Variant variant = AE2Look.of(panel)
-                .variant();
-            if (variant != null) AE2ButtonDrawable.draw(variant.folder, state, x, y, width, height);
-            else AE2Draw.themeButton(context, panel, state, x, y, width, height);
-        };
+        return (context, x, y, width, height, theme) -> AE2Look.of(widget)
+            .drawButton(
+                context,
+                State.of(widget, available.getAsBoolean(), selected.getAsBoolean()),
+                x,
+                y,
+                width,
+                height);
     }
 
     /**
-     * Resolves the text style for a button in the screen's theme.
-     *
-     * @param context current drawing context
-     * @param state   visual button state
-     * @param height  button height in pixels
-     * @return text color, vertical offset and shadow setting
-     * @see #buttonText(IWidget, State, int)
-     */
-    public static ButtonText buttonText(GuiContext context, State state, int height) {
-        return buttonText(AE2Draw.screenTheme(context), state, height);
-    }
-
-    /**
-     * Resolves the text style for a button in the theme of the panel a widget belongs to.
-     *
-     * @param widget widget in an open panel
-     * @param state  visual button state
-     * @param height button height in pixels
-     * @return text color, vertical offset and shadow setting
-     */
-    public static ButtonText buttonText(IWidget widget, State state, int height) {
-        return buttonText(AE2Draw.themeOf(widget), state, height);
-    }
-
-    private static ButtonText buttonText(@Nullable ITheme theme, State state, int height) {
-        AE2Variant variant = AE2Look.of(theme)
-            .variant();
-        if (variant != null)
-            return new ButtonText(variant.colors.button(state), AE2ButtonDrawable.textY(state, height), false);
-        WidgetTheme look = AE2Draw.buttonLook(theme, state);
-        int color = state == State.DISABLED ? DISABLED_TEXT : look == null ? Color.WHITE.main : look.getTextColor();
-        return new ButtonText(color, (height - LABEL_HEIGHT) / 2, look == null || look.getTextShadow());
-    }
-
-    /**
-     * Creates a centered button label matching {@link #button}. Under AE2 themes a label that fits starts half its
-     * width left of the button's middle, both halves rounded down as AE2 rounds them, and a label wider than the
-     * button scrolls back and forth inside it, as AE2 buttons do, and stays at the height of a hovered button's label
-     * in every state; other themes trim it to the width.
+     * Creates a centered button label matching {@link #button}, in the text style of {@link AE2Look#buttonText}. Under
+     * AE2 themes a label that fits starts half its width left of the button's middle, both halves rounded down as AE2
+     * rounds them, and a label wider than the button scrolls back and forth inside it, as AE2 buttons do, and stays at
+     * the height of a hovered button's label in every state; other themes trim it to the width ({@link
+     * PlainLook#drawButtonLabel}).
      *
      * @param widget    widget supplying hover state
      * @param text      supplier of non-null display text
@@ -106,22 +66,24 @@ public class AE2Buttons {
         BooleanSupplier selected) {
         return (context, x, y, width, height, theme) -> {
             State state = State.of(widget, available.getAsBoolean(), selected.getAsBoolean());
-            ITheme panel = AE2Draw.themeOf(widget, context);
-            ButtonText style = buttonText(panel, state, height);
-            FontRenderer font = Minecraft.getMinecraft().fontRenderer;
+            AE2Look look = AE2Look.of(widget);
             String full = text.get();
+            PlainLook plain = look.plainLook();
+            if (plain != null) {
+                plain.drawButtonLabel(full, x, y, width, height, state);
+                return;
+            }
+            ButtonText style = look.buttonText(state, height);
+            FontRenderer font = Minecraft.getMinecraft().fontRenderer;
             int room = Math.max(0, width - LABEL_PADDING * 2), overflow = font.getStringWidth(full) - room;
-            boolean ae2 = AE2Look.of(panel)
-                .isAE2();
-            if (overflow <= 0 || !ae2) {
+            if (overflow <= 0) {
                 String fitted = font.trimStringToWidth(full, room);
-                int fittedWidth = font.getStringWidth(fitted);
-                int left = ae2 ? x + width / 2 - fittedWidth / 2 : x + (width - fittedWidth) / 2;
+                int left = x + width / 2 - font.getStringWidth(fitted) / 2;
                 AE2Draw.text(fitted, left, y + style.y(), style.color(), style.shadow());
                 return;
             }
-            // Why: AE2Button draws a scrolling label at the hovered label's height whatever the state; only a
-            // centred label sinks and rises with the face.
+            // AE2's button draws a scrolling label at the hovered label's height whatever the state; only a centred
+            // label sinks and rises with the face.
             int scrollY = AE2ButtonDrawable.textY(State.HOVER, height);
             Stencil.apply(x + LABEL_PADDING, y, room, height, context);
             AE2Draw.text(full, x + LABEL_PADDING - marquee(overflow), y + scrollY, style.color(), style.shadow());
@@ -164,12 +126,11 @@ public class AE2Buttons {
         BooleanSupplier selected) {
         return (context, x, y, width, height, theme) -> {
             boolean on = available.getAsBoolean(), lit = on && widget.isHovering(), chosen = selected.getAsBoolean();
-            ITheme panel = AE2Draw.themeOf(widget, context);
-            AE2Variant variant = AE2Look.of(panel)
-                .variant();
+            AE2Look look = AE2Look.of(widget);
+            AE2Variant variant = look.variant();
             IconSource shown = icon.get();
             if (variant == null) {
-                drawPlainIconButton(context, panel, theme, shown, lit || chosen, x, y, width, height, on);
+                drawIconOnButton(context, look, theme, shown, lit || chosen, x, y, width, height, on);
                 return;
             }
             int sink = lit ? 1 : 0;
@@ -179,7 +140,7 @@ public class AE2Buttons {
             shown.drawIcon(
                 context,
                 theme,
-                variant,
+                look,
                 x + (width - ICON_SIZE) / 2,
                 y + Math.max(0, (height - ICON_SIZE) / 2 - 1) + sink,
                 on);
@@ -188,9 +149,8 @@ public class AE2Buttons {
 
     /**
      * Creates a tab-button background and icon, drawn at the widget's size; AE2's tabs are
-     * {@link AE2Theme#TAB_BUTTON_SIZE}
-     * pixels square, and other sizes stretch the tab's fill while keeping its frame. The icon stays 16 by 16, centred.
-     * This drawable does not install input handlers.
+     * {@link AE2Theme#TAB_BUTTON_SIZE} pixels square, and other sizes stretch the tab's fill while keeping its frame.
+     * The icon stays 16 by 16, centred. This drawable does not install input handlers.
      *
      * @param widget    widget supplying hover state
      * @param icon      supplier of the displayed icon
@@ -201,12 +161,11 @@ public class AE2Buttons {
         BooleanSupplier available) {
         return (context, x, y, width, height, theme) -> {
             boolean on = available.getAsBoolean(), lit = on && widget.isHovering();
-            ITheme panel = AE2Draw.themeOf(widget, context);
-            AE2Variant variant = AE2Look.of(panel)
-                .variant();
+            AE2Look look = AE2Look.of(widget);
+            AE2Variant variant = look.variant();
             IconSource shown = icon.get();
             if (variant == null) {
-                drawPlainIconButton(context, panel, theme, shown, lit, x, y, width, height, on);
+                drawIconOnButton(context, look, theme, shown, lit, x, y, width, height, on);
                 return;
             }
             GlStateManager.color(1, 1, 1, 1);
@@ -214,7 +173,7 @@ public class AE2Buttons {
             shown.drawIcon(
                 context,
                 theme,
-                variant,
+                look,
                 x + (width - ICON_SIZE) / 2,
                 y + Math.max(0, (height - ICON_SIZE) / 2 - 1),
                 on);
@@ -225,11 +184,11 @@ public class AE2Buttons {
      * Creates a page-tab background and icon, as AE2 draws the mode tabs of its pattern encoding terminal.
      * <p>
      * AE2 tabs are 22 by 22 pixels, stacked {@link AE2Theme#PAGE_TAB_PITCH} apart and placed
-     * {@link AE2Theme#PAGE_TAB_INSET} pixels
-     * inside the panel's right edge, after the panel: the selected tab then covers the panel border and joins the
-     * panel, the others stand out as separate tabs. The tab is drawn at the widget's size: other sizes stretch its fill
-     * and keep its frame and the three columns that cover the panel border; the icon stays 16 by 16, centred on the
-     * part outside the panel. Other themes use the button look, hovered while selected.
+     * {@link AE2Theme#PAGE_TAB_INSET} pixels inside the panel's right edge, after the panel: the selected tab then
+     * covers the panel border and joins the panel, the others stand out as separate tabs. The tab is drawn at the
+     * widget's size: other sizes stretch its fill and keep its frame and the three columns that cover the panel border;
+     * the icon stays 16 by 16, centred on the part outside the panel. Other themes use the button look, hovered while
+     * selected.
      *
      * @param widget   widget supplying hover state
      * @param icon     supplier of the displayed icon
@@ -254,12 +213,11 @@ public class AE2Buttons {
         BooleanSupplier available) {
         return (context, x, y, width, height, theme) -> {
             boolean chosen = selected.getAsBoolean(), on = available.getAsBoolean(), lit = on && widget.isHovering();
-            ITheme panel = AE2Draw.themeOf(widget, context);
-            AE2Variant variant = AE2Look.of(panel)
-                .variant();
+            AE2Look look = AE2Look.of(widget);
+            AE2Variant variant = look.variant();
             IconSource shown = icon.get();
             if (variant == null) {
-                drawPlainIconButton(context, panel, theme, shown, lit || chosen, x, y, width, height, on);
+                drawIconOnButton(context, look, theme, shown, lit || chosen, x, y, width, height, on);
                 return;
             }
             GlStateManager.color(1, 1, 1, 1);
@@ -267,17 +225,17 @@ public class AE2Buttons {
             shown.drawIcon(
                 context,
                 theme,
-                variant,
+                look,
                 x + (width + 1 - ICON_SIZE) / 2,
                 y + Math.max(0, (height - ICON_SIZE) / 2 - 1),
                 on);
         };
     }
 
-    private static void drawPlainIconButton(GuiContext context, @Nullable ITheme panel, WidgetTheme theme,
-        IconSource icon, boolean lit, int x, int y, int width, int height, boolean enabled) {
+    private static void drawIconOnButton(GuiContext context, AE2Look look, WidgetTheme theme, IconSource icon,
+        boolean lit, int x, int y, int width, int height, boolean enabled) {
         State state = !enabled ? State.DISABLED : lit ? State.HOVER : State.NORMAL;
-        AE2Draw.themeButton(context, panel, state, x, y, width, height);
-        icon.drawIcon(context, theme, null, x + (width - ICON_SIZE) / 2, y + (height - ICON_SIZE) / 2, enabled);
+        look.drawButton(context, state, x, y, width, height);
+        icon.drawIcon(context, theme, look, x + (width - ICON_SIZE) / 2, y + (height - ICON_SIZE) / 2, enabled);
     }
 }

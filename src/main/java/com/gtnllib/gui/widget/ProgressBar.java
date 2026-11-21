@@ -8,22 +8,22 @@ import com.cleanroommc.modularui.widgets.ProgressWidget;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.ae2.AE2Look;
 import com.gtnllib.gui.theme.ae2.AE2Variant;
+import com.gtnllib.gui.theme.ae2.PlainLook;
 
 /**
  * AE2's progress bar: the inscriber's {@link AE2Theme#PROGRESS_WIDTH} by {@link AE2Theme#PROGRESS_HEIGHT} bar that
  * fills upwards, drawn from the skin of the panel it is in. Outside AE2 themes it is a sunken slot-style well that
- * fills
- * with green. AE2's sprite is upright, so under AE2 themes the bar is meant to fill up or down; other directions
- * stretch
- * it.
+ * fills with the plain look's green ({@link PlainLook#GOOD}). AE2's sprite is upright, so under AE2 themes the bar is
+ * meant to fill up or down; other directions stretch it.
  * <p>
  * It is MUI2's {@link ProgressWidget}, so it takes an {@code IDoubleValue} from 0 to 1 or a synced value and works in
  * GUIs the server opens. Like AE2's, it fills in whole pixels.
  */
 public class ProgressBar extends ProgressWidget {
 
-    private static final int PLAIN_FILL = 0xFF60E060;
-
+    /**
+     * Creates a bar of AE2's size that fills upwards. Set its value with {@code value(...)} or {@code syncHandler}.
+     */
     public ProgressBar() {
         size(AE2Theme.PROGRESS_WIDTH, AE2Theme.PROGRESS_HEIGHT);
         direction(Direction.UP);
@@ -60,10 +60,10 @@ public class ProgressBar extends ProgressWidget {
         int filled = (int) Math.floor(progress * (upright ? innerHeight : innerWidth));
         if (filled <= 0) return;
         switch (getDirection()) {
-            case RIGHT -> GuiDraw.drawRect(1, 1, filled, innerHeight, PLAIN_FILL);
-            case LEFT -> GuiDraw.drawRect(1 + innerWidth - filled, 1, filled, innerHeight, PLAIN_FILL);
-            case DOWN -> GuiDraw.drawRect(1, 1, innerWidth, filled, PLAIN_FILL);
-            default -> GuiDraw.drawRect(1, 1 + innerHeight - filled, innerWidth, filled, PLAIN_FILL);
+            case RIGHT -> GuiDraw.drawRect(1, 1, filled, innerHeight, PlainLook.GOOD);
+            case LEFT -> GuiDraw.drawRect(1 + innerWidth - filled, 1, filled, innerHeight, PlainLook.GOOD);
+            case DOWN -> GuiDraw.drawRect(1, 1, innerWidth, filled, PlainLook.GOOD);
+            default -> GuiDraw.drawRect(1, 1 + innerHeight - filled, innerWidth, filled, PlainLook.GOOD);
         }
     }
 }

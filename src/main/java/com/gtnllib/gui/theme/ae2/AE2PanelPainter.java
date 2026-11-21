@@ -13,6 +13,7 @@ import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.drawable.GuiDraw;
 import com.cleanroommc.modularui.screen.viewport.GuiContext;
+import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.theme.WidgetTheme;
 import com.cleanroommc.modularui.utils.GlStateManager;
 import com.gtnllib.gui.theme.AE2Theme;
@@ -20,9 +21,9 @@ import com.gtnllib.gui.theme.AE2Theme;
 /**
  * AE2 panel pieces: panel backgrounds, list wells and rows, the vertical toolbar strip, tables and the dropdown caret.
  */
-public class AE2Panels {
+public class AE2PanelPainter {
 
-    private AE2Panels() {}
+    private AE2PanelPainter() {}
 
     /**
      * Draws the background of a vertical icon-button bar.
@@ -33,7 +34,7 @@ public class AE2Panels {
      * @param width   background width, including button margins
      * @param height  background height, including button margins and spacing
      * @see AE2Theme#BUTTON_BAR_MARGIN
-     * @see #BUTTON_BAR_SPACING
+     * @see AE2Theme#BUTTON_BAR_SPACING
      */
     public static void drawButtonBar(AE2Variant variant, int x, int y, int width, int height) {
         GlStateManager.color(1, 1, 1, 1);
@@ -69,8 +70,8 @@ public class AE2Panels {
     /**
      * Draws an inset table background with one-pixel grid lines.
      * <p>
-     * Cell {@code (column, row)} begins at {@code (x + 1 + column * (cellWidth + 1),
-     * y + 1 + row * (cellHeight + 1))}. Cell contents are drawn separately by the caller.
+     * Cell {@code (column, row)} begins at {@code (x + 1 + column * (cellWidth + 1), y + 1 + row * (cellHeight + 1))}.
+     * Cell contents are drawn separately by the caller.
      *
      * @param variant    non-null AE2 variant
      * @param x          table left edge
@@ -101,81 +102,77 @@ public class AE2Panels {
     }
 
     /**
-     * Creates a selectable list-row background resolved against the screen's theme at draw time. A selected row looks
-     * like a selected row of {@code IconRowList} ({@link AE2Look#drawSelectedRow}); an unselected row is AE2's framed
-     * row under AE2 themes and left clear otherwise.
+     * Creates a selectable list-row background in the look of a widget's panel, resolved at draw time; see
+     * {@link #drawListRow}.
      *
+     * @param owner    widget whose panel gives the look, usually the row widget itself
      * @param selected selection supplier; a hover supplier can be used for hover highlighting
      * @return the row background drawable
      */
-    public static IDrawable listRow(BooleanSupplier selected) {
-        return (context, x, y, width, height, theme) -> {
-            AE2Look look = AE2Look.of(context);
-            GlStateManager.color(1, 1, 1, 1);
-            if (selected.getAsBoolean()) look.drawSelectedRow(x, y, width, height);
-            else if (look.variant() != null) look.variant().listRow.draw(x, y, width, height);
-        };
+    public static IDrawable listRow(IWidget owner, BooleanSupplier selected) {
+        return (context, x, y, width, height,
+            theme) -> drawListRow(AE2Look.of(owner), selected.getAsBoolean(), x, y, width, height);
     }
 
     /**
-     * Creates the panel background for a panel whose edges are covered by AE2 toolbar strips or page tabs: the screen
-     * theme's panel texture drawn between the given insets. Use it with {@code disableThemeBackground(true)}.
+     * Draws a selectable list-row background. A selected row looks like a selected row of {@code IconRowList} ({@link
+     * AE2Look#drawSelectedRow}); an unselected row is AE2's framed row under an AE2 skin and left clear in the plain
+     * look.
      *
-     * @param left  pixels from the panel's left edge to the background, such as
-     *              {@code VerticalButtonBar.WIDTH - VerticalButtonBar.OVERLAP}
-     * @param right pixels from the panel's right edge to the background, such as
-     *              {@code PAGE_TAB_SIZE - PAGE_TAB_INSET}
-     * @return background drawable for the panel
-     * @see #panelBackground(IWidget, int, int)
+     * @param look     look to draw in
+     * @param selected whether the row is selected
+     * @param x        left edge
+     * @param y        top edge
+     * @param width    row width in pixels
+     * @param height   row height in pixels
      */
-    public static IDrawable panelBackground(int left, int right) {
-        return (context, x, y, width, height, widgetTheme) -> drawPanelBackground(
-            AE2Draw.screenTheme(context),
-            context,
-            x + left,
-            y,
-            width - left - right,
-            height);
+    public static void drawListRow(AE2Look look, boolean selected, int x, int y, int width, int height) {
+        GlStateManager.color(1, 1, 1, 1);
+        if (selected) look.drawSelectedRow(x, y, width, height);
+        else if (look.variant() != null) look.variant().listRow.draw(x, y, width, height);
     }
 
     /**
-     * Creates a panel background like {@link #panelBackground(int, int)} that uses the theme of the panel a widget
-     * belongs to, so it also follows a panel with a theme of its own.
+     * Creates the panel background for a panel whose edges are covered by AE2 toolbar strips or page tabs: the panel
+     * texture of the theme of the panel a widget belongs to, drawn between the given insets. Use it with
+     * {@code disableThemeBackground(true)}.
      *
      * @param owner widget whose panel's theme supplies the texture, usually the panel itself
-     * @param left  pixels from the drawn area's left edge to the background
-     * @param right pixels from the drawn area's right edge to the background
+     * @param left  pixels from the drawn area's left edge to the background, such as
+     *              {@code VerticalButtonBar.WIDTH - VerticalButtonBar.OVERLAP}
+     * @param right pixels from the drawn area's right edge to the background, such as
+     *              {@code PAGE_TAB_SIZE - PAGE_TAB_INSET}
      * @return background drawable
      */
     public static IDrawable panelBackground(IWidget owner, int left, int right) {
-        return (context, x, y, width, height, widgetTheme) -> drawPanelBackground(
-            AE2Draw.themeOf(owner, context),
-            context,
-            x + left,
-            y,
-            width - left - right,
-            height);
+        return (context, x, y, width, height, widgetTheme) -> {
+            ITheme theme = panelTheme(owner, context);
+            if (theme == null) return;
+            WidgetTheme style = theme.getPanelTheme()
+                .getTheme();
+            IDrawable panel = style.getBackground();
+            if (panel != null) panel.draw(context, x + left, y, width - left - right, height, style);
+        };
     }
 
-    private static void drawPanelBackground(@Nullable ITheme theme, GuiContext context, int x, int y, int width,
-        int height) {
-        if (theme == null) return;
-        WidgetTheme look = theme.getPanelTheme()
+    private static @Nullable ITheme panelTheme(IWidget owner, GuiContext context) {
+        if (owner.isValid()) return owner.getPanel()
             .getTheme();
-        IDrawable panel = look.getBackground();
-        if (panel != null) panel.draw(context, x, y, width, height, look);
+        return context instanceof ModularGuiContext modular ? modular.getTheme() : null;
     }
 
     /**
-     * Creates a list well in the screen's look, drawn by {@link AE2Look#drawWell}: AE2's inset under AE2 themes,
-     * Minecraft's sunken slot box otherwise. The well starts at the drawn area's left edge and has a fixed width, so a
-     * widget can be wider than its well, for example to leave room for the scroll bar that AE2 places beside it.
+     * Creates a list well in the look of a widget's panel, drawn by {@link AE2Look#drawWell}: AE2's inset under AE2
+     * themes, Minecraft's sunken slot box otherwise. The well starts at the drawn area's left edge and has a fixed
+     * width, so a widget can be wider than its well, for example to leave room for the scroll bar that AE2 places
+     * beside it.
      *
+     * @param owner widget whose panel gives the look, usually the widget the well is the background of
      * @param width well width in pixels
      * @return background drawable
      */
-    public static IDrawable well(int width) {
-        return (context, x, y, w, h, widgetTheme) -> AE2Look.of(context)
+    public static IDrawable well(IWidget owner, int width) {
+        return (context, x, y, w, h, widgetTheme) -> AE2Look.of(owner)
             .drawWell(x, y, width, h);
     }
 }

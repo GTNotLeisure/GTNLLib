@@ -11,7 +11,7 @@ import com.cleanroommc.modularui.widget.scroll.ScrollData;
 import com.cleanroommc.modularui.widget.scroll.VerticalScrollData;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.ae2.AE2Look;
-import com.gtnllib.gui.theme.ae2.AE2Scrollbars;
+import com.gtnllib.gui.theme.ae2.AE2ScrollbarPainter;
 import com.gtnllib.gui.theme.ae2.AE2Variant;
 
 /**
@@ -27,11 +27,11 @@ import com.gtnllib.gui.theme.ae2.AE2Variant;
  * available vertical track must be at least {@link AE2Theme#SCROLLER_HEIGHT} pixels tall.
  * <p>
  * Scrolling is smooth by default. {@link #rows(int)} enables immediate scrolling snapped to row boundaries. Scroll
- * shadows are never drawn. A press on the track beside the handle moves the handle's centre to the pointer at once,
- * and the same press keeps dragging from there. {@link #pageOnTrackPress(boolean) pageOnTrackPress(true)} pages like
- * AE2 instead: the press moves one wheel step (MUI2's scroll speed, one row after {@link #rows(int)}) towards the
- * pointer, and inside a {@link GTNLListWidget} holding the button keeps paging, first after
- * {@value #FIRST_REPEAT_MILLIS} ms and then every {@value #REPEAT_MILLIS} ms.
+ * shadows are never drawn. A press on the track beside the handle moves the handle's centre to the pointer at once, and
+ * the same press keeps dragging from there. {@link #pageOnTrackPress(boolean) pageOnTrackPress(true)} pages like AE2
+ * instead: the press moves one wheel step (MUI2's scroll speed, one row after {@link #rows(int)}) towards the pointer,
+ * and inside a {@link GTNLListWidget} holding the button keeps paging, first after {@value #FIRST_REPEAT_MILLIS} ms and
+ * then every {@value #REPEAT_MILLIS} ms.
  */
 public class HandleScrollData extends VerticalScrollData implements IPersistentScrollbar {
 
@@ -79,7 +79,10 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
      */
     @Deprecated
     public HandleScrollData(@Nullable AE2Variant variant, boolean small) {
-        super(false, AE2Scrollbars.scrollbarWidth(variant));
+        super(
+            false,
+            AE2Look.of(variant)
+                .scrollbarWidth());
         this.small = small;
         look = AE2Look.of(variant);
     }
@@ -104,7 +107,7 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
      */
     @Override
     public int getThickness() {
-        return smallHandle() ? AE2Theme.SMALL_SCROLLER_WIDTH : AE2Scrollbars.scrollbarWidth(look.variant());
+        return smallHandle() ? AE2Theme.SMALL_SCROLLER_WIDTH : look.scrollbarWidth();
     }
 
     private boolean smallHandle() {
@@ -114,9 +117,9 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
     /**
      * Configures row snapping and the wheel step.
      * <p>
-     * Positive values disable animation and set the wheel step to one row. Both content endpoints remain reachable
-     * when the scroll range is not divisible by the row height. Align content, viewport, padding and separators to
-     * the row height when partial rows must not be visible.
+     * Positive values disable animation and set the wheel step to one row. Both content endpoints remain reachable when
+     * the scroll range is not divisible by the row height. Align content, viewport, padding and separators to the row
+     * height when partial rows must not be visible.
      *
      * @param rowHeight row height in pixels; nonpositive values disable snapping without changing the wheel step
      * @return this scroll data
@@ -183,7 +186,7 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
             page(area);
             return true;
         }
-        // Why: MUI2 moves the content only once the pointer moves, so a still press would not jump.
+        // MUI2 moves the content only once the pointer moves, so a still press would not jump.
         if (beside) scrollTo(area, offsetAt(track - clickOffset, visible, length));
         dragMouse = track;
         dragScroll = getScroll();
@@ -223,8 +226,8 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
     /**
      * Converts the pointer position to the progress consumed by {@link ScrollArea#drag(int, int)}.
      * <p>
-     * During a drag, the pointer's movement since the press is added to the offset recorded at the press, so a
-     * pointer that has not moved keeps the content in place regardless of the content length.
+     * During a drag, the pointer's movement since the press is added to the offset recorded at the press, so a pointer
+     * that has not moved keeps the content in place regardless of the content length.
      *
      * @param area         owning scroll area
      * @param mainAxisPos  mouse Y coordinate relative to the scroll area
@@ -286,8 +289,8 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
     /**
      * Draws the groove and enabled or disabled handle in scroll-area coordinates.
      * <p>
-     * The groove extends one pixel above and below the available vertical track. An active horizontal scroll bar
-     * is excluded from that track. This method does not reserve layout space or process input.
+     * The groove extends one pixel above and below the available vertical track. An active horizontal scroll bar is
+     * excluded from that track. This method does not reserve layout space or process input.
      *
      * @param area owning scroll area
      */
@@ -299,9 +302,9 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
         int top = trackTop(area);
         int height = getFullVisibleSize(area);
         // The groove border sits one pixel outside the scroll area so the handle can travel the full height.
-        AE2Variant variant = look.variant();
-        if (smallHandle()) AE2Scrollbars.drawSmallScrollbar(variant, x, top - 1, height + 2, handleY, active);
-        else AE2Scrollbars.drawScrollbar(variant, x, top - 1, height + 2, handleY, active);
+        if (smallHandle())
+            AE2ScrollbarPainter.drawSmallScrollbar(look.variant(), x, top - 1, height + 2, handleY, active);
+        else look.drawScrollbar(x, top - 1, height + 2, handleY, active);
     }
 
     private int trackTop(ScrollArea area) {
