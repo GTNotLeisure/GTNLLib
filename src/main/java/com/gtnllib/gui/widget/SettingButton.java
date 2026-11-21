@@ -1,0 +1,147 @@
+package com.gtnllib.gui.widget;
+
+import java.util.Arrays;
+import java.util.function.BooleanSupplier;
+
+import org.jetbrains.annotations.NotNull;
+
+import com.cleanroommc.modularui.api.drawable.IDrawable;
+import com.cleanroommc.modularui.api.drawable.IKey;
+import com.cleanroommc.modularui.api.layout.IViewportStack;
+import com.cleanroommc.modularui.api.value.IIntValue;
+import com.cleanroommc.modularui.widgets.AbstractCycleButtonWidget;
+import com.gtnllib.gui.theme.AE2Theme;
+import com.gtnllib.gui.theme.ae2.AE2Buttons;
+import com.gtnllib.gui.theme.ae2.AE2Icon;
+import com.gtnllib.gui.theme.ae2.IconSource;
+
+/**
+ * AE2's setting button: an 18-by-20 toolbar button ({@link AE2Buttons#iconButton}) that shows one icon per value and
+ * steps to the next value on a left click and to the previous one on a right click, like AE2's
+ * {@code SettingToggleButton}. With a boolean value it is AE2's two-icon {@code ToggleButton}, where either click flips
+ * it. Its tooltip is the {@link #title(IKey) title} followed by the description of the current value.
+ * <p>
+ * It is MUI2's cycle button, so it takes an {@code IIntValue}, an {@code IEnumValue}, an {@code IBoolValue} or a synced
+ * value and works in GUIs the server opens. An enum or boolean value sets the number of values itself; for a plain
+ * integer value call {@link #stateCount(int)}. Set the value before the states. While it is not
+ * {@link #available(BooleanSupplier) available} it looks disabled and swallows every mouse button. A value without an
+ * icon shows {@link AE2Icon#MORE}.
+ */
+public class SettingButton extends AbstractCycleButtonWidget<SettingButton> {
+
+    private IconSource[] icons = new IconSource[0];
+    private BooleanSupplier available = () -> true;
+    private IKey title = IKey.EMPTY;
+
+    public SettingButton() {
+        IDrawable look = AE2Buttons.iconButton(this, this::icon, this::isAvailable);
+        background(look).hoverBackground(look)
+            .size(AE2Theme.ICON_BUTTON_WIDTH, AE2Theme.ICON_BUTTON_HEIGHT);
+    }
+
+    /**
+     * Sets the value the button shows and changes.
+     *
+     * @param value an integer, enum or boolean value, or a synced one
+     * @return this button
+     */
+    @Override
+    public SettingButton value(IIntValue<?> value) {
+        return super.value(value);
+    }
+
+    /**
+     * Sets how many values a plain integer value cycles through, from 0 to {@code count - 1}.
+     *
+     * @param count number of values, at least one
+     * @return this button
+     */
+    @Override
+    public SettingButton stateCount(int count) {
+        return super.stateCount(count);
+    }
+
+    /**
+     * Sets the first tooltip line of every value, such as the name of the setting.
+     *
+     * @param title setting name
+     * @return this button
+     */
+    public SettingButton title(IKey title) {
+        this.title = title;
+        return this;
+    }
+
+    /**
+     * Sets the icon and the tooltip description of one value.
+     *
+     * @param state       value index, from zero
+     * @param icon        icon shown while the value is current
+     * @param description tooltip lines below the title while the value is current
+     * @return this button
+     */
+    public SettingButton state(int state, IconSource icon, IKey... description) {
+        if (state >= icons.length) icons = Arrays.copyOf(icons, state + 1);
+        icons[state] = icon;
+        return tooltipBuilder(state, tooltip -> {
+            tooltip.addLine(title);
+            for (IKey line : description) tooltip.addLine(line);
+        });
+    }
+
+    /**
+     * Sets the icon and the tooltip description of one enum value.
+     *
+     * @param state       enum value
+     * @param icon        icon shown while the value is current
+     * @param description tooltip lines below the title while the value is current
+     * @param <E>         enum type of the button's value
+     * @return this button
+     */
+    public <E extends Enum<E>> SettingButton state(E state, IconSource icon, IKey... description) {
+        return state(state.ordinal(), icon, description);
+    }
+
+    /**
+     * Sets the icon and the tooltip description of the on or off value of a boolean value.
+     *
+     * @param state       {@code true} for on
+     * @param icon        icon shown while the value is current
+     * @param description tooltip lines below the title while the value is current
+     * @return this button
+     */
+    public SettingButton state(boolean state, IconSource icon, IKey... description) {
+        return state(state ? 1 : 0, icon, description);
+    }
+
+    /**
+     * Sets when the button can be used; while it cannot, it looks disabled, shows no hover and swallows every mouse
+     * button.
+     *
+     * @param available supplier read every frame and on every click
+     * @return this button
+     */
+    public SettingButton available(BooleanSupplier available) {
+        this.available = available;
+        return this;
+    }
+
+    private boolean isAvailable() {
+        return available.getAsBoolean();
+    }
+
+    private IconSource icon() {
+        int state = getState();
+        return state >= 0 && state < icons.length && icons[state] != null ? icons[state] : AE2Icon.MORE;
+    }
+
+    @Override
+    public boolean canBeSeen(IViewportStack stack) {
+        return isEnabled() && super.canBeSeen(stack);
+    }
+
+    @Override
+    public @NotNull Result onMousePressed(int mouseButton) {
+        return isAvailable() ? super.onMousePressed(mouseButton) : Result.STOP;
+    }
+}

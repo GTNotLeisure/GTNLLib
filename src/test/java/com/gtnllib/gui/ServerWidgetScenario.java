@@ -5,7 +5,12 @@ import java.util.Collections;
 import java.util.List;
 
 import com.cleanroommc.modularui.api.drawable.IDrawable;
+import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.value.BoolValue;
+import com.cleanroommc.modularui.value.DoubleValue;
+import com.cleanroommc.modularui.value.EnumValue;
+import com.cleanroommc.modularui.value.IntValue;
 import com.cleanroommc.modularui.value.sync.ModularSyncManager;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widget.ParentWidget;
@@ -31,7 +36,9 @@ import com.gtnllib.gui.widget.IconRowList;
 import com.gtnllib.gui.widget.ListRow;
 import com.gtnllib.gui.widget.NumberEntry;
 import com.gtnllib.gui.widget.PageTabs;
+import com.gtnllib.gui.widget.ProgressBar;
 import com.gtnllib.gui.widget.RowScrollbar;
+import com.gtnllib.gui.widget.SettingButton;
 import com.gtnllib.gui.widget.SlideSwitch;
 import com.gtnllib.gui.widget.StepSlider;
 import com.gtnllib.gui.widget.ValueStepper;
@@ -109,6 +116,18 @@ public class ServerWidgetScenario implements Runnable {
         new RowScrollbar(() -> firstRow[0], () -> 5, row -> firstRow[0] = row).step(2)
             .small(true)
             .plainBar(0xFF808090, () -> 3);
+        ActionButton.tab(() -> AE2Icon.GEAR, () -> {});
+        new SettingButton().value(new EnumValue<>(ScreenTheme.class, ScreenTheme.AE2_LIGHT))
+            .title(IKey.str("Theme"))
+            .state(ScreenTheme.AE2_LIGHT, AE2Icon.VISIBLE, IKey.str("Light"))
+            .available(() -> false);
+        new SettingButton().value(new BoolValue(true))
+            .state(true, AE2Icon.VISIBLE, IKey.str("Shown"))
+            .state(false, AE2Icon.INVISIBLE, IKey.str("Hidden"));
+        new SettingButton().value(new IntValue(0))
+            .stateCount(3)
+            .state(2, AE2Icon.ADD);
+        new ProgressBar().value(new DoubleValue(0.4));
         AE2Theme.sliderHandles(new ParentWidget<>().child(new SliderWidget()), AE2Theme.LIGHT_ID);
         AE2Theme.useMenuTheme(AE2Theme.DARK_ID, "gtnllib", "server_scenario", "menu");
         AE2Legacy.legacyStates(light);
