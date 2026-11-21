@@ -25,6 +25,7 @@ import com.cleanroommc.modularui.utils.GlStateManager;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.AE2Theme.Variant;
+import com.gtnllib.gui.theme.ae2.AE2Look;
 
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -415,7 +416,8 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
 
     @Override
     public void draw(ModularGuiContext context, WidgetThemeEntry<?> widgetTheme) {
-        Variant variant = AE2Theme.active(context);
+        Variant variant = AE2Look.of(this)
+            .variant();
         layout(variant != null);
         int width = getArea().width, height = getArea().height;
         AE2Theme.drawWell(variant, 0, 0, variant == null ? width : width - AE2_SCROLL_COLUMN, height, BACKGROUND);
@@ -493,7 +495,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
      * @return ARGB color
      */
     public static int hoverColor(@Nullable Variant variant) {
-        return variant == null ? HOVER : variant == Variant.LIGHT ? LIGHT_SHADE : DARK_SHADE;
+        return variant == null ? HOVER : variant.dark ? DARK_SHADE : LIGHT_SHADE;
     }
 
     /**

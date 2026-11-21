@@ -27,6 +27,7 @@ import com.cleanroommc.modularui.widgets.menu.DropdownWidget;
 import com.cleanroommc.modularui.widgets.menu.Menu;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.AE2Theme.Variant;
+import com.gtnllib.gui.theme.ae2.AE2Look;
 import com.gtnllib.gui.widget.AE2ButtonDrawable.State;
 
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
@@ -130,17 +131,19 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
     }
 
     private int labelColor() {
-        Variant variant = AE2Theme.active(getContext());
+        Variant variant = AE2Look.of(this)
+            .variant();
         if (variant != null) return variant.colors.button(State.of(this, isAvailable(), false));
-        if (!isAvailable()) return AE2Theme.panelTextColor(getContext(), false);
-        return getContext().getTheme()
+        if (!isAvailable()) return AE2Theme.panelTextColor(this, false);
+        return getPanel().getTheme()
             .getFallback()
             .getTheme()
             .getTextColor();
     }
 
     private int labelSink() {
-        if (AE2Theme.active(getContext()) == null) return 0;
+        if (!AE2Look.of(this)
+            .isAE2()) return 0;
         int height = getArea().height;
         return AE2ButtonDrawable.textY(State.of(this, isAvailable(), false), height)
             - AE2ButtonDrawable.textY(State.NORMAL, height);
@@ -149,9 +152,10 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
     @Override
     public void draw(ModularGuiContext context, WidgetThemeEntry<?> widgetTheme) {
         super.draw(context, widgetTheme);
-        int color = AE2Theme.active(context) != null || !isAvailable() ? labelColor()
-            : widgetTheme.getTheme()
-                .getTextColor();
+        int color = AE2Look.of(this)
+            .isAE2() || !isAvailable() ? labelColor()
+                : widgetTheme.getTheme()
+                    .getTextColor();
         AE2Theme.drawCaret(
             getArea().width - CARET_SPACE + 1,
             (getArea().height - AE2Theme.CARET_HEIGHT) / 2 + labelSink(),
@@ -247,7 +251,8 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
         if (menuWidth > getArea().width) menu.width(menuWidth)
             .right(0);
         // MUI2 menus draw their options over the panel border, so keep the options inside it.
-        if (AE2Theme.active(getContext()) != null)
+        if (AE2Look.of(this)
+            .isAE2())
             menu.padding(AE2Theme.PANEL_EDGE, AE2Theme.PANEL_EDGE, AE2Theme.PANEL_EDGE, AE2Theme.PANEL_BOTTOM_EDGE);
         else menu.padding(MENU_EDGE);
         return menu;

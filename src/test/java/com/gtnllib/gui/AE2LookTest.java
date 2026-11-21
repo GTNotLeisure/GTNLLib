@@ -9,11 +9,27 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 
 import com.google.gson.JsonObject;
+import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.AE2Theme.Variant;
 import com.gtnllib.gui.theme.ae2.AE2Look;
 import com.gtnllib.gui.theme.ae2.AE2Look.Marker;
+import com.gtnllib.gui.widget.HandleScrollData;
 
 public class AE2LookTest {
+
+    @Test
+    public void scrollWidthFollowsLook() {
+        HandleScrollData large = new HandleScrollData(), small = new HandleScrollData(true);
+        int vanilla = AE2Theme.scrollbarWidth(null);
+        assertEquals(vanilla, large.getThickness(), "a new list scroll bar starts plain");
+        assertEquals(vanilla, small.getThickness(), "the small handle is an AE2 handle; plain looks use vanilla");
+        large.look(AE2Look.of(Variant.DARK));
+        small.look(AE2Look.of(Variant.DARK));
+        assertEquals(AE2Theme.BIG_SCROLLER_WIDTH, large.getThickness(), "an AE2 panel gives the large AE2 handle");
+        assertEquals(AE2Theme.SCROLLBAR_WIDTH, small.getThickness(), "an AE2 panel gives the small AE2 handle");
+        small.look(AE2Look.plain());
+        assertEquals(vanilla, small.getThickness(), "a plain panel takes the vanilla width back");
+    }
 
     @Test
     public void skinsByFolder() {

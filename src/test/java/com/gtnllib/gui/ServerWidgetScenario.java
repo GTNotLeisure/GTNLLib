@@ -70,8 +70,10 @@ public class ServerWidgetScenario implements Runnable {
         new VerticalButtonBar().button(() -> Icon.GEAR, () -> "Settings", () -> {})
             .toggle(() -> Icon.VISIBLE, () -> "Show", () -> true, () -> {});
         new ValueStepper(() -> "LV", step -> {});
-        new GTNLListWidget<>().scrollDirection(new HandleScrollData(light, true).rows(IconRowList.ROW));
-        new HandleScrollData(null);
+        new GTNLListWidget<>().scrollDirection(
+            new HandleScrollData(true).look(AE2Look.of(light))
+                .rows(IconRowList.ROW));
+        new HandleScrollData(null).look(AE2Look.plain());
         new CycleDropdown<>("menu", String.class).choices(Arrays.asList("a", "b"));
         List<IconRowList.Row> rows = Collections.singletonList(
             IconRowList.Row.toggle("Auto", true, () -> {})
@@ -122,7 +124,7 @@ public class ServerWidgetScenario implements Runnable {
             .child(new RowScrollbar(() -> 0, () -> 0, row -> {}).size(AE2Theme.BIG_SCROLLER_WIDTH, 40))
             .child(new PageTabs(() -> 0, page -> {}).tab(() -> Icon.GEAR, () -> "Settings"))
             .child(new StepSlider().size(60, 12))
-            .child(new GTNLListWidget<>().scrollDirection(new HandleScrollData(light)));
+            .child(new GTNLListWidget<>().scrollDirection(new HandleScrollData()));
         WidgetTree.collectSyncValues(new PanelSyncManager(new ModularSyncManager(false), true), panel);
     }
 }

@@ -113,7 +113,7 @@ public class SlideSwitch extends ButtonWidget<SlideSwitch> {
     @Override
     public void draw(ModularGuiContext context, WidgetThemeEntry<?> widgetTheme) {
         Theme colors = colors(widgetTheme.getTheme());
-        LayoutTheme style = LayoutTheme.of(context.getTheme());
+        LayoutTheme style = LayoutTheme.of(getPanel().getTheme());
         boolean on = this.on.getAsBoolean(), open = available.getAsBoolean(), lit = on && open && live.getAsBoolean();
         int width = getArea().w(), height = getArea().h(), switchWidth = style.switchWidth,
             switchHeight = style.switchHeight, top = (height - switchHeight) / 2, labelX = labelX(style);

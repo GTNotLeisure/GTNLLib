@@ -50,7 +50,7 @@ public class ValueStepper extends ParentWidget<ValueStepper> implements Interact
                 .child(
                     IKey.dynamic(value)
                         .asWidget()
-                        .color(() -> AE2Theme.panelTextColor(getContext(), isAvailable()))
+                        .color(() -> AE2Theme.panelTextColor(this, isAvailable()))
                         .alignment(Alignment.Center)
                         .expanded()
                         .heightRel(1f))

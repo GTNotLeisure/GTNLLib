@@ -11,10 +11,15 @@ import com.cleanroommc.modularui.widget.scroll.ScrollData;
 import com.cleanroommc.modularui.widget.scroll.VerticalScrollData;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.AE2Theme.Variant;
+import com.gtnllib.gui.theme.ae2.AE2Look;
 
 /**
  * Vertical scroll data with a fixed-size AE2 or vanilla handle. It can be built on either side, so it also works in
  * GUIs the server opens.
+ * <p>
+ * The handle follows the look of the panel the list is in: AE2's groove and handle under AE2 themes, the vanilla
+ * creative-inventory scroll bar otherwise, and the width follows with it. {@link GTNLListWidget} hands it its panel's
+ * look before every layout; other scroll widgets call {@link #look(AE2Look)} themselves, or keep the plain look.
  * <p>
  * {@link GTNLListWidget} reserves the track width and draws the disabled handle when the content fits. Other scroll
  * widgets must reserve {@link #getThickness()} pixels on the right and draw the inactive track themselves. The
@@ -31,33 +36,78 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
 
     /** Delay before a held track press pages again, and the interval between later pages, in milliseconds. */
     public static final int FIRST_REPEAT_MILLIS = 250, REPEAT_MILLIS = 150;
-    private final @Nullable Variant variant;
     private final boolean small;
+    private AE2Look look;
     private int rowHeight;
     private int dragMouse, dragScroll, pageDirection;
     private long nextPage;
     private boolean pages;
 
-    /**
-     * Creates scroll data with a large handle.
-     *
-     * @param variant AE2 palette, or {@code null} for the vanilla creative-inventory scroll bar
-     */
-    public HandleScrollData(@Nullable Variant variant) {
-        this(variant, false);
+    /** Creates scroll data with a large handle. */
+    public HandleScrollData() {
+        this(false);
     }
 
     /**
      * Creates scroll data with the requested handle style.
      *
-     * @param variant AE2 palette, or {@code null} for a 14-pixel-wide vanilla track
-     * @param small   whether to use the 7-pixel-wide AE2 handle instead of the 12-pixel-wide handle;
-     *                ignored when {@code variant} is {@code null}
+     * @param small whether to use the 7-pixel-wide AE2 handle instead of the 12-pixel-wide one; outside AE2 themes the
+     *              vanilla scroll bar is used either way
      */
+    public HandleScrollData(boolean small) {
+        this(null, small);
+    }
+
+    /**
+     * Creates scroll data with a large handle that starts with a given AE2 skin.
+     *
+     * @param variant skin used until the list hands over its panel's look, or {@code null} for the plain look
+     * @deprecated use {@link #HandleScrollData()}; the handle follows the panel's theme
+     */
+    @Deprecated
+    public HandleScrollData(@Nullable Variant variant) {
+        this(variant, false);
+    }
+
+    /**
+     * Creates scroll data with the requested handle style that starts with a given AE2 skin.
+     *
+     * @param variant skin used until the list hands over its panel's look, or {@code null} for the plain look
+     * @param small   whether to use the 7-pixel-wide AE2 handle instead of the 12-pixel-wide one
+     * @deprecated use {@link #HandleScrollData(boolean)}; the handle follows the panel's theme
+     */
+    @Deprecated
     public HandleScrollData(@Nullable Variant variant, boolean small) {
-        super(false, small && variant != null ? AE2Theme.SCROLLBAR_WIDTH : AE2Theme.scrollbarWidth(variant));
-        this.variant = variant;
-        this.small = small && variant != null;
+        super(false, AE2Theme.scrollbarWidth(variant));
+        this.small = small;
+        look = AE2Look.of(variant);
+    }
+
+    /**
+     * Sets the look the handle is drawn with, which also decides the track width. {@link GTNLListWidget} calls it with
+     * its panel's look before every layout.
+     *
+     * @param look look of the panel the scroll widget is in
+     * @return this scroll data
+     */
+    public HandleScrollData look(AE2Look look) {
+        this.look = look;
+        return this;
+    }
+
+    /**
+     * Returns the track width for the current look: 12 pixels for AE2's large handle, 7 for its small one, 14 for the
+     * vanilla scroll bar.
+     *
+     * @return track width in pixels
+     */
+    @Override
+    public int getThickness() {
+        return smallHandle() ? AE2Theme.SCROLLBAR_WIDTH : AE2Theme.scrollbarWidth(look.variant());
+    }
+
+    private boolean smallHandle() {
+        return small && look.isAE2();
     }
 
     /**
@@ -248,7 +298,8 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
         int top = trackTop(area);
         int height = getFullVisibleSize(area);
         // The groove border sits one pixel outside the scroll area so the handle can travel the full height.
-        if (small) AE2Theme.drawSmallScrollbar(variant, x, top - 1, height + 2, handleY, active);
+        Variant variant = look.variant();
+        if (smallHandle()) AE2Theme.drawSmallScrollbar(variant, x, top - 1, height + 2, handleY, active);
         else AE2Theme.drawScrollbar(variant, x, top - 1, height + 2, handleY, active);
     }
 

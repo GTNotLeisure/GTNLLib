@@ -15,6 +15,7 @@ import com.cleanroommc.modularui.theme.WidgetThemeEntry;
 import com.cleanroommc.modularui.widget.Widget;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.AE2Theme.Variant;
+import com.gtnllib.gui.theme.ae2.AE2Look;
 
 /**
  * A vertical scroll bar that stands on its own, like AE2's {@code Scrollbar}, for widgets that draw or place their
@@ -172,7 +173,8 @@ public class RowScrollbar extends Widget<RowScrollbar> implements Interactable {
 
     @Override
     public void draw(ModularGuiContext context, WidgetThemeEntry<?> widgetTheme) {
-        Variant variant = AE2Theme.active(context);
+        Variant variant = AE2Look.of(this)
+            .variant();
         boolean active = max() > 0;
         int height = getArea().height, offset = handleOffset(variant);
         if (plain(variant)) {
@@ -187,7 +189,8 @@ public class RowScrollbar extends Widget<RowScrollbar> implements Interactable {
         pageDirection = 0;
         if (mouseButton != 0) return Result.IGNORE;
         if (max() == 0) return Result.SUCCESS;
-        Variant variant = AE2Theme.active(getContext());
+        Variant variant = AE2Look.of(this)
+            .variant();
         int mouseY = getContext().getMouseY(), top = border(variant) + handleOffset(variant),
             length = handleLength(variant);
         if (mouseY >= top && mouseY < top + length) {
@@ -213,7 +216,8 @@ public class RowScrollbar extends Widget<RowScrollbar> implements Interactable {
     @Override
     public void onMouseDrag(int mouseButton, long timeSinceClick) {
         if (grab < 0 || mouseButton != 0) return;
-        Variant variant = AE2Theme.active(getContext());
+        Variant variant = AE2Look.of(this)
+            .variant();
         int max = max(), travel = travel(variant), mouseY = getContext().getMouseY();
         if (max == 0 || travel <= 0) return;
         int handle = mouseY - grab - border(variant);

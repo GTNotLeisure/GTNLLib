@@ -20,6 +20,7 @@ import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widget.sizer.Unit.Measure;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.AE2Theme.Variant;
+import com.gtnllib.gui.theme.ae2.AE2Look;
 
 /**
  * One list row made of widgets and drawn like an {@link IconRowList} row: a one-line label on the left and, against
@@ -149,7 +150,8 @@ public class ListRow extends ParentWidget<ListRow> implements Interactable {
 
     @Override
     public void draw(ModularGuiContext context, WidgetThemeEntry<?> widgetTheme) {
-        Variant variant = AE2Theme.active(context);
+        Variant variant = AE2Look.of(this)
+            .variant();
         int width = getArea().width, height = getArea().height;
         boolean usable = available.getAsBoolean(), hovered = usable && click != null && isHovering();
         if (hovered) GuiDraw.drawRect(EDGE, 0, width - 2 * EDGE, height, IconRowList.hoverColor(variant));

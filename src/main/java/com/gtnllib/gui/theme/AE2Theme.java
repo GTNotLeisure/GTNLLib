@@ -57,9 +57,11 @@ import cpw.mods.fml.relauncher.SideOnly;
  * are supplied by the registered theme. Use {@link #useMenuTheme(String, String, String, String...)} to map child
  * menus and {@link #sliderHandles(IWidget, String)} to style slider handles.
  * <p>
- * Drawable factories resolve the active theme when drawn and use the current MUI2 theme outside AE2 panels. Direct
- * drawing methods use the supplied {@link Variant}; only parameters marked nullable support a fallback. Drawing
- * coordinates and dimensions are GUI pixels relative to the current widget.
+ * Drawable factories resolve the theme when drawn: those that take a widget use the theme of that widget's panel,
+ * through {@link AE2Look#of(IWidget)}, so a dialog with a theme of its own is drawn in its own look; the others use
+ * the screen's theme. Outside AE2 themes they fall back to the current MUI2 theme. Direct drawing methods use the
+ * supplied {@link Variant}; only parameters marked nullable support a fallback. Drawing coordinates and dimensions are
+ * GUI pixels relative to the current widget.
  * <p>
  * The class loads on both sides: constants, {@link Variant} lookups and drawable factories may be used while a GUI is
  * built on the server, as ModularUI 2 builds GUIs opened by the server on both sides. Drawing, measuring text and
@@ -537,7 +539,7 @@ public class AE2Theme {
     }
 
     /**
-     * Creates a selectable list-row background resolved against the theme at draw time.
+     * Creates a selectable list-row background resolved against the screen's theme at draw time.
      *
      * @param selected selection supplier; a hover supplier can be used for hover highlighting
      * @return an AE2 nine-slice row or the current MUI2 button background
@@ -547,7 +549,7 @@ public class AE2Theme {
             boolean lit = selected.getAsBoolean();
             Variant variant = active(context);
             if (variant == null) {
-                themeButton(context, lit ? State.HOVER : State.NORMAL, x, y, width, height);
+                themeButton(context, screenTheme(context), lit ? State.HOVER : State.NORMAL, x, y, width, height);
                 return;
             }
             GlStateManager.color(1, 1, 1, 1);
@@ -572,14 +574,16 @@ public class AE2Theme {
         return (context, x, y, width, height, theme) -> {
             boolean usable = available.getAsBoolean(), lit = usable && widget.isHovering(),
                 checked = selected.getAsBoolean();
-            Variant variant = active(context);
+            ITheme panel = themeOf(widget, context);
+            Variant variant = AE2Look.of(panel)
+                .variant();
             GlStateManager.color(1, 1, 1, usable ? 1 : INACTIVE_ALPHA);
             if (variant == null) {
                 (checked ? GuiTextures.CHECK_BOX_FULL : GuiTextures.CHECK_BOX_EMPTY).draw(x, y, RADIO_SIZE, RADIO_SIZE);
                 GlStateManager.color(1, 1, 1, 1);
                 String fitted = Minecraft.getMinecraft().fontRenderer
                     .trimStringToWidth(label.get(), Math.max(0, width - RADIO_LABEL_X));
-                plainText(context, fitted, x + RADIO_LABEL_X, y + (RADIO_SIZE - LABEL_HEIGHT) / 2);
+                plainText(panel, fitted, x + RADIO_LABEL_X, y + (RADIO_SIZE - LABEL_HEIGHT) / 2);
                 return;
             }
             variant.radioSprite(checked, lit)
@@ -663,7 +667,7 @@ public class AE2Theme {
     }
 
     /**
-     * Creates the panel background for a panel whose edges are covered by AE2 toolbar strips or page tabs: the active
+     * Creates the panel background for a panel whose edges are covered by AE2 toolbar strips or page tabs: the screen
      * theme's panel texture drawn between the given insets. Use it with {@code disableThemeBackground(true)}.
      *
      * @param left  pixels from the panel's left edge to the background, such as
@@ -671,16 +675,44 @@ public class AE2Theme {
      * @param right pixels from the panel's right edge to the background, such as
      *              {@code PAGE_TAB_SIZE - PAGE_TAB_INSET}
      * @return background drawable for the panel
+     * @see #panelBackground(IWidget, int, int)
      */
     public static IDrawable panelBackground(int left, int right) {
-        return (context, x, y, width, height, widgetTheme) -> {
-            if (!(context instanceof ModularGuiContext modular)) return;
-            WidgetTheme look = modular.getTheme()
-                .getPanelTheme()
-                .getTheme();
-            IDrawable panel = look.getBackground();
-            if (panel != null) panel.draw(context, x + left, y, width - left - right, height, look);
-        };
+        return (context, x, y, width, height, widgetTheme) -> drawPanelBackground(
+            screenTheme(context),
+            context,
+            x + left,
+            y,
+            width - left - right,
+            height);
+    }
+
+    /**
+     * Creates a panel background like {@link #panelBackground(int, int)} that uses the theme of the panel a widget
+     * belongs to, so it also follows a panel with a theme of its own.
+     *
+     * @param owner widget whose panel's theme supplies the texture, usually the panel itself
+     * @param left  pixels from the drawn area's left edge to the background
+     * @param right pixels from the drawn area's right edge to the background
+     * @return background drawable
+     */
+    public static IDrawable panelBackground(IWidget owner, int left, int right) {
+        return (context, x, y, width, height, widgetTheme) -> drawPanelBackground(
+            themeOf(owner, context),
+            context,
+            x + left,
+            y,
+            width - left - right,
+            height);
+    }
+
+    private static void drawPanelBackground(@Nullable ITheme theme, GuiContext context, int x, int y, int width,
+        int height) {
+        if (theme == null) return;
+        WidgetTheme look = theme.getPanelTheme()
+            .getTheme();
+        IDrawable panel = look.getBackground();
+        if (panel != null) panel.draw(context, x, y, width, height, look);
     }
 
     /**
@@ -745,25 +777,45 @@ public class AE2Theme {
     public static IDrawable button(Widget<?> widget, BooleanSupplier available, BooleanSupplier selected) {
         return (context, x, y, width, height, theme) -> {
             State state = State.of(widget, available.getAsBoolean(), selected.getAsBoolean());
-            Variant variant = active(context);
+            ITheme panel = themeOf(widget, context);
+            Variant variant = AE2Look.of(panel)
+                .variant();
             if (variant != null) AE2ButtonDrawable.draw(variant.folder, state, x, y, width, height);
-            else themeButton(context, state, x, y, width, height);
+            else themeButton(context, panel, state, x, y, width, height);
         };
     }
 
     /**
-     * Resolves the text style for a button in the active theme.
+     * Resolves the text style for a button in the screen's theme.
      *
      * @param context current drawing context
      * @param state   visual button state
      * @param height  button height in pixels
      * @return text color, vertical offset and shadow setting
+     * @see #buttonText(IWidget, State, int)
      */
     public static ButtonText buttonText(GuiContext context, State state, int height) {
-        Variant variant = active(context);
+        return buttonText(screenTheme(context), state, height);
+    }
+
+    /**
+     * Resolves the text style for a button in the theme of the panel a widget belongs to.
+     *
+     * @param widget widget in an open panel
+     * @param state  visual button state
+     * @param height button height in pixels
+     * @return text color, vertical offset and shadow setting
+     */
+    public static ButtonText buttonText(IWidget widget, State state, int height) {
+        return buttonText(themeOf(widget), state, height);
+    }
+
+    private static ButtonText buttonText(@Nullable ITheme theme, State state, int height) {
+        Variant variant = AE2Look.of(theme)
+            .variant();
         if (variant != null)
             return new ButtonText(variant.colors.button(state), AE2ButtonDrawable.textY(state, height), false);
-        WidgetTheme look = buttonLook(context, state);
+        WidgetTheme look = buttonLook(theme, state);
         int color = state == State.DISABLED ? DISABLED_TEXT : look == null ? Color.WHITE.main : look.getTextColor();
         return new ButtonText(color, (height - LABEL_HEIGHT) / 2, look == null || look.getTextShadow());
     }
@@ -784,11 +836,13 @@ public class AE2Theme {
         BooleanSupplier selected) {
         return (context, x, y, width, height, theme) -> {
             State state = State.of(widget, available.getAsBoolean(), selected.getAsBoolean());
-            ButtonText style = buttonText(context, state, height);
+            ITheme panel = themeOf(widget, context);
+            ButtonText style = buttonText(panel, state, height);
             FontRenderer font = Minecraft.getMinecraft().fontRenderer;
             String full = text.get();
             int room = Math.max(0, width - LABEL_PADDING * 2), overflow = font.getStringWidth(full) - room;
-            boolean ae2 = active(context) != null;
+            boolean ae2 = AE2Look.of(panel)
+                .isAE2();
             if (overflow <= 0 || !ae2) {
                 String fitted = font.trimStringToWidth(full, room);
                 int fittedWidth = font.getStringWidth(fitted);
@@ -840,11 +894,12 @@ public class AE2Theme {
         BooleanSupplier selected) {
         return (context, x, y, width, height, theme) -> {
             boolean on = available.getAsBoolean(), lit = on && widget.isHovering(), chosen = selected.getAsBoolean();
-            Variant variant = active(context);
+            ITheme panel = themeOf(widget, context);
+            Variant variant = AE2Look.of(panel)
+                .variant();
             IconSource shown = icon.get();
             if (variant == null) {
-                themeButton(context, lit || chosen ? State.HOVER : State.NORMAL, x, y, width, height);
-                shown.drawIcon(context, theme, null, x + (width - ICON_SIZE) / 2, y + (height - ICON_SIZE) / 2, on);
+                drawPlainIconButton(context, panel, theme, shown, lit || chosen, x, y, width, height, on);
                 return;
             }
             int sink = lit ? 1 : 0;
@@ -875,11 +930,12 @@ public class AE2Theme {
         BooleanSupplier available) {
         return (context, x, y, width, height, theme) -> {
             boolean on = available.getAsBoolean(), lit = on && widget.isHovering();
-            Variant variant = active(context);
+            ITheme panel = themeOf(widget, context);
+            Variant variant = AE2Look.of(panel)
+                .variant();
             IconSource shown = icon.get();
             if (variant == null) {
-                themeButton(context, lit ? State.HOVER : State.NORMAL, x, y, width, height);
-                shown.drawIcon(context, theme, null, x + (width - ICON_SIZE) / 2, y + (height - ICON_SIZE) / 2, on);
+                drawPlainIconButton(context, panel, theme, shown, lit, x, y, width, height, on);
                 return;
             }
             GlStateManager.color(1, 1, 1, 1);
@@ -926,11 +982,12 @@ public class AE2Theme {
         BooleanSupplier available) {
         return (context, x, y, width, height, theme) -> {
             boolean chosen = selected.getAsBoolean(), on = available.getAsBoolean(), lit = on && widget.isHovering();
-            Variant variant = active(context);
+            ITheme panel = themeOf(widget, context);
+            Variant variant = AE2Look.of(panel)
+                .variant();
             IconSource shown = icon.get();
             if (variant == null) {
-                themeButton(context, lit || chosen ? State.HOVER : State.NORMAL, x, y, width, height);
-                shown.drawIcon(context, theme, null, x + (width - ICON_SIZE) / 2, y + (height - ICON_SIZE) / 2, on);
+                drawPlainIconButton(context, panel, theme, shown, lit || chosen, x, y, width, height, on);
                 return;
             }
             GlStateManager.color(1, 1, 1, 1);
@@ -963,18 +1020,16 @@ public class AE2Theme {
         return (context, x, y, width, height, theme) -> {
             boolean usable = available.getAsBoolean(), checked = on.getAsBoolean(),
                 lit = hover.lit(widget.isHovering(), checked) && usable;
-            Variant variant = active(context);
+            ITheme panel = themeOf(widget, context);
+            Variant variant = AE2Look.of(panel)
+                .variant();
             GlStateManager.color(1, 1, 1, usable ? 1 : INACTIVE_ALPHA);
             if (variant == null) {
                 drawSwitch(null, x, y, checked, lit);
                 GlStateManager.color(1, 1, 1, 1);
                 String fitted = Minecraft.getMinecraft().fontRenderer
                     .trimStringToWidth(label.get(), Math.max(0, width - SWITCH_LABEL_X));
-                plainText(
-                    context,
-                    fitted,
-                    x + SWITCH_HEIGHT + LABEL_PADDING * 2,
-                    y + (SWITCH_HEIGHT - LABEL_HEIGHT) / 2);
+                plainText(panel, fitted, x + SWITCH_HEIGHT + LABEL_PADDING * 2, y + (SWITCH_HEIGHT - LABEL_HEIGHT) / 2);
                 return;
             }
             drawSwitch(variant, x, y, checked, lit);
@@ -1047,22 +1102,38 @@ public class AE2Theme {
      * @param context   current drawing context
      * @param available whether the text belongs to something that can be used
      * @return ARGB text color
+     * @see #panelTextColor(IWidget, boolean)
      */
     public static int panelTextColor(GuiContext context, boolean available) {
-        Variant variant = active(context);
+        return panelTextColor(screenTheme(context), available);
+    }
+
+    /**
+     * Returns the color of text drawn on a panel like {@link #panelTextColor(GuiContext, boolean)}, from the theme of
+     * the panel a widget belongs to.
+     *
+     * @param widget    widget in an open panel
+     * @param available whether the text belongs to something that can be used
+     * @return ARGB text color
+     */
+    public static int panelTextColor(IWidget widget, boolean available) {
+        return panelTextColor(themeOf(widget), available);
+    }
+
+    private static int panelTextColor(@Nullable ITheme theme, boolean available) {
+        Variant variant = AE2Look.of(theme)
+            .variant();
         if (variant != null) return available ? variant.colors.text : variant.colors.muted;
         if (!available) return DISABLED_TEXT;
-        ITheme screen = screenTheme(context);
-        return screen == null ? VANILLA_TEXT
-            : screen.getFallback()
+        return theme == null ? VANILLA_TEXT
+            : theme.getFallback()
                 .getTheme()
                 .getTextColor();
     }
 
-    private static void plainText(GuiContext context, String text, int x, int y) {
-        ITheme screen = screenTheme(context);
-        WidgetTheme look = screen == null ? null
-            : screen.getFallback()
+    private static void plainText(@Nullable ITheme theme, String text, int x, int y) {
+        WidgetTheme look = theme == null ? null
+            : theme.getFallback()
                 .getTheme();
         text(text, x, y, look == null ? VANILLA_TEXT : look.getTextColor(), look != null && look.getTextShadow());
     }
@@ -1071,19 +1142,34 @@ public class AE2Theme {
         return context instanceof ModularGuiContext modular ? modular.getTheme() : null;
     }
 
-    private static @Nullable WidgetTheme buttonLook(GuiContext context, State state) {
-        ITheme theme = screenTheme(context);
+    private static @Nullable ITheme themeOf(IWidget widget, GuiContext context) {
+        return widget.isValid() ? themeOf(widget) : screenTheme(context);
+    }
+
+    private static @Nullable ITheme themeOf(IWidget widget) {
+        return widget.isValid() ? widget.getPanel()
+            .getTheme() : null;
+    }
+
+    private static void drawPlainIconButton(GuiContext context, @Nullable ITheme panel, WidgetTheme theme,
+        IconSource icon, boolean lit, int x, int y, int width, int height, boolean enabled) {
+        themeButton(context, panel, lit ? State.HOVER : State.NORMAL, x, y, width, height);
+        icon.drawIcon(context, theme, null, x + (width - ICON_SIZE) / 2, y + (height - ICON_SIZE) / 2, enabled);
+    }
+
+    private static @Nullable WidgetTheme buttonLook(@Nullable ITheme theme, State state) {
         if (theme == null) return null;
         WidgetThemeEntry<?> entry = theme.getButtonTheme();
         return state == State.HOVER ? entry.getHoverTheme() : entry.getTheme();
     }
 
-    private static void themeButton(GuiContext context, State state, int x, int y, int width, int height) {
+    private static void themeButton(GuiContext context, @Nullable ITheme theme, State state, int x, int y, int width,
+        int height) {
         GlStateManager.color(1, 1, 1, 1);
-        WidgetTheme look = buttonLook(context, state);
+        WidgetTheme look = buttonLook(theme, state);
         IDrawable background = look == null ? null : look.getBackground();
         if (state == State.HOVER && (background == null || background == IDrawable.NONE)) {
-            look = buttonLook(context, State.NORMAL);
+            look = buttonLook(theme, State.NORMAL);
             background = look == null ? null : look.getBackground();
         }
         if (state == State.DISABLED || background == null) {
@@ -1263,7 +1349,7 @@ public class AE2Theme {
     public enum Variant {
 
         /** Light AE2 palette. */
-        LIGHT(LIGHT_ID, LIGHT_MENU_ID, "ae2_light",
+        LIGHT(LIGHT_ID, LIGHT_MENU_ID, "ae2_light", false,
             new Colors(
                 0xFF413F54,
                 0xFF878FA5,
@@ -1286,10 +1372,11 @@ public class AE2Theme {
                 0xFFFF1900),
             HIGHLIGHT, HIGHLIGHT_TOP, HIGHLIGHT_SHADOW),
         /** Dark AE2 palette. */
-        DARK(DARK_ID, DARK_MENU_ID, "ae2_dark", darkColors(0xFF517497), HIGHLIGHT, HIGHLIGHT_TOP, HIGHLIGHT_SHADOW),
+        DARK(DARK_ID, DARK_MENU_ID, "ae2_dark", true, darkColors(0xFF517497), HIGHLIGHT, HIGHLIGHT_TOP,
+            HIGHLIGHT_SHADOW),
         /** Dark AE2 palette with fluix-purple selection highlights. */
-        DARK_PURPLE(DARK_PURPLE_ID, DARK_PURPLE_MENU_ID, "ae2_dark_purple", darkColors(0xFFFFFFFF), PURPLE_HIGHLIGHT,
-            PURPLE_HIGHLIGHT_TOP, PURPLE_HIGHLIGHT_SHADOW, 0xFFFFFFFF);
+        DARK_PURPLE(DARK_PURPLE_ID, DARK_PURPLE_MENU_ID, "ae2_dark_purple", true, darkColors(0xFFFFFFFF),
+            PURPLE_HIGHLIGHT, PURPLE_HIGHLIGHT_TOP, PURPLE_HIGHLIGHT_SHADOW, 0xFFFFFFFF);
 
         /** Registered panel theme identifier. */
         public final String id;
@@ -1297,6 +1384,8 @@ public class AE2Theme {
         public final String menuId;
         /** Folder name below {@code textures/gui/skin/}. */
         public final String folder;
+        /** Whether the panel is dark, so overlays such as a hovered row lighten it rather than darken it. */
+        public final boolean dark;
         /** Semantic ARGB colors. */
         public final Colors colors;
         /** ARGB selection fill, top edge and bottom shadow matching this skin's selected sprites. */
@@ -1351,16 +1440,17 @@ public class AE2Theme {
          */
         public final UITexture invalid;
 
-        Variant(String id, String menuId, String folder, Colors colors, int highlight, int highlightTop,
+        Variant(String id, String menuId, String folder, boolean dark, Colors colors, int highlight, int highlightTop,
             int highlightShadow) {
-            this(id, menuId, folder, colors, highlight, highlightTop, highlightShadow, colors.outline);
+            this(id, menuId, folder, dark, colors, highlight, highlightTop, highlightShadow, colors.outline);
         }
 
-        Variant(String id, String menuId, String folder, Colors colors, int highlight, int highlightTop,
+        Variant(String id, String menuId, String folder, boolean dark, Colors colors, int highlight, int highlightTop,
             int highlightShadow, int highlightText) {
             this.id = id;
             this.menuId = menuId;
             this.folder = folder;
+            this.dark = dark;
             this.colors = colors;
             this.highlight = highlight;
             this.highlightTop = highlightTop;
