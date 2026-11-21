@@ -105,8 +105,9 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable {
     }
 
     /**
-     * Chooses the small scroll bar, as in AE2's processing pattern panel, instead of the large one. Make the bar
-     * {@link AE2Theme#SMALL_SCROLLER_WIDTH} pixels wide; other themes draw Minecraft's handle narrowed to fit.
+     * Chooses the small scroll bar, as in AE2's processing pattern panel, instead of the large one. Unless the caller
+     * sets a width the bar is then {@link AE2Theme#SMALL_SCROLLER_WIDTH} pixels wide in every look; other themes draw
+     * Minecraft's handle narrowed to fit.
      *
      * @param small whether to draw the 7-pixel-wide scroll bar
      * @return this scroll bar

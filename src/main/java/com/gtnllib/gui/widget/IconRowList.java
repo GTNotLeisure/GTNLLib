@@ -15,13 +15,13 @@ import org.lwjgl.opengl.GL11;
 
 import com.cleanroommc.modularui.api.UpOrDown;
 import com.cleanroommc.modularui.api.widget.Interactable;
+import com.cleanroommc.modularui.drawable.GuiDraw;
 import com.cleanroommc.modularui.drawable.ItemDrawable;
 import com.cleanroommc.modularui.integration.recipeviewer.RecipeViewerIngredientProvider;
 import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.theme.WidgetThemeEntry;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.gtnllib.gui.theme.AE2Theme;
-import com.gtnllib.gui.theme.ae2.AE2Draw;
 import com.gtnllib.gui.theme.ae2.AE2ListRowPainter;
 import com.gtnllib.gui.theme.ae2.AE2Look;
 import com.gtnllib.gui.theme.ae2.AE2PanelPainter;
@@ -538,12 +538,13 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
             int detailColor = usable
                 ? color(look, row.detailColor != 0 ? row.detailColor : row.color, look.listDetail())
                 : look.listMuted();
-            if (nested[index]) AE2Draw.fill(edge, top, rowRight - edge, rowHeight, look.nested());
+            if (nested[index]) GuiDraw.drawRect(edge, top, rowRight - edge, rowHeight, look.nested());
             if (row.selected) {
                 look.drawSelectedRow(left, top, rowRight - left, rowHeight);
                 textColor = detailColor = look.selectedText();
             }
-            if (lit && !row.header && !row.selected) AE2Draw.fill(left, top, rowRight - left, rowHeight, look.hover());
+            if (lit && !row.header && !row.selected)
+                GuiDraw.drawRect(left, top, rowRight - left, rowHeight, look.hover());
             int textLeft = left + 3;
             if (row.icon != null) {
                 new ItemDrawable(row.icon)

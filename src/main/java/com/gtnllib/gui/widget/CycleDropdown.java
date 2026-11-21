@@ -20,6 +20,7 @@ import com.cleanroommc.modularui.theme.WidgetTheme;
 import com.cleanroommc.modularui.theme.WidgetThemeEntry;
 import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.widget.Widget;
+import com.cleanroommc.modularui.widgets.ListWidget;
 import com.cleanroommc.modularui.widgets.ScrollingTextWidget;
 import com.cleanroommc.modularui.widgets.TextWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
@@ -48,9 +49,9 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
  * transform set on it by {@code optionToWidget} is replaced.
  * <p>
  * An option that is a single text widget, which is what MUI2 makes when no {@code optionToWidget} is set, is laid out
- * by the dropdown: in the menu it becomes a {@value #OPTION_HEIGHT}-pixel row with the text centred, and as the shown
- * value it fills the dropdown's height, placed where an AE2 button places its label. Other option widgets, such as
- * {@link #iconOption} rows, keep their own layout.
+ * by the dropdown: in the menu it becomes a {@value #OPTION_HEIGHT}-pixel row with the text at its left, centred
+ * vertically, and as the shown value it fills the dropdown's height, placed where an AE2 button places its label.
+ * Other option widgets, such as {@link #iconOption} rows, keep their own layout.
  * <p>
  * While {@link #available(BooleanSupplier)} reports false the dropdown looks like a disabled button, shows no hover,
  * closes its menu and ignores clicks and the wheel.
@@ -149,14 +150,13 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
         IWidget widget = super.valueToWidget(value, forSelectedDisplay);
         if (widget instanceof Widget<?>option) {
             option.margin(VALUE_INSET, forSelectedDisplay ? CARET_SPACE : VALUE_INSET, 0, 0);
-            boolean plainText = option instanceof TextWidget<?>;
             if (option instanceof TextWidget<?>text) {
                 text.alignment(Alignment.CenterLeft);
                 if (forSelectedDisplay) text.heightRel(1f);
                 else text.height(OPTION_HEIGHT);
             }
             if (forSelectedDisplay) {
-                centredText = plainText;
+                centredText = option instanceof TextWidget<?>;
                 option.transform((self, stack) -> stack.translate(0, labelShift()));
                 labels.clear();
                 followButtonText(option);
@@ -305,6 +305,8 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
             .isAE2())
             menu.padding(AE2Theme.PANEL_EDGE, AE2Theme.PANEL_EDGE, AE2Theme.PANEL_EDGE, AE2Theme.PANEL_BOTTOM_EDGE);
         else menu.padding(MENU_EDGE);
+        for (IWidget child : menu.getChildren())
+            if (child instanceof ListWidget<?, ?>list) list.showScrollShadows(false);
         return menu;
     }
 }

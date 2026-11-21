@@ -1,6 +1,5 @@
 package com.gtnllib.gui.widget;
 
-import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
 import com.cleanroommc.modularui.api.drawable.IDrawable;
@@ -9,6 +8,7 @@ import com.cleanroommc.modularui.api.value.IIntValue;
 import com.cleanroommc.modularui.widget.sizer.Unit.Measure;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.ae2.AE2CheckboxPainter;
+import com.gtnllib.gui.theme.ae2.AE2Look;
 
 /**
  * AE2's check box with its label ({@code AECheckbox}), or one radio button of a group, drawn by the theme of its panel
@@ -17,10 +17,14 @@ import com.gtnllib.gui.theme.ae2.AE2CheckboxPainter;
  * and selecting it sets the value, so only one is selected at a time.
  * <p>
  * Values are MUI2 values, so a sync value registered with the panel's sync manager makes it work in GUIs the server
- * opens. Unless the caller sets a size, it is as wide as its box and one line of label, measured while the panel is
- * laid out, and as high as the box. It is a {@link ThemedButton}, so {@code available} disables it.
+ * opens. Unless the caller sets a size, it is as high as the box and as wide as the box and one line of label in the
+ * look of its panel, measured while the panel is laid out and again whenever the label's text changes. It is a
+ * {@link ThemedButton}, so {@code available} disables it.
  */
 public class AECheckbox extends ThemedButton<AECheckbox> {
+
+    private final Supplier<String> label;
+    private String measured;
 
     /**
      * Creates a check box.
@@ -29,14 +33,15 @@ public class AECheckbox extends ThemedButton<AECheckbox> {
      * @param value value the box shows and flips
      */
     public AECheckbox(Supplier<String> label, IBoolValue<?> value) {
-        this(AE2Theme.CHECKBOX_HEIGHT, () -> AE2CheckboxPainter.checkboxWidth(label.get()));
+        this(label, AE2Theme.CHECKBOX_HEIGHT);
+        width(() -> AE2CheckboxPainter.checkboxWidth(AE2Look.of(this), label.get()), Measure.PIXEL);
         overlay(AE2CheckboxPainter.checkbox(this, value::getBoolValue, label, this::isAvailable));
         action(() -> value.setBoolValue(!value.getBoolValue()));
     }
 
-    private AECheckbox(int height, IntSupplier width) {
+    private AECheckbox(Supplier<String> label, int height) {
+        this.label = label;
         background(IDrawable.EMPTY).hoverBackground(IDrawable.EMPTY)
-            .width(width::getAsInt, Measure.PIXEL)
             .height(height);
     }
 
@@ -49,9 +54,19 @@ public class AECheckbox extends ThemedButton<AECheckbox> {
      * @return the radio button
      */
     public static AECheckbox radio(Supplier<String> label, IIntValue<?> value, int option) {
-        AECheckbox radio = new AECheckbox(AE2Theme.RADIO_SIZE, () -> AE2CheckboxPainter.radioWidth(label.get()));
-        radio.overlay(AE2CheckboxPainter.radio(radio, () -> value.getIntValue() == option, label, radio::isAvailable));
+        AECheckbox radio = new AECheckbox(label, AE2Theme.RADIO_SIZE);
+        radio.width(() -> AE2CheckboxPainter.radioWidth(label.get()), Measure.PIXEL)
+            .overlay(AE2CheckboxPainter.radio(radio, () -> value.getIntValue() == option, label, radio::isAvailable));
         radio.action(() -> value.setIntValue(option));
         return radio;
+    }
+
+    @Override
+    public void onUpdate() {
+        super.onUpdate();
+        String text = label.get();
+        if (text.equals(measured)) return;
+        measured = text;
+        scheduleResize();
     }
 }

@@ -80,8 +80,8 @@ public class PageTabs extends ParentWidget<PageTabs> {
     /**
      * Adds a tab below the existing ones; the first tab is page zero.
      *
-     * @param icon    supplier of the icon, read every frame: a built-in {@code Icon}, or any texture or item through
-     *                {@link IconSource#of}
+     * @param icon    supplier of the icon, read every frame: an {@code AE2Icon} or {@code AE2SettingIcon}, or any
+     *                texture or item through {@link IconSource#of}
      * @param tooltip supplier of the tooltip line, such as the page name, read every frame
      * @return these tabs
      */

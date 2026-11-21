@@ -54,7 +54,8 @@ import com.gtnllib.gui.widget.VerticalButtonBar;
 /**
  * A client-only screen with every AE2-styled widget of GTNLLib, all working, opened by {@code /gtnl_widgets}. The
  * buttons on top reopen it in each AE2 skin or the plain look, keeping the widgets' values; the dialog button opens a
- * panel in another theme. Client only.
+ * panel in another theme. A check box hides one toolbar button and all upgrade slots, so the toolbar shortens and the
+ * empty upgrade panel no longer asks NEI to keep clear. Client only.
  */
 public class WidgetGallery {
 
@@ -343,8 +344,10 @@ public class WidgetGallery {
     }
 
     private UpgradesPanel upgrades() {
-        UpgradesPanel panel = new UpgradesPanel();
-        for (int i = 0; i < 3; i++) panel.slot(new GhostItemSlot().clearable(true));
+        UpgradesPanel panel = new UpgradesPanel().perColumn(2);
+        for (int i = 0; i < 3; i++) panel.slot(
+            new GhostItemSlot().clearable(true)
+                .setEnabledIf(slot -> !state.hide));
         return panel.pos(WIDTH - AE2Theme.UPGRADE_OVERLAP, 6);
     }
 

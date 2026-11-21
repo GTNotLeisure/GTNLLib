@@ -1,11 +1,15 @@
 package com.gtnllib.gui;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
+import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.ae2.AE2UpgradePainter;
+import com.gtnllib.gui.widget.UpgradesPanel;
 
 public class UpgradePanelLayoutTest {
 
@@ -19,7 +23,7 @@ public class UpgradePanelLayoutTest {
     }
 
     @Test
-    public void chosenColumnLengthLaysSlotsOut() {
+    public void columnLength() {
         assertEquals(
             59,
             AE2UpgradePainter.upgradePanelWidth(3, 1),
@@ -35,5 +39,17 @@ public class UpgradePanelLayoutTest {
             AE2UpgradePainter.upgradePanelWidth(5),
             AE2UpgradePainter.upgradePanelWidth(5, AE2Theme.UPGRADE_SLOTS_PER_COLUMN),
             "the default methods use AE2's column length");
+    }
+
+    @Test
+    public void neiExclusion() {
+        UpgradesPanel panel = new UpgradesPanel();
+        assertFalse(panel.isExcludeAreaInRecipeViewer(), "an empty panel asks NEI for no space, as AE2's");
+        ItemSlot hidden = new ItemSlot();
+        hidden.setEnabled(false);
+        panel.slot(hidden);
+        assertFalse(panel.isExcludeAreaInRecipeViewer(), "a slot that is turned off takes no space either");
+        panel.slot(new ItemSlot());
+        assertTrue(panel.isExcludeAreaInRecipeViewer(), "a shown slot makes the panel ask NEI to keep clear");
     }
 }

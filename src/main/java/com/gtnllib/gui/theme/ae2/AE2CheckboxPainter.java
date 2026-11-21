@@ -184,4 +184,17 @@ public class AE2CheckboxPainter {
     public static int checkboxWidth(String label) {
         return CHECKBOX_LABEL_X + Minecraft.getMinecraft().fontRenderer.getStringWidth(label);
     }
+
+    /**
+     * Measures a check box and label as {@link #checkbox} draws them in a look: AE2's 22-pixel sprite under an AE2
+     * skin, MUI2's smaller box in the plain look. Client only, like {@link #checkboxWidth(String)}.
+     *
+     * @param look  look the check box is drawn in
+     * @param label display text
+     * @return required width in pixels
+     */
+    public static int checkboxWidth(AE2Look look, String label) {
+        return (look.isAE2() ? CHECKBOX_LABEL_X : PlainLook.CHECKBOX_LABEL_X)
+            + Minecraft.getMinecraft().fontRenderer.getStringWidth(label);
+    }
 }

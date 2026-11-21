@@ -13,9 +13,8 @@ import com.gtnllib.gui.theme.ae2.IconSource;
  * pixels square, drawn by the theme of its panel. AE2 uses it for the button that returns from a sub-screen and places
  * it five pixels above the panel's top edge ({@link #back(Runnable)}). Other themes draw a plain button with the icon.
  * AE2 lights its tab button only while it has keyboard focus, which 1.7.10 buttons do not get, so this one lights up
- * under the mouse instead, in the same size. It reacts to the left
- * mouse button; see {@link ThemedButton} for the available state. Like AE2's, it has no selected look, so
- * {@link #selected} changes nothing.
+ * under the mouse instead, in the same size. It reacts to the left mouse button; see {@link ThemedButton} for the
+ * available state. Like AE2's, it has no selected look, so {@link #selected} changes nothing.
  */
 public class TabButton extends ThemedButton<TabButton> {
 

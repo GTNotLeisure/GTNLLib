@@ -33,8 +33,8 @@ import com.gtnllib.gui.theme.ae2.AE2ButtonDrawable.State;
  * over an AE2 screen, gets the look of its own theme rather than the screen's.
  * <p>
  * A look is the one way to say which look to draw. Everything that exists in every look is asked of the look itself:
- * colors, wells, list rows, buttons, check boxes and scroll bars. Parts only AE2 has, such as the small scroll bar or
- * the toolbar strip, take the skin from {@link #variant()}, and the few layouts that differ outside AE2 themes take the
+ * colors, wells, list rows, buttons, check boxes and both scroll bars. Parts only AE2 has, such as the toolbar strip or
+ * tables, take the skin from {@link #variant()}, and the few layouts that differ outside AE2 themes take the
  * plain rules from {@link #plainLook()}.
  * <p>
  * A theme names its AE2 skin in the {@link #KEY} entry of its theme data. The AE2 themes write that entry when they are
@@ -414,10 +414,9 @@ public class AE2Look {
     }
 
     /**
-     * Draws a small scroll bar, {@link AE2Theme#SMALL_SCROLLER_WIDTH} pixels wide: AE2's small groove and 7-by-15
-     * handle under an AE2 skin, a sunken track with Minecraft's handle narrowed to five pixels in the plain look.
-     * Client
-     * only.
+     * Draws a small scroll bar on the client, {@link AE2Theme#SMALL_SCROLLER_WIDTH} pixels wide: AE2's small groove and
+     * 7-by-15 handle under an AE2 skin, a sunken track with Minecraft's handle narrowed to five pixels in the plain
+     * look.
      *
      * @param x       left edge of the track
      * @param y       top edge of the track, including its one-pixel border

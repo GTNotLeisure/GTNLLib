@@ -43,8 +43,9 @@ import cpw.mods.fml.relauncher.SideOnly;
  * registration.
  * <p>
  * Select a panel theme through {@link ScreenTheme}. Panel backgrounds, fields, slots, switches and button styles are
- * supplied by the registered theme. Use {@link #useMenuTheme(String, String, String, String...)} to map child menus and
- * {@link #sliderHandles(IWidget, String)} to style slider handles.
+ * supplied by the registered theme. {@code CycleDropdown} menus pick their menu theme themselves; use
+ * {@link #useMenuTheme(String, String, String, String...)} for other named child menus, such as MUI2's context menus,
+ * and {@link #sliderHandles(IWidget, String)} to style slider handles.
  * <p>
  * Drawing lives in the {@code ae2} package. Widgets ask {@link AE2Look#of(IWidget)} for the look of the panel they are
  * in, and the look answers everything that exists in every look. The painters draw AE2's parts, one class per part:
@@ -201,9 +202,16 @@ public class AE2Theme {
      * @return the matching variant, or {@code null} for an unrecognized identifier
      */
     public static @Nullable AE2Variant variant(@Nullable String themeId) {
-        for (AE2Variant variant : AE2Variant.values())
+        for (AE2Variant variant : Variants.ALL)
             if (variant.id.equals(themeId) || variant.menuId.equals(themeId)) return variant;
         return null;
+    }
+
+    // Widgets in plain panels look this up every frame; a holder keeps the array from being copied each time and is
+    // only read once the skins exist, since the skins themselves load this class.
+    private static class Variants {
+
+        private static final AE2Variant[] ALL = AE2Variant.values();
     }
 
     /**

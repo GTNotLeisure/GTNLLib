@@ -264,7 +264,8 @@ public class NumberEntryWidget extends ParentWidget<NumberEntryWidget> {
      * pass
      * a MUI2 {@code LongSyncValue} registered with the panel's sync manager
      * ({@code syncManager.syncValue(name, value)}),
-     * so the server's value shows on the client and the player's input reaches the server.
+     * so the server's value shows on the client and the player's input reaches the server. The bounds are checked on
+     * the client only, so the server's setter should clamp the value again.
      *
      * @param value value to show and to write
      * @return this widget

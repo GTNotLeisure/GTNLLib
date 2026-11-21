@@ -52,7 +52,8 @@ public class PlainLook {
         ROW_HOVER = 0x30FFFFFF, NESTED_ROWS = 0x20000000;
     /**
      * ARGB colors of something marked good, such as a filled progress bar, and of something marked bad, AE2 1.21's
-     * {@code ERROR} palette color.
+     * {@code ERROR} palette color. Other mods read them through {@link AE2Look#good()} and {@link AE2Look#bad()}: these
+     * constants are copied into a mod when it is compiled, so a later GTNLLib that changes them would not reach it.
      */
     public static final int GOOD = 0xFF60E060, BAD = 0xFFCE2401;
     /** ARGB color of invalid text in an input field, AE2 1.21's {@code TEXTFIELD_ERROR} palette color. */

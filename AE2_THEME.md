@@ -4,7 +4,7 @@ GTNLLib provides light, dark and purple-highlighted dark AE2 themes for ModularU
 
 Every AE2 widget decides its look while drawing, from the theme of the panel it is in (`AE2Look.of(widget)`), so a dialog that uses a theme of its own is drawn in that theme's look, not the screen's. A theme names its AE2 skin in its `gtnllibAE2Look` theme data entry, which the AE2 themes write and themes based on them inherit; a theme without the entry is recognised by its identifier. Nothing has to be passed to a widget when it is created.
 
-`AE2Look` is the one way to say which look to draw: one of the three AE2 skins (light, dark, purple dark) or the plain look of every other theme. Whatever exists in every look is asked of the look itself: `listText()`, `panelText(available)`, `buttonText(state, height)`, `error()`, `drawWell`, `drawSelectedRow`, `drawButton`, `drawCheckbox`, `drawScrollbar`, `scrollbarWidth()` and so on. Parts only AE2 has (the small scroll bar, the toolbar strip, tables, the upgrade panel) take the skin, `look.variant()`, which is `null` in the plain look. Drawables made for a widget, such as `AE2ButtonPainter.button(widget, ...)`, resolve their widget's look themselves. `AE2Look.of(context)` gives the look of the whole screen and is only for drawing code that has no widget at hand.
+`AE2Look` is the one way to say which look to draw: one of the three AE2 skins (light, dark, purple dark) or the plain look of every other theme. Whatever exists in every look is asked of the look itself: `listText()`, `panelText(available)`, `buttonText(state, height)`, `error()`, `drawWell`, `drawSelectedRow`, `drawButton`, `drawCheckbox`, `drawScrollbar`, `scrollbarWidth()` and so on. Parts only AE2 has (the toolbar strip, tables, the upgrade panel) take the skin, `look.variant()`, which is `null` in the plain look. Drawables made for a widget, such as `AE2ButtonPainter.button(widget, ...)`, resolve their widget's look themselves. `AE2Look.of(context)` gives the look of the whole screen and is only for drawing code that has no widget at hand.
 
 The plain look's colors and drawing rules are all in `PlainLook`: Minecraft's sunken slot box and creative-inventory scroll bar, MUI2's button, check box and icons, and the theme's own text style. The painters of the `ae2` package only draw the AE2 skins.
 
@@ -32,16 +32,17 @@ ModularUI 2 builds a GUI that the server opens (a machine, a held item) on both 
 
 2. **A dialog with a theme of its own** calls `themeOverride(id)` on its panel. Widgets inside it follow the dialog's theme, not the screen's, and dropdowns in it open their menus in the matching menu theme by themselves.
 
-3. **Sync values in a GUI the server opens.** Widgets that take a MUI2 value (`SettingToggleButton.value`, `ProgressBar.value`, `NumberEntryWidget.value(ILongValue)`) take a sync value directly; register it with the panel's sync manager first. Widgets that take a supplier and an action (`VerticalButtonBar.toggle`, list rows, `PageTabs`, `ValueStepper`) read the sync value's getter and write through its setter, which sends the change to the server.
+3. **Sync values in a GUI the server opens.** Widgets that take a MUI2 value (`SettingToggleButton.value`, `AECheckbox`, `ProgressBar.value`, `NumberEntryWidget.value(ILongValue)`) take a sync value directly. **Register it with the panel's sync manager first**: a widget does not do it for you, and an unregistered value only changes on the client, with no warning. Widgets that take a supplier and an action (`VerticalButtonBar.toggle`, list rows, `PageTabs`, `ValueStepper`) read the sync value's getter and write through its setter, which sends the change to the server. Widgets check bounds on the client only, so a server-side setter clamps the value again.
 
    ```java
-   LongSyncValue speed = new LongSyncValue(() -> machine.speed, value -> machine.speed = value);
+   LongSyncValue speed = new LongSyncValue(() -> machine.speed, value -> machine.speed = Math.max(1, Math.min(64, value)));
    BooleanSyncValue auto = new BooleanSyncValue(() -> machine.auto, value -> machine.auto = value);
    sync.syncValue("speed", speed);
    sync.syncValue("auto", auto);
    panel.child(new NumberEntryWidget().bounds(1, 64).value(speed).size(64, 16))
        .child(new VerticalButtonBar()
            .add(new SettingToggleButton().value(auto)
+               .title(IKey.str("Auto export"))
                .state(true, AE2SettingIcon.AUTO_EXPORT_ON, IKey.str("On"))
                .state(false, AE2SettingIcon.AUTO_EXPORT_OFF, IKey.str("Off")))
            .pos(-VerticalButtonBar.WIDTH + VerticalButtonBar.OVERLAP, 4));
@@ -50,6 +51,8 @@ ModularUI 2 builds a GUI that the server opens (a machine, a held item) on both 
 4. **Sizes that depend on text**, such as `AE2CheckboxPainter.checkboxWidth(label)`, measure with the client's font, which a dedicated server does not have. In `buildUI` give them as a size supplier, which MUI2 only evaluates on the client: `.width(() -> AE2CheckboxPainter.checkboxWidth(label), Measure.PIXEL)`.
 
 5. **Icons**: `AE2SettingIcon` has AE2 1.21's own setting icons (redstone, fuzzy, access, power units and more) under AE2's names; `AE2Icon` has general actions (add, refresh, close, ...). `IconSource.of(texture)` and `IconSource.of(itemStack)` take anything else.
+
+6. **See every widget at work**: type `/gtnl_widgets` in game. It opens a screen with all of these widgets, working, and buttons that switch it between the three AE2 skins and the default theme, plus a dialog in another theme.
 
 ### A Complete Machine Screen
 
@@ -132,12 +135,12 @@ Two mechanisms decide how a control looks, and each control uses one of them:
 
 | Mechanism | Controls | How a theme changes them |
 | --- | --- | --- |
-| The look of the panel (`AE2Look`): an AE2 skin or the plain look | `AE2Button`, `IconButton`, `TabButton`, `SettingToggleButton`, `PageTabs`, `VerticalButtonBar`, `NumberEntryWidget`, `IconRowList`, `ListRow`, `ValueStepper`, `CycleDropdown`, `Scrollbar`, `HandleScrollData`, `ProgressBar`, and the drawables of the painters | A theme based on an AE2 theme, or one that names a skin in its `gtnllibAE2Look` entry, gets that skin; every other theme gets the plain look in its own text and button styles. |
-| Theme data of the control itself | `SlideSwitch` (`SlideSwitch.Theme`), `StepSlider` (`StepSlider.Theme`), `FillBar` (`FillBar.Theme`), `Divider` (`Divider.Theme`), sizes and gaps (`LayoutTheme`), and MUI2's own widgets | Any theme can set their colors, skins and sprites; the AE2 themes fill them with AE2's. |
+| The look of the panel (`AE2Look`): an AE2 skin or the plain look | `AE2Button`, `IconButton`, `TabButton`, `AECheckbox`, `UpgradesPanel`, `SettingToggleButton`, `PageTabs`, `VerticalButtonBar`, `NumberEntryWidget`, `IconRowList`, `ListRow`, `ValueStepper`, `CycleDropdown`, `Scrollbar`, `HandleScrollData`, `ProgressBar`, and the drawables of the painters | A theme based on an AE2 theme, or one that names a skin in its `gtnllibAE2Look` entry, gets that skin; every other theme gets the plain look in its own text and button styles. |
+| Theme data of the control itself | `CloseButton` (the theme's close-button style; its height and cross follow the look), `SlideSwitch` (`SlideSwitch.Theme`), `StepSlider` (`StepSlider.Theme`), `FillBar` (`FillBar.Theme`), `Divider` (`Divider.Theme`), sizes and gaps (`LayoutTheme`), and MUI2's own widgets | Any theme can set their colors, skins and sprites; the AE2 themes fill them with AE2's. |
 
 The two are separate on purpose and do not read each other. One consequence: outside AE2 themes an on/off value is a sliding switch in `SlideSwitch` and MUI2's check box in list rows and `AE2CheckboxPainter.checkbox`; under AE2 themes both show AE2's check box sprite.
 
-Toolbar buttons, tabs and page tabs show an `IconSource`: one of the built-in `AE2Icon`s, which follow the AE2 skin, or `IconSource.of(texture)` for a mod's own 16×16 texture and `IconSource.of(itemStack)` for an item. Built-in icons and textures fade on an unavailable button; items do not.
+Toolbar buttons, tabs and page tabs show an `IconSource`: one of the built-in `AE2Icon`s or `AE2SettingIcon`s, which follow the AE2 skin, or `IconSource.of(texture)` for a mod's own 16×16 texture and `IconSource.of(itemStack)` for an item. Built-in icons and textures fade on an unavailable button; items do not.
 
 Every widget takes a custom size, and AE2's sizes are the defaults. Frames and fills stretch while their borders keep their width: buttons, icon buttons, tabs (`AE2ButtonPainter.tabButton` and `pageTab` draw at the widget's size), panels, insets, list rows and the upgrade panel. Sprites that AE2 never stretches keep their size and stay centred or anchored: check boxes, radio buttons, scroll-bar handles and 16×16 icons. Widgets made of several parts take their part sizes through their own methods: `VerticalButtonBar.buttonSize`, `PageTabs.tabSize`, `IconRowList.rowHeight` and `numberWidth`, and the `perColumn` overloads of `AE2UpgradePainter.drawUpgradePanel`, `upgradePanelWidth`, `upgradePanelHeight`, `upgradeSlotX` and `upgradeSlotY` (AE2 fills columns of `UPGRADE_SLOTS_PER_COLUMN`, 8).
 
@@ -157,7 +160,11 @@ The on/off box is called a check box throughout, after AE2's `AECheckbox`; AE2 d
 
 AE2's toolbar icon buttons are 16×16 widgets inside a drawn 18×20 frame. `IconButton` and the `VerticalButtonBar` buttons take the mouse on the whole 18×20 frame, on purpose. AE2's text fields draw their text two pixels from the background's edge; GTNLLib's text fields, `NumberEntryWidget` included, keep MUI2's four pixels.
 
-AE2 attaches the upgrade panel to the right of a screen's panel, `UPGRADE_OVERLAP` pixels inside its right edge: the upgrade panel has no left border, so it covers the main panel's border and the two read as one piece. `UpgradesPanel` is that panel as a widget: add the slots with `slot(...)`, place it at `panelRight - UPGRADE_OVERLAP` after the panel's other children, and it lays the slots out, sizes itself and draws its background. Other themes draw the theme's panel background without its left border, joined the same way, with the slots' own frames. For drawing of your own, `AE2UpgradePainter.drawUpgradePanel` draws AE2's panel, with a light frame around a block of 16×16 slot wells 18 pixels apart; put 18×18 item slots at `upgradeSlotX(i)`, `upgradeSlotY(i)` with `disableThemeBackground(true)`, so their theme frame does not cover the wells.
+AE2 attaches the upgrade panel to the right of a screen's panel, `UPGRADE_OVERLAP` pixels inside its right edge: the upgrade panel has no left border, so it covers the main panel's border and the two read as one piece. `UpgradesPanel` is that panel as a widget: add the slots with `slot(...)`, place it at `panelRight - UPGRADE_OVERLAP` after the panel's other children, and it lays the slots out, sizes itself and draws its background. As in AE2, a slot turned off with `setEnabled(false)` or `setEnabledIf` leaves no gap, and with no slot shown the panel takes no space and NEI is not asked to keep clear. When the last column is not full, AE2's panel ends below its last slot there, so it steps in at the bottom right. Other themes draw the theme's panel background without its left border, joined the same way, as a full rectangle with the slots' own frames. For drawing of your own, `AE2UpgradePainter.drawUpgradePanel` draws AE2's panel, with a light frame around a block of 16×16 slot wells 18 pixels apart; put 18×18 item slots at `upgradeSlotX(i)`, `upgradeSlotY(i)` with `disableThemeBackground(true)` and `disableHoverThemeBackground(true)`, so their theme frame does not cover the wells, also under the mouse.
+
+`VerticalButtonBar`, `PageTabs` and `UpgradesPanel` stand outside their panel and ask NEI to keep clear of them, so they belong in ordinary screens: MUI2 has no NEI settings for overlay screens and throws when such a widget opens in one.
+
+MUI2's `ListWidget` and `ScrollWidget` darken their top and bottom edges while there is more to scroll; AE2's lists do not. `GTNLListWidget` and the menus of `CycleDropdown` turn this off; for a plain MUI2 list in an AE2-style screen, call `showScrollShadows(false)`.
 
 AE2's scroll bars also take the mouse wheel anywhere on the screen. MUI2 offers the wheel to screen-level listeners before any widget and lets none of them keep it, so GTNLLib does not do this by default; a screen that wants it calls `Scrollbar.scroll(direction)` from its panel's `onMouseScroll` when `super.onMouseScroll` returns false.
 
@@ -179,7 +186,7 @@ What each widget is and how it looks at a glance; the sections above give the de
 | `VerticalButtonBar` | `VerticalButtonBar` | AE2's toolbar strip with `IconButton`s | The panel background with plain icon buttons | 18×20 per button, 22 apart; 18×18, 20 apart in other themes | Last button added | Never |
 | `ProgressBar` | `ProgressBar` (inscriber) | AE2's empty and full sprites, filling upwards | A sunken slot well filling with green | 6×18 | No | Never |
 | `NumberEntryWidget` | `NumberEntryWidget` | AE2's step buttons, field, error color and warning icon | The theme's buttons and text field, red error text, the light skin's warning icon | 138×62; below 62 high one row of `<` field `>` | Yes | After `wheel(true)` |
-| `Scrollbar` | `Scrollbar` | AE2's groove and fixed 12×15 handle, or the 7-wide small one | Minecraft's creative-inventory scroll bar, 14 wide; with `small(true)` a 7-wide bar with Minecraft's handle narrowed to 5; or a thin bar after `plainBar` | Set by the caller | No | Always |
+| `Scrollbar` | `Scrollbar` | AE2's groove and fixed 12×15 handle, or the 7-wide small one | Minecraft's creative-inventory scroll bar, 14 wide; with `small(true)` a 7-wide bar with Minecraft's handle narrowed to 5; or a thin bar after `plainBar` | Height set by the caller; width follows the look unless set | No | Always |
 | `HandleScrollData` | `Scrollbar` | As `Scrollbar`, for MUI2 lists | As `Scrollbar`: 14 wide, or 7 wide for `HandleScrollData(true)` | Thickness follows the look | No | Always |
 | `IconRowList` | GTNLLib | AE2's inset, rows, highlights and scroll bar | A sunken slot well, white text with shadow, a thin grey scroll bar | Set by the caller; rows 18 high | Per row (`withAvailable`) | Always (scrolls); number fields after `numberWheel(true)` |
 | `ListRow` | GTNLLib | Drawn like an `IconRowList` row | Drawn like a plain `IconRowList` row | 18 high | Yes | Never |
@@ -206,11 +213,13 @@ These differ from AE2 1.21 on purpose; the paragraphs above give the details.
 - The wheel does not scroll a list from anywhere on the screen by default.
 - Check box and radio labels wrap inside the widget; AE2's check box labels can run four pixels past it.
 - Unavailable toolbar buttons, tabs and page tabs fade their built-in or texture icon (item icons do not fade), and outside AE2 themes also take MUI2's disabled button; AE2's full-size icon buttons keep their icon and are usually hidden instead.
-- The built-in `AE2Icon`s are MUI2's icon set redrawn for each skin, not AE2's own setting icons.
+- The built-in `AE2Icon`s are MUI2's icon set redrawn for each skin; AE2's own setting icons are `AE2SettingIcon`.
 - `NumberEntryWidget` has no confirm action on Enter; AE2's amount screens confirm with it.
 - `VerticalButtonBar.toggle` shows the selected frame while on and keeps its icon; AE2's `ToggleButton` switches between an on and an off icon.
 - `NumberEntryWidget` arrows and wheel step by 10 while Shift is held, and a step from invalid input starts at zero; AE2's wheel steps by one and only on valid input.
 - `IconRowList` and clickable `ListRow` rows highlight under the pointer; AE2's crafting CPU rows do not.
+- `UpgradesPanel` shows no tooltip of the upgrades a machine accepts, since GTNLLib does not know them; AE2's panel lists them. Give it one with MUI2's `tooltipBuilder`.
+- When the upgrade panel's last column is not full, NEI keeps the panel's whole rectangle clear; AE2 frees the corner below the short column.
 
 AE2 1.21 has no dropdown, stepper, slider, fill bar, divider, close button, breadcrumb or toast. `CycleDropdown`, `ValueStepper`, the single-row `NumberEntryWidget`, `StepSlider`, `FillBar`, `Divider`, `CloseButton`, `Breadcrumb`, `FadingNotice`, `IconRowList`, `ListRow` and `GhostItemSlot` are GTNLLib's own controls, built from AE2's parts and colors where the AE2 themes apply.
 
@@ -236,8 +245,6 @@ There are three AE2 skins and no way yet to add a fourth: the skins are the `AE2
 - A theme can name a skin in its `gtnllibAE2Look` entry, `{"gtnllibAE2Look": {"skin": "ae2_dark"}}`, with one of the folder names `ae2_light`, `ae2_dark` or `ae2_dark_purple`. An unknown name gives the plain look and logs a warning.
 
 The purple dark theme shares the dark palette and replaces AE2's light-blue selection with fluix purple. Custom selection drawing should read `AE2Variant.highlight`, `highlightTop`, `highlightShadow` and `highlightText` instead of the `AE2Theme.HIGHLIGHT` constants, so it matches every variant.
-
-![AE2 dark and purple dark themes](.github/images/ae2-dark-purple-preview.png)
 
 ## Usage Examples
 

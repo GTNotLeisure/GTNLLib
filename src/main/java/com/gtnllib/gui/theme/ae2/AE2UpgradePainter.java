@@ -50,8 +50,9 @@ public class AE2UpgradePainter {
 
     /**
      * Returns the left edge of an 18-by-18 item slot widget in an upgrade panel, relative to the panel; the item sits
-     * one pixel inside, on the slot well the panel draws. Turn off the slot widget's theme background ({@code
-     * disableThemeBackground(true)}), or its own frame covers AE2's wells.
+     * one pixel inside, on the slot well the panel draws. Turn off the slot widget's theme background in both states
+     * ({@code disableThemeBackground(true)} and {@code disableHoverThemeBackground(true)}), or its own frame covers
+     * AE2's wells, under the mouse at least. {@code UpgradesPanel} does this itself.
      *
      * @param index zero-based slot index; slots fill columns of {@link AE2Theme#UPGRADE_SLOTS_PER_COLUMN} from the top
      * @return x offset in pixels
@@ -120,7 +121,9 @@ public class AE2UpgradePainter {
      * Draws an upgrade panel and its empty slot wells as AE2 does. The panel has no left border: its first column
      * covers the right border of the panel it belongs to, so draw it after that panel at
      * {@code panelRight - UPGRADE_OVERLAP}. A light frame surrounds the block of 16-by-16 wells, which sit 18 pixels
-     * apart in columns of {@link AE2Theme#UPGRADE_SLOTS_PER_COLUMN}. With no slots nothing is drawn, as in AE2.
+     * apart in columns of {@link AE2Theme#UPGRADE_SLOTS_PER_COLUMN}. A last column that is not full ends below its last
+     * slot, so the panel steps in at its bottom right inside the size {@link #upgradePanelWidth(int)} and
+     * {@link #upgradePanelHeight(int)} give. With no slots nothing is drawn. Both are as in AE2.
      *
      * @param variant non-null AE2 variant
      * @param x       panel left edge
@@ -149,20 +152,42 @@ public class AE2UpgradePainter {
      */
     public static void drawUpgradePanel(AE2Variant variant, int x, int y, int slots, int perColumn) {
         if (slots <= 0) return;
-        int columnSlots = Math.max(1, perColumn), columns = upgradeColumns(slots, columnSlots),
-            rows = Math.min(slots, columnSlots), width = upgradePanelWidth(slots, columnSlots),
-            height = upgradePanelHeight(slots, columnSlots);
+        int columnSlots = Math.max(1, perColumn), full = slots / columnSlots, rest = slots % columnSlots,
+            top = y + UPGRADE_PADDING;
         GlStateManager.color(1, 1, 1, 1);
-        variant.upgradeFrame.draw(x + 1, y, width - 1, height);
-        GuiDraw.drawRect(x, y + PANEL_EDGE, 1, height - PANEL_EDGE - PANEL_BOTTOM_EDGE, variant.colors.panel());
-        int blockY = y + UPGRADE_PADDING, blockWidth = columns * SLOT_SIZE, blockHeight = rows * SLOT_SIZE;
-        GuiDraw.drawRect(x, blockY, blockWidth, blockHeight, variant.colors.edge());
-        GuiDraw.drawRect(x + 1, blockY + 1, blockWidth - 2, blockHeight - 2, variant.colors.panel());
+        if (full == 0 || rest == 0) {
+            int columns = upgradeColumns(slots, columnSlots), rows = Math.min(slots, columnSlots);
+            drawFrame(variant, x, y, columns, rows);
+            drawWellBlock(variant, x, top, columns, rows);
+        } else {
+            int lastX = x + full * SLOT_SIZE, border = lastX + UPGRADE_PADDING - PANEL_EDGE,
+                bottom = y + upgradePanelHeight(rest, columnSlots) - PANEL_BOTTOM_EDGE;
+            drawFrame(variant, x, y, full, columnSlots);
+            drawFrame(variant, lastX, y, 1, rest);
+            GuiDraw.drawRect(lastX + 1, bottom, border - lastX - 1, PANEL_BOTTOM_EDGE, variant.colors.panel());
+            GuiDraw.drawRect(border, bottom + 1, 1, PANEL_BOTTOM_EDGE - 1, variant.colors.edge());
+            drawWellBlock(variant, x, top, full, columnSlots);
+            drawWellBlock(variant, lastX, top, 1, rest);
+            GuiDraw.drawRect(lastX - 1, top + 1, 2, rest * SLOT_SIZE - 2, variant.colors.panel());
+        }
         for (int i = 0; i < slots; i++) {
             int wellX = x + upgradeSlotX(i, columnSlots) + 1, wellY = y + upgradeSlotY(i, columnSlots) + 1;
             GuiDraw.drawRect(wellX, wellY, ICON_SIZE, 1, variant.colors.well());
             GuiDraw.drawRect(wellX, wellY + 1, ICON_SIZE, ICON_SIZE - 1, variant.colors.raised());
         }
         GlStateManager.color(1, 1, 1, 1);
+    }
+
+    private static void drawFrame(AE2Variant variant, int x, int y, int columns, int rows) {
+        int width = columns * SLOT_SIZE + UPGRADE_PADDING,
+            height = UPGRADE_PADDING * 2 + UPGRADE_SHADOW + rows * SLOT_SIZE;
+        variant.upgradeFrame.draw(x + 1, y, width - 1, height);
+        GuiDraw.drawRect(x, y + PANEL_EDGE, 1, height - PANEL_EDGE - PANEL_BOTTOM_EDGE, variant.colors.panel());
+    }
+
+    private static void drawWellBlock(AE2Variant variant, int x, int y, int columns, int rows) {
+        int width = columns * SLOT_SIZE, height = rows * SLOT_SIZE;
+        GuiDraw.drawRect(x, y, width, height, variant.colors.edge());
+        GuiDraw.drawRect(x + 1, y + 1, width - 2, height - 2, variant.colors.panel());
     }
 }
