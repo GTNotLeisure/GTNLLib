@@ -79,6 +79,31 @@ The small scroll bar (`HandleScrollData(true)`) draws the groove AE2 uses for it
 
 A background set with `background(...)` on a MUI2 `ItemSlot` disappears while the slot holds an item (`ItemSlot.getCurrentBackground` in MUI2 2.3.94). The theme's slot frame is drawn separately and stays, so leave slot frames to the theme or draw them in the panel background.
 
+## Widget Catalog
+
+What each widget is and how it looks at a glance; the sections above give the details. "AE2 counterpart" names the AE2 1.21 widget a widget copies, or says that GTNLLib built it. "Other themes" is the plain look of every theme that is not an AE2 theme. "Wheel" says whether the mouse wheel over the widget changes something: always, only after `wheel(true)`, or never.
+
+| Widget | AE2 counterpart | Under AE2 themes | Other themes | Default size | `available` | Wheel |
+| --- | --- | --- | --- | --- | --- | --- |
+| `AE2Button` | `AE2Button` | AE2's button; the label sinks with the face and scrolls when too long | The theme's MUI2 button, label centred and trimmed | Set by the caller (AE2's are 20 high) | Yes | Never |
+| `IconButton` | `IconButton` | AE2's 18×20 toolbar frame, sinking on hover; selected frame | The theme's MUI2 button with the icon | 18×20 | Yes | Never |
+| `TabButton` | `TabButton` (BOX style) | AE2's framed tab | The theme's MUI2 button with the icon | 20×20 | Yes | Never |
+| `SettingToggleButton` | `SettingToggleButton`, `ToggleButton` | As `IconButton`, one icon per value; tooltip with title and value | As `IconButton` | 18×20 | Yes | Never |
+| `PageTabs` | `TabButton` (HORIZONTAL style) | AE2's page tabs; the open one joins the panel | The theme's MUI2 buttons with the icons | 22×22 per tab | Last tab added | Never |
+| `VerticalButtonBar` | `VerticalButtonBar` | AE2's toolbar strip with `IconButton`s | The panel background with plain icon buttons | 18×20 per button | Last button added | Never |
+| `ProgressBar` | `ProgressBar` (inscriber) | AE2's empty and full sprites, filling upwards | A sunken slot well filling with green | 6×18 | No | Never |
+| `NumberEntryWidget` | `NumberEntryWidget` | AE2's step buttons, field, error color and warning icon | The theme's buttons and text field, red error text, the light skin's warning icon | 138×62; below 62 high one row of `<` field `>` | Yes | After `wheel(true)` |
+| `Scrollbar` | `Scrollbar` | AE2's groove and fixed 12×15 handle, or the 7-wide small one | Minecraft's creative-inventory scroll bar, 14 wide, or a thin bar after `plainBar` | Set by the caller | No | Always |
+| `HandleScrollData` | `Scrollbar` | As `Scrollbar`, for MUI2 lists | As `Scrollbar` | Thickness follows the look | No | Always |
+| `IconRowList` | GTNLLib | AE2's inset, rows, highlights and scroll bar | A sunken slot well, white text with shadow, a thin grey scroll bar | Set by the caller; rows 18 high | Per row (`withAvailable`) | Always (scrolls); number fields after `numberWheel(true)` |
+| `ListRow` | GTNLLib | Drawn like an `IconRowList` row | Drawn like a plain `IconRowList` row | 18 high | Yes | Never |
+| `ValueStepper` | GTNLLib | AE2 arrow buttons around the value | The theme's arrow buttons | Set by the caller | Yes | After `wheel(true)` |
+| `CycleDropdown` | GTNLLib (on MUI2's dropdown) | AE2 button with a caret; label sinks on hover | The theme's MUI2 button with a caret | Set by the caller | Yes | After `wheel(true)` |
+| Check boxes (`AE2CheckboxPainter.checkbox`, list rows) | `AECheckbox` | AE2's 22×12 check box sprite | MUI2's check box | 22×12 sprite, 12×12 plain | Yes | Never |
+| `SlideSwitch` | `AECheckbox` | AE2's check box sprites from its theme data | A sliding switch in the theme's colors | Set by the caller | Yes | Never |
+| `StepSlider` | GTNLLib | AE2's slider skins from its theme data | The slider in the theme's colors | Set by the caller | Yes | After `wheel(true)` |
+| `FillBar`, `Divider` | GTNLLib | AE2 colors from their theme data | The theme's colors | Set by the caller; `Divider` 2 high | No | Never |
+
 ## Differences From AE2
 
 These differ from AE2 1.21 on purpose; the paragraphs above give the details.

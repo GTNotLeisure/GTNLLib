@@ -17,7 +17,12 @@ import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widget.WidgetTree;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.SliderWidget;
+import com.gtnewhorizon.gtnhlib.config.Config;
+import com.gtnllib.gui.layout.Layout;
+import com.gtnllib.gui.settings.BlockPosFields;
+import com.gtnllib.gui.settings.SettingControls;
 import com.gtnllib.gui.theme.AE2Theme;
+import com.gtnllib.gui.theme.LayoutTheme;
 import com.gtnllib.gui.theme.ScreenTheme;
 import com.gtnllib.gui.theme.ae2.AE2ButtonPainter;
 import com.gtnllib.gui.theme.ae2.AE2CheckboxPainter;
@@ -29,7 +34,12 @@ import com.gtnllib.gui.theme.ae2.AE2Variant;
 import com.gtnllib.gui.theme.ae2.IconSource;
 import com.gtnllib.gui.wheel.WheelStyle;
 import com.gtnllib.gui.widget.AE2Button;
+import com.gtnllib.gui.widget.Breadcrumb;
+import com.gtnllib.gui.widget.CloseButton;
 import com.gtnllib.gui.widget.CycleDropdown;
+import com.gtnllib.gui.widget.Divider;
+import com.gtnllib.gui.widget.FadingNotice;
+import com.gtnllib.gui.widget.FillBar;
 import com.gtnllib.gui.widget.GTNLListWidget;
 import com.gtnllib.gui.widget.HandleScrollData;
 import com.gtnllib.gui.widget.IconButton;
@@ -138,6 +148,20 @@ public class ServerWidgetScenario implements Runnable {
         AE2Look.plain()
             .scrollbarWidth();
         new ListRow(() -> "Stepper row").control(new ValueStepper(() -> "HV", step -> {}), 84, 16);
+        new FillBar().value(() -> 0.5);
+        new Divider().color(0xFF808080);
+        new CloseButton();
+        new Breadcrumb().segments(() -> Arrays.asList("Root", "Page"))
+            .onSelect(depth -> {})
+            .colors(0xFF404040, 0xFF1C4CA6, 0xFF777777);
+        new FadingNotice().duration(2000)
+            .background(0x80000000);
+        Layout settings = Layout.rows(LayoutTheme.DEFAULT, 200);
+        SettingControls.slider(null, Options.class, "volume", 0.1, volume -> String.valueOf(volume))
+            .widget(settings, LayoutTheme.DEFAULT, 80, 24, () -> {});
+        SettingControls.toggle(null, Options.class, "shown")
+            .widget(settings, LayoutTheme.DEFAULT, 80, 24, () -> {});
+        new BlockPosFields(0.5, 64, -3.5, 1000, 0, 255).x();
 
         ModularPanel panel = ModularPanel.defaultPanel("server_scenario");
         panel.child(new AE2Button(() -> "Apply", () -> {}).size(40, 20))
@@ -152,5 +176,17 @@ public class ServerWidgetScenario implements Runnable {
             .child(new StepSlider().size(60, 12))
             .child(new GTNLListWidget<>().scrollDirection(new HandleScrollData()));
         WidgetTree.collectSyncValues(new PanelSyncManager(new ModularSyncManager(false), true), panel);
+    }
+
+    public static class Options {
+
+        @Config.LangKey("gtnllib.test.volume")
+        @Config.RangeDouble(min = 0, max = 1)
+        @Config.DefaultDouble(0.5)
+        public static double volume = 0.5;
+
+        @Config.LangKey("gtnllib.test.shown")
+        @Config.DefaultBoolean(true)
+        public static boolean shown = true;
     }
 }
