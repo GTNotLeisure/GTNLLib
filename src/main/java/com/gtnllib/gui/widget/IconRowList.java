@@ -15,13 +15,13 @@ import org.lwjgl.opengl.GL11;
 
 import com.cleanroommc.modularui.api.UpOrDown;
 import com.cleanroommc.modularui.api.widget.Interactable;
-import com.cleanroommc.modularui.drawable.GuiDraw;
 import com.cleanroommc.modularui.drawable.ItemDrawable;
 import com.cleanroommc.modularui.integration.recipeviewer.RecipeViewerIngredientProvider;
 import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.theme.WidgetThemeEntry;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.gtnllib.gui.theme.AE2Theme;
+import com.gtnllib.gui.theme.ae2.AE2Draw;
 import com.gtnllib.gui.theme.ae2.AE2ListRowPainter;
 import com.gtnllib.gui.theme.ae2.AE2Look;
 import com.gtnllib.gui.theme.ae2.AE2PanelPainter;
@@ -56,9 +56,12 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
      * Row colors that stand for the look's own colors: a row in {@code TEXT} uses the look's list text color, and
      * header rows carry {@code HEADER}.
      */
-    public static final int HEADER = 0xFFA0A0A8, TEXT = 0xFFE8E8E8;
-    /** Row colors that stand for the look's good and bad colors; they are the plain look's own. */
-    public static final int GOOD = PlainLook.GOOD, BAD = PlainLook.BAD;
+    public static final int HEADER = runtime(0xFFA0A0A8), TEXT = runtime(0xFFE8E8E8);
+    /**
+     * Row colors that stand for the look's good and bad colors; they are the plain look's own. Pass these fields rather
+     * than their values: the values may change between GTNLLib versions.
+     */
+    public static final int GOOD = runtime(PlainLook.GOOD), BAD = runtime(PlainLook.BAD);
     /**
      * Width taken by the scroll bar right of the inset under AE2 themes, like AE2's lists: the groove sits on the panel
      * background, eight pixels from the inset's edge, as in AE2's network status and crafting CPU screens.
@@ -94,6 +97,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
         private List<Row> options;
         private Boolean checked;
         private Numeric number;
+        private Object key;
 
         private Row(ItemStack icon, String text) {
             this.icon = icon;
@@ -113,6 +117,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
             copy.options = options;
             copy.checked = checked;
             copy.number = number;
+            copy.key = key;
             return copy;
         }
 
@@ -183,7 +188,8 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
          * closes them again.
          *
          * @param icon     item drawn as a 16-pixel icon, or {@code null} for none
-         * @param text     row text; two dropdown rows with the same text are told apart by their order
+         * @param text     row text; without a {@link #withKey key}, the list knows which dropdown is open by its text
+         *                 and, for rows with the same text, their order
          * @param detail   text against the row's right end, such as the current choice, or an empty string
          * @param selected whether the row shows the selected background
          * @param options  rows shown while the dropdown is open
@@ -250,7 +256,24 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
             row.detailColor = color;
             return row;
         }
+
+        /**
+         * Returns a copy of this row that the list knows by a key of the caller's instead of by its text and order. An
+         * open dropdown stays open on the row with the same key, so give dropdown rows a key when their texts or order
+         * can change while one is open.
+         *
+         * @param key value that stays the same for this row across updates, such as a slot index or a block position;
+         *            compared with {@code equals}
+         * @return the new row
+         */
+        public Row withKey(Object key) {
+            Row row = copy();
+            row.key = key;
+            return row;
+        }
     }
+
+    private record Occurrence(String text, int index) {}
 
     private final Supplier<List<Row>> source;
     private final List<NumberEntryWidget> entries = new ArrayList<>();
@@ -258,9 +281,8 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
     private final IntList entryTops = new IntArrayList();
     private List<Row> rows = Collections.emptyList();
     private boolean[] nested = new boolean[0];
-    private int[] occurrence = new int[0];
-    private String expanded;
-    private int expandedOccurrence;
+    private Object[] identities = new Object[0];
+    private Object expanded;
     private int scroll, edge, gutter = SCROLLBAR, rowHeight = ROW, numberWidth = NUMBER_WIDTH;
     private boolean revealSelected, numberWheel;
     private final Scrollbar scrollbar = new Scrollbar(() -> scroll, this::maxScroll, row -> scroll = row)
@@ -365,8 +387,8 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
         expanded = null;
     }
 
-    private boolean isExpanded(String text, int occurrence) {
-        return text.equals(expanded) && occurrence == expandedOccurrence;
+    private boolean isExpanded(Object identity) {
+        return identity != null && identity.equals(expanded);
     }
 
     @Override
@@ -376,14 +398,15 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
         if (!isEnabled()) return;
         List<Row> flat = new ArrayList<>();
         List<Boolean> inside = new ArrayList<>();
-        IntList seen = new IntArrayList();
+        List<Object> seen = new ArrayList<>();
         Object2IntOpenHashMap<String> counts = new Object2IntOpenHashMap<>();
         for (Row row : source.get()) {
             int count = counts.addTo(row.text, 1);
+            Object identity = row.key != null ? row.key : new Occurrence(row.text, count);
             flat.add(row);
             inside.add(false);
-            seen.add(count);
-            if (row.options == null || !isExpanded(row.text, count)) continue;
+            seen.add(identity);
+            if (row.options == null || !isExpanded(identity)) continue;
             if (!row.available) {
                 expanded = null;
                 continue;
@@ -391,13 +414,13 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
             for (Row option : row.options) {
                 flat.add(option);
                 inside.add(true);
-                seen.add(-1);
+                seen.add(null);
             }
         }
         rows = flat;
         nested = new boolean[flat.size()];
         for (int i = 0; i < nested.length; i++) nested[i] = inside.get(i);
-        occurrence = seen.toIntArray();
+        identities = seen.toArray();
         if (revealSelected && getArea().height >= rowHeight) {
             revealSelected = false;
             for (int i = 0; i < flat.size(); i++) {
@@ -515,13 +538,12 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
             int detailColor = usable
                 ? color(look, row.detailColor != 0 ? row.detailColor : row.color, look.listDetail())
                 : look.listMuted();
-            if (nested[index]) GuiDraw.drawRect(edge, top, rowRight - edge, rowHeight, look.nested());
+            if (nested[index]) AE2Draw.fill(edge, top, rowRight - edge, rowHeight, look.nested());
             if (row.selected) {
                 look.drawSelectedRow(left, top, rowRight - left, rowHeight);
                 textColor = detailColor = look.selectedText();
             }
-            if (lit && !row.header && !row.selected)
-                GuiDraw.drawRect(left, top, rowRight - left, rowHeight, look.hover());
+            if (lit && !row.header && !row.selected) AE2Draw.fill(left, top, rowRight - left, rowHeight, look.hover());
             int textLeft = left + 3;
             if (row.icon != null) {
                 new ItemDrawable(row.icon)
@@ -534,7 +556,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
                 AE2PanelPainter.drawCaret(
                     textRight - CARET + 2,
                     top + (rowHeight - AE2Theme.CARET_HEIGHT) / 2,
-                    isExpanded(row.text, occurrence[index]),
+                    isExpanded(identities[index]),
                     textColor);
                 right -= CARET;
             }
@@ -548,6 +570,11 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
             else font.drawString(text, textLeft, textY, textColor, shadow);
         }
         GL11.glColor4f(1f, 1f, 1f, 1f);
+    }
+
+    // Set through a call so that other mods read the marker colors at run time instead of compiling their values in.
+    private static int runtime(int color) {
+        return color;
     }
 
     private static int color(AE2Look look, int color, int plain) {
@@ -569,11 +596,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
         }
         if (mouseButton != 0) return Result.ACCEPT;
         if (row.options != null) {
-            if (isExpanded(row.text, occurrence[index])) expanded = null;
-            else {
-                expanded = row.text;
-                expandedOccurrence = occurrence[index];
-            }
+            expanded = isExpanded(identities[index]) ? null : identities[index];
             Interactable.playButtonClickSound();
         } else if (row.click != null) {
             row.click.run();

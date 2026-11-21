@@ -1,17 +1,25 @@
 package com.gtnllib.gui;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
 import com.cleanroommc.modularui.api.widget.Interactable.Result;
+import com.cleanroommc.modularui.value.BoolValue;
+import com.cleanroommc.modularui.value.IntValue;
+import com.cleanroommc.modularui.widget.ParentWidget;
 import com.gtnllib.gui.widget.AE2Button;
+import com.gtnllib.gui.widget.AECheckbox;
 import com.gtnllib.gui.widget.Availability;
 import com.gtnllib.gui.widget.CycleDropdown;
 import com.gtnllib.gui.widget.ListRow;
+import com.gtnllib.gui.widget.SettingToggleButton;
 import com.gtnllib.gui.widget.SlideSwitch;
 import com.gtnllib.gui.widget.StepSlider;
 import com.gtnllib.gui.widget.ValueStepper;
+import com.gtnllib.gui.widget.VerticalButtonBar;
 
 public class AvailabilityTest {
 
@@ -31,6 +39,48 @@ public class AvailabilityTest {
         });
         assertEquals(Result.STOP, shut, "an unavailable widget stops the press");
         assertEquals(1, handled[0], "an unavailable widget does not run its own handling");
+    }
+
+    @Test
+    public void checkboxClicks() {
+        BoolValue on = new BoolValue(false);
+        AECheckbox checkbox = new AECheckbox(() -> "Auto", on).playClickSound(false);
+        checkbox.onMousePressed(0);
+        assertTrue(on.getBoolValue(), "a click checks the box");
+        IntValue mode = new IntValue(0);
+        AECheckbox first = AECheckbox.radio(() -> "First", mode, 0)
+            .playClickSound(false);
+        AECheckbox second = AECheckbox.radio(() -> "Second", mode, 1)
+            .playClickSound(false);
+        second.onMousePressed(0);
+        assertEquals(1, mode.getIntValue(), "a radio button selects the option it stands for");
+        first.onMousePressed(0);
+        first.onMousePressed(0);
+        assertEquals(0, mode.getIntValue(), "clicking a selected radio button keeps it selected");
+        checkbox.available(() -> false)
+            .onMousePressed(0);
+        assertTrue(on.getBoolValue(), "an unavailable check box keeps its value");
+    }
+
+    @Test
+    public void toolbarSettings() {
+        IntValue value = new IntValue(0);
+        SettingToggleButton setting = new SettingToggleButton().value(value)
+            .stateCount(2)
+            .playClickSound(false);
+        VerticalButtonBar bar = new VerticalButtonBar().add(setting)
+            .available(() -> false);
+        assertTrue(
+            bar.getChildren()
+                .contains(setting),
+            "the toolbar takes a setting button as one of its buttons");
+        setting.onMousePressed(0);
+        assertEquals(0, value.getIntValue(), "the toolbar's available state reaches a setting button added to it");
+        assertThrows(
+            IllegalStateException.class,
+            () -> new VerticalButtonBar().add(new ParentWidget<>())
+                .available(() -> false),
+            "a widget without an available state of its own cannot take one from the toolbar");
     }
 
     @Test

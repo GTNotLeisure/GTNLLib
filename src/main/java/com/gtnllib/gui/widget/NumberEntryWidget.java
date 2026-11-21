@@ -16,6 +16,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.cleanroommc.modularui.api.UpOrDown;
 import com.cleanroommc.modularui.api.drawable.IDrawable;
+import com.cleanroommc.modularui.api.value.ILongValue;
 import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.theme.WidgetTheme;
 import com.cleanroommc.modularui.theme.WidgetThemeEntry;
@@ -255,6 +256,22 @@ public class NumberEntryWidget extends ParentWidget<NumberEntryWidget> {
             if (!isEditing() && value().orElse(Long.MIN_VALUE) != current) value(current);
         }, true);
         return this;
+    }
+
+    /**
+     * Binds the entry to a value: it shows the value as {@link #follow(LongSupplier)} does and writes every valid value
+     * the player enters into it, replacing any {@link #onChange(LongConsumer)} listener. In a GUI the server opens,
+     * pass
+     * a MUI2 {@code LongSyncValue} registered with the panel's sync manager
+     * ({@code syncManager.syncValue(name, value)}),
+     * so the server's value shows on the client and the player's input reaches the server.
+     *
+     * @param value value to show and to write
+     * @return this widget
+     */
+    public NumberEntryWidget value(ILongValue<?> value) {
+        onChange(value::setLongValue);
+        return follow(value::getLongValue);
     }
 
     /**

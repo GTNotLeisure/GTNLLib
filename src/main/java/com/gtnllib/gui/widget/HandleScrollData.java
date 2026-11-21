@@ -11,7 +11,6 @@ import com.cleanroommc.modularui.widget.scroll.ScrollData;
 import com.cleanroommc.modularui.widget.scroll.VerticalScrollData;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.ae2.AE2Look;
-import com.gtnllib.gui.theme.ae2.AE2ScrollbarPainter;
 import com.gtnllib.gui.theme.ae2.AE2Variant;
 
 /**
@@ -52,8 +51,8 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
     /**
      * Creates scroll data with the requested handle style.
      *
-     * @param small whether to use the 7-pixel-wide AE2 handle instead of the 12-pixel-wide one; outside AE2 themes the
-     *              vanilla scroll bar is used either way
+     * @param small whether to use the 7-pixel-wide scroll bar instead of the large one; outside AE2 themes it is
+     *              Minecraft's handle narrowed to fit
      */
     public HandleScrollData(boolean small) {
         this(null, small);
@@ -100,18 +99,14 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
     }
 
     /**
-     * Returns the track width for the current look: 12 pixels for AE2's large handle, 7 for its small one, 14 for the
-     * vanilla scroll bar.
+     * Returns the track width for the current look: 7 pixels for the small scroll bar in every look, otherwise 12 for
+     * AE2's large handle and 14 for the vanilla scroll bar.
      *
      * @return track width in pixels
      */
     @Override
     public int getThickness() {
-        return smallHandle() ? AE2Theme.SMALL_SCROLLER_WIDTH : look.scrollbarWidth();
-    }
-
-    private boolean smallHandle() {
-        return small && look.isAE2();
+        return small ? AE2Theme.SMALL_SCROLLER_WIDTH : look.scrollbarWidth();
     }
 
     /**
@@ -302,8 +297,7 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
         int top = trackTop(area);
         int height = getFullVisibleSize(area);
         // The groove border sits one pixel outside the scroll area so the handle can travel the full height.
-        if (smallHandle())
-            AE2ScrollbarPainter.drawSmallScrollbar(look.variant(), x, top - 1, height + 2, handleY, active);
+        if (small) look.drawSmallScrollbar(x, top - 1, height + 2, handleY, active);
         else look.drawScrollbar(x, top - 1, height + 2, handleY, active);
     }
 

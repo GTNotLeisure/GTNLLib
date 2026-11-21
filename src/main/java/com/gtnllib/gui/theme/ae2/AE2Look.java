@@ -4,6 +4,8 @@ import static com.gtnllib.gui.theme.AE2Theme.BIG_SCROLLER_WIDTH;
 import static com.gtnllib.gui.theme.AE2Theme.CHECKBOX_HEIGHT;
 import static com.gtnllib.gui.theme.AE2Theme.CHECKBOX_WIDTH;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
 import com.cleanroommc.modularui.api.ITheme;
@@ -18,8 +20,10 @@ import com.cleanroommc.modularui.theme.WidgetThemeBuilder;
 import com.cleanroommc.modularui.theme.WidgetThemeEntry;
 import com.cleanroommc.modularui.theme.WidgetThemeKey;
 import com.cleanroommc.modularui.utils.Color;
+import com.cleanroommc.modularui.utils.GlStateManager;
 import com.cleanroommc.modularui.utils.JsonHelper;
 import com.google.gson.JsonObject;
+import com.gtnllib.GTNLLib;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.ae2.AE2ButtonDrawable.State;
 
@@ -173,8 +177,12 @@ public class AE2Look {
      * @param height well height in pixels
      */
     public void drawWell(int x, int y, int width, int height) {
-        if (variant != null) variant.inset.draw(x, y, width, height);
-        else PlainLook.drawWell(x, y, width, height);
+        if (variant == null) {
+            PlainLook.drawWell(x, y, width, height);
+            return;
+        }
+        GlStateManager.color(1, 1, 1, 1);
+        variant.inset.draw(x, y, width, height);
     }
 
     /**
@@ -226,8 +234,13 @@ public class AE2Look {
      * @param height row height in pixels
      */
     public void drawSelectedRow(int x, int y, int width, int height) {
-        if (variant != null) variant.listRowSelected.draw(x, y, width, height);
-        else GuiDraw.drawRect(x, y, width, height, PlainLook.SELECTED_ROW);
+        if (variant == null) {
+            GuiDraw.drawRect(x, y, width, height, PlainLook.SELECTED_ROW);
+            return;
+        }
+        // Text drawn before, such as the row above, leaves its color set, which would tint the sprite.
+        GlStateManager.color(1, 1, 1, 1);
+        variant.listRowSelected.draw(x, y, width, height);
     }
 
     /**
@@ -339,6 +352,17 @@ public class AE2Look {
     }
 
     /**
+     * Returns the height of a toolbar icon button: AE2's {@link AE2Theme#ICON_BUTTON_HEIGHT} under an AE2 skin, whose
+     * bottom pixels are the button's shadow, and a square {@link PlainLook#ICON_BUTTON_SIZE} in the plain look, as
+     * Minecraft's button has no such shadow. It is {@link AE2Theme#ICON_BUTTON_WIDTH} wide in both.
+     *
+     * @return height in pixels
+     */
+    public int iconButtonHeight() {
+        return variant == null ? PlainLook.ICON_BUTTON_SIZE : AE2Theme.ICON_BUTTON_HEIGHT;
+    }
+
+    /**
      * Returns the width of the check box {@link #drawCheckbox} draws.
      *
      * @return {@link AE2Theme#CHECKBOX_WIDTH} under an AE2 skin, {@link PlainLook#CHECKBOX_SIZE} in the plain look
@@ -389,6 +413,23 @@ public class AE2Look {
         else PlainLook.drawScrollbar(x, y, height, handleY, enabled);
     }
 
+    /**
+     * Draws a small scroll bar, {@link AE2Theme#SMALL_SCROLLER_WIDTH} pixels wide: AE2's small groove and 7-by-15
+     * handle under an AE2 skin, a sunken track with Minecraft's handle narrowed to five pixels in the plain look.
+     * Client
+     * only.
+     *
+     * @param x       left edge of the track
+     * @param y       top edge of the track, including its one-pixel border
+     * @param height  total track height, at least {@code SCROLLER_HEIGHT + 2}
+     * @param handleY handle offset from the inner track top, from zero to {@code height - SCROLLER_HEIGHT - 2}
+     * @param enabled whether to draw the enabled handle
+     */
+    public void drawSmallScrollbar(int x, int y, int height, int handleY, boolean enabled) {
+        if (variant != null) AE2ScrollbarPainter.drawSmallScrollbar(variant, x, y, height, handleY, enabled);
+        else PlainLook.drawSmallScrollbar(x, y, height, handleY, enabled);
+    }
+
     private static AE2Look[] skinned() {
         AE2Look[] looks = new AE2Look[VARIANTS.length];
         for (AE2Variant variant : VARIANTS) looks[variant.ordinal()] = new AE2Look(variant, null);
@@ -400,6 +441,7 @@ public class AE2Look {
 
         /** JSON key holding the skin folder name. */
         public static final String SKIN = "skin";
+        private static final Logger LOG = LogManager.getLogger(GTNLLib.MODID);
         private final String skin;
         private final @Nullable AE2Variant variant;
 
@@ -425,6 +467,8 @@ public class AE2Look {
             super(parent, json, fallback);
             skin = JsonHelper.getString(json, parent.skin, SKIN);
             variant = AE2Look.skin(skin);
+            if (variant == null && !skin.isEmpty())
+                LOG.warn("Theme data names unknown AE2 skin \"{}\"; its widgets get the plain look", skin);
         }
 
         /**

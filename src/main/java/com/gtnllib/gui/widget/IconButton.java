@@ -3,15 +3,18 @@ package com.gtnllib.gui.widget;
 import java.util.function.Supplier;
 
 import com.cleanroommc.modularui.api.drawable.IDrawable;
+import com.cleanroommc.modularui.widget.sizer.Unit.Measure;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.ae2.AE2ButtonPainter;
+import com.gtnllib.gui.theme.ae2.AE2Look;
 import com.gtnllib.gui.theme.ae2.IconSource;
 
 /**
- * AE2's toolbar icon button ({@code IconButton}): {@link AE2ButtonPainter#iconButton},
- * {@link AE2Theme#ICON_BUTTON_WIDTH} by {@link AE2Theme#ICON_BUTTON_HEIGHT} pixels, drawn by the theme of its panel; a
- * selected one shows AE2's selected frame. It reacts to the left mouse button on its whole frame, where AE2's react
- * only on the 16-by-16 icon square; see {@link ThemedButton} for the available and selected states.
+ * AE2's toolbar icon button ({@code IconButton}): {@link AE2ButtonPainter#iconButton}, drawn by the theme of its panel;
+ * a selected one shows AE2's selected frame. Unless the caller sets a size it is {@link AE2Theme#ICON_BUTTON_WIDTH} by
+ * {@link AE2Look#iconButtonHeight()} pixels: AE2's 18 by 20 under AE2 themes, an 18-pixel square in others. It reacts
+ * to the left mouse button on its whole frame, where AE2's react only on the 16-by-16 icon square; see
+ * {@link ThemedButton} for the available and selected states.
  */
 public class IconButton extends ThemedButton<IconButton> {
 
@@ -25,7 +28,11 @@ public class IconButton extends ThemedButton<IconButton> {
     public IconButton(Supplier<? extends IconSource> icon, Runnable action) {
         IDrawable look = AE2ButtonPainter.iconButton(this, icon, this::isAvailable, this::isSelected);
         background(look).hoverBackground(look)
-            .size(AE2Theme.ICON_BUTTON_WIDTH, AE2Theme.ICON_BUTTON_HEIGHT)
+            .width(AE2Theme.ICON_BUTTON_WIDTH)
+            .height(
+                () -> AE2Look.of(this)
+                    .iconButtonHeight(),
+                Measure.PIXEL)
             .action(action);
     }
 }

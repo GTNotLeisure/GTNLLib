@@ -5,6 +5,8 @@ import static com.gtnllib.gui.theme.AE2Theme.INACTIVE_ALPHA;
 
 import net.minecraft.client.Minecraft;
 
+import org.lwjgl.opengl.GL11;
+
 import com.cleanroommc.modularui.drawable.GuiDraw;
 import com.cleanroommc.modularui.drawable.UITexture;
 import com.cleanroommc.modularui.utils.GlStateManager;
@@ -61,6 +63,22 @@ public class AE2Draw {
         GlStateManager.color(1, 1, 1, active ? 1 : INACTIVE_ALPHA);
         drawBlended(icon, x, y, ICON_SIZE, ICON_SIZE);
         GlStateManager.color(1, 1, 1, 1);
+    }
+
+    /**
+     * Fills a rectangle with a translucent color, such as a row's hover shade. Drawing an item turns on OpenGL's alpha
+     * test and leaves it on, and that test drops fills under 10% opacity; this turns it off first, so faint shades
+     * still show after item icons drawn earlier in the same frame.
+     *
+     * @param x      left edge
+     * @param y      top edge
+     * @param width  width in pixels
+     * @param height height in pixels
+     * @param argb   ARGB color
+     */
+    public static void fill(int x, int y, int width, int height, int argb) {
+        GL11.glDisable(GL11.GL_ALPHA_TEST);
+        GuiDraw.drawRect(x, y, width, height, argb);
     }
 
     /**

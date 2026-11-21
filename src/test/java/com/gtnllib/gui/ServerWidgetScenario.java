@@ -11,12 +11,14 @@ import com.cleanroommc.modularui.value.BoolValue;
 import com.cleanroommc.modularui.value.DoubleValue;
 import com.cleanroommc.modularui.value.EnumValue;
 import com.cleanroommc.modularui.value.IntValue;
+import com.cleanroommc.modularui.value.LongValue;
 import com.cleanroommc.modularui.value.sync.ModularSyncManager;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widget.WidgetTree;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.SliderWidget;
+import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.gtnewhorizon.gtnhlib.config.Config;
 import com.gtnllib.gui.layout.Layout;
 import com.gtnllib.gui.settings.BlockPosFields;
@@ -30,10 +32,12 @@ import com.gtnllib.gui.theme.ae2.AE2Icon;
 import com.gtnllib.gui.theme.ae2.AE2Legacy;
 import com.gtnllib.gui.theme.ae2.AE2Look;
 import com.gtnllib.gui.theme.ae2.AE2PanelPainter;
+import com.gtnllib.gui.theme.ae2.AE2SettingIcon;
 import com.gtnllib.gui.theme.ae2.AE2Variant;
 import com.gtnllib.gui.theme.ae2.IconSource;
 import com.gtnllib.gui.wheel.WheelStyle;
 import com.gtnllib.gui.widget.AE2Button;
+import com.gtnllib.gui.widget.AECheckbox;
 import com.gtnllib.gui.widget.Breadcrumb;
 import com.gtnllib.gui.widget.CloseButton;
 import com.gtnllib.gui.widget.CycleDropdown;
@@ -53,6 +57,7 @@ import com.gtnllib.gui.widget.SettingToggleButton;
 import com.gtnllib.gui.widget.SlideSwitch;
 import com.gtnllib.gui.widget.StepSlider;
 import com.gtnllib.gui.widget.TabButton;
+import com.gtnllib.gui.widget.UpgradesPanel;
 import com.gtnllib.gui.widget.ValueStepper;
 import com.gtnllib.gui.widget.VerticalButtonBar;
 
@@ -162,6 +167,20 @@ public class ServerWidgetScenario implements Runnable {
         SettingControls.toggle(null, Options.class, "shown")
             .widget(settings, LayoutTheme.DEFAULT, 80, 24, () -> {});
         new BlockPosFields(0.5, 64, -3.5, 1000, 0, 255).x();
+        new VerticalButtonBar().add(
+            new SettingToggleButton().value(new BoolValue(true))
+                .state(true, AE2SettingIcon.AUTO_EXPORT_ON, IKey.str("On"))
+                .state(false, AE2SettingIcon.AUTO_EXPORT_OFF, IKey.str("Off")));
+        new NumberEntryWidget().value(new LongValue(3));
+        new AECheckbox(() -> "Auto", new BoolValue(true)).available(() -> false);
+        AECheckbox.radio(() -> "First", new IntValue(0), 0);
+        new Scrollbar(() -> 0, () -> 4, row -> {}).height(40);
+        TabButton.back(() -> {})
+            .pos(0, TabButton.BACK_TOP);
+        new CloseButton().action(() -> {});
+        new UpgradesPanel().slot(new ItemSlot())
+            .slot(new ItemSlot())
+            .perColumn(1);
 
         ModularPanel panel = ModularPanel.defaultPanel("server_scenario");
         panel.child(new AE2Button(() -> "Apply", () -> {}).size(40, 20))

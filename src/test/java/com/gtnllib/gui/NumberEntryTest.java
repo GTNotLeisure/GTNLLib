@@ -9,6 +9,7 @@ import java.util.OptionalLong;
 import org.junit.jupiter.api.Test;
 
 import com.cleanroommc.modularui.api.widget.IWidget;
+import com.cleanroommc.modularui.value.LongValue;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import com.gtnllib.gui.widget.NumberEntryWidget;
 
@@ -82,6 +83,18 @@ public class NumberEntryTest {
         assertEquals(LongArrayList.of(7, 7), heard, "input that becomes valid again is reported, same value or not");
         type(entry, "80");
         assertEquals(LongArrayList.of(7, 7), heard, "a value outside the bounds is not reported");
+    }
+
+    @Test
+    public void boundValue() {
+        LongValue value = new LongValue(5);
+        NumberEntryWidget entry = new NumberEntryWidget().bounds(0, 100)
+            .value(value);
+        assertEquals(OptionalLong.of(5), entry.value(), "a bound entry starts with the value it is bound to");
+        type(entry, "12");
+        assertEquals(12, value.getLongValue(), "a valid typed value is written into the bound value");
+        type(entry, "500");
+        assertEquals(12, value.getLongValue(), "a value outside the bounds is not written");
     }
 
     private static void type(NumberEntryWidget entry, String text) {

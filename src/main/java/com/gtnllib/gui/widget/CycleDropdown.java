@@ -25,12 +25,14 @@ import com.cleanroommc.modularui.widgets.TextWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.menu.DropdownWidget;
 import com.cleanroommc.modularui.widgets.menu.Menu;
+import com.cleanroommc.modularui.widgets.menu.MenuPanel;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.ae2.AE2ButtonDrawable;
 import com.gtnllib.gui.theme.ae2.AE2ButtonDrawable.State;
 import com.gtnllib.gui.theme.ae2.AE2ButtonPainter;
 import com.gtnllib.gui.theme.ae2.AE2Look;
 import com.gtnllib.gui.theme.ae2.AE2PanelPainter;
+import com.gtnllib.gui.theme.ae2.AE2Variant;
 import com.gtnllib.gui.theme.ae2.ButtonText;
 
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
@@ -45,8 +47,18 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
  * value also sinks with the button face on hover. The sinking uses the shown widget's {@code transform} hook, so a
  * transform set on it by {@code optionToWidget} is replaced.
  * <p>
+ * An option that is a single text widget, which is what MUI2 makes when no {@code optionToWidget} is set, is laid out
+ * by the dropdown: in the menu it becomes a {@value #OPTION_HEIGHT}-pixel row with the text centred, and as the shown
+ * value it fills the dropdown's height, placed where an AE2 button places its label. Other option widgets, such as
+ * {@link #iconOption} rows, keep their own layout.
+ * <p>
  * While {@link #available(BooleanSupplier)} reports false the dropdown looks like a disabled button, shows no hover,
  * closes its menu and ignores clicks and the wheel.
+ * <p>
+ * The menu opens in a panel of its own, which MUI2 gives its context-menu theme. The dropdown gives that panel the menu
+ * theme of its own panel's look instead: AE2's menu theme of the same skin under an AE2 theme, MUI2's context menu
+ * otherwise, so no {@code AE2Theme.useMenuTheme} call is needed. A theme registered for the menu panel's name still
+ * wins, as MUI2 lets registered screen themes win over a panel's own.
  */
 public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
 
@@ -59,7 +71,7 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
     private final Availability availability = new Availability();
     private T shown;
     private int menuWidth;
-    private boolean wheel;
+    private boolean wheel, centredText;
 
     /**
      * Creates an empty dropdown. Set its value, its option widgets ({@code optionToWidget}) and its
@@ -109,6 +121,16 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
         return isAvailable() ? super.getThemeBackground(widgetTheme, activeTheme) : disabledLook;
     }
 
+    @Override
+    public void openMenu(boolean soft) {
+        super.openMenu(soft);
+        Menu<?> menu = getMenu();
+        if (!menu.isValid() || !(menu.getPanel() instanceof MenuPanel panel) || panel == getPanel()) return;
+        AE2Variant variant = AE2Look.of(this)
+            .variant();
+        panel.themeOverride(variant == null ? AE2Theme.CONTEXT_MENU_ID : variant.menuId);
+    }
+
     // MUI2 keeps the menu of a removed dropdown open, or open until its closing animation ends, and a click meanwhile
     // asks the removed dropdown for its parent.
     @Override
@@ -127,8 +149,15 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
         IWidget widget = super.valueToWidget(value, forSelectedDisplay);
         if (widget instanceof Widget<?>option) {
             option.margin(VALUE_INSET, forSelectedDisplay ? CARET_SPACE : VALUE_INSET, 0, 0);
+            boolean plainText = option instanceof TextWidget<?>;
+            if (option instanceof TextWidget<?>text) {
+                text.alignment(Alignment.CenterLeft);
+                if (forSelectedDisplay) text.heightRel(1f);
+                else text.height(OPTION_HEIGHT);
+            }
             if (forSelectedDisplay) {
-                option.transform((self, stack) -> stack.translate(0, labelSink()));
+                centredText = plainText;
+                option.transform((self, stack) -> stack.translate(0, labelShift()));
                 labels.clear();
                 followButtonText(option);
             }
@@ -153,6 +182,15 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
         int height = getArea().height;
         return AE2ButtonDrawable.textY(State.of(this, isAvailable(), false), height)
             - AE2ButtonDrawable.textY(State.NORMAL, height);
+    }
+
+    // MUI2 centres a text line at round(height / 2) - 4; AE2 places a button label where textY says.
+    private int labelShift() {
+        if (!centredText || !AE2Look.of(this)
+            .isAE2()) return labelSink();
+        int height = getArea().height;
+        return labelSink() + AE2ButtonDrawable.textY(State.NORMAL, height)
+            - (Math.round(height / 2f) - AE2Theme.LABEL_HEIGHT / 2);
     }
 
     @Override

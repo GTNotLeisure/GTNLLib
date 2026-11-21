@@ -10,7 +10,6 @@ import org.jetbrains.annotations.NotNull;
 import org.lwjgl.opengl.GL11;
 
 import com.cleanroommc.modularui.api.widget.Interactable;
-import com.cleanroommc.modularui.drawable.GuiDraw;
 import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.theme.WidgetThemeEntry;
 import com.cleanroommc.modularui.widget.ParentWidget;
@@ -154,7 +153,7 @@ public class ListRow extends ParentWidget<ListRow> implements Interactable {
         AE2Look look = AE2Look.of(this);
         int width = getArea().width, height = getArea().height;
         boolean usable = availability.get(), hovered = usable && click != null && isHovering();
-        if (hovered) GuiDraw.drawRect(EDGE, 0, width - 2 * EDGE, height, look.hover());
+        if (hovered) AE2Draw.fill(EDGE, 0, width - 2 * EDGE, height, look.hover());
         int right = width - END_INSET;
         if (checked != null)
             right -= AE2ListRowPainter.drawCheckbox(look, right, 0, height, checked.getAsBoolean(), hovered, usable)

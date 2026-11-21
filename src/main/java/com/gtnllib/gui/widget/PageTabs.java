@@ -24,7 +24,8 @@ import com.gtnllib.gui.theme.ae2.IconSource;
  * open tab then covers the panel border and joins the panel, and the others stand out. {@link #page(int, Widget)} shows
  * a page widget only while its tab is open. Other themes draw the tabs as buttons, the open one hovered. A tab made
  * unavailable with {@link #available(BooleanSupplier)} shows no hover, draws its icon faded and swallows clicks.
- * {@link #tabSize(int, int)} changes the size of the tabs from AE2's 22 by 22 pixels.
+ * {@link #tabSize(int, int)} changes the size of the tabs from AE2's 22 by 22 pixels. The tabs stand outside the panel,
+ * so they tell NEI to keep its panels clear of them, as AE2's do.
  */
 public class PageTabs extends ParentWidget<PageTabs> {
 
@@ -46,7 +47,7 @@ public class PageTabs extends ParentWidget<PageTabs> {
     public PageTabs(IntSupplier open, IntConsumer select) {
         this.open = open;
         this.select = select;
-        size(AE2Theme.PAGE_TAB_SIZE, 0);
+        size(AE2Theme.PAGE_TAB_SIZE, 0).excludeAreaInRecipeViewer();
     }
 
     /**

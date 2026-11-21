@@ -78,7 +78,7 @@ public enum AE2Icon implements IconSource {
 
     /** Source coordinates within the AE2 icon sheet, in pixels. */
     public final int x, y;
-    /** MUI2 fallback texture used outside AE2 themes, or {@code null} to use the dark AE2 sprite there. */
+    /** MUI2 fallback texture used outside AE2 themes, or {@code null} to use the light AE2 sprite there. */
     public final @Nullable UITexture vanilla;
     private final UITexture[] skins = new UITexture[AE2Variant.values().length];
 
@@ -91,15 +91,15 @@ public enum AE2Icon implements IconSource {
     /**
      * Resolves this icon's texture in a look, caching the AE2 sprite for each skin.
      *
-     * @param look look to draw in; the plain look gives the MUI2 fallback, or the dark AE2 sprite for an icon MUI2
-     *             has no equivalent for
+     * @param look look to draw in; the plain look gives the MUI2 fallback, or for an icon MUI2 has no equivalent for
+     *             the light AE2 sprite, which is white like MUI2's icons
      * @return icon texture
      */
     public UITexture texture(AE2Look look) {
         AE2Variant variant = look.variant();
         if (variant == null) {
             if (vanilla != null) return vanilla;
-            variant = AE2Variant.DARK;
+            variant = AE2Variant.LIGHT;
         }
         UITexture skin = skins[variant.ordinal()];
         if (skin == null) skin = skins[variant.ordinal()] = AE2Variant

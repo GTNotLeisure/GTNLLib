@@ -3,11 +3,13 @@ package com.gtnllib.gui.theme.ae2;
 import static com.gtnllib.gui.theme.AE2Theme.BIG_SCROLLER_WIDTH;
 import static com.gtnllib.gui.theme.AE2Theme.CHECKBOX_HEIGHT;
 import static com.gtnllib.gui.theme.AE2Theme.DISABLED_TEXT;
+import static com.gtnllib.gui.theme.AE2Theme.ICON_BUTTON_WIDTH;
 import static com.gtnllib.gui.theme.AE2Theme.INACTIVE_ALPHA;
 import static com.gtnllib.gui.theme.AE2Theme.LABEL_HEIGHT;
 import static com.gtnllib.gui.theme.AE2Theme.LABEL_PADDING;
 import static com.gtnllib.gui.theme.AE2Theme.SCROLLER_HEIGHT;
 import static com.gtnllib.gui.theme.AE2Theme.SHEET;
+import static com.gtnllib.gui.theme.AE2Theme.SMALL_SCROLLER_WIDTH;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
@@ -48,22 +50,40 @@ public class PlainLook {
      */
     public static final int LIST_TEXT = 0xFFFFFFFF, MINECRAFT_TEXT = 0xFF404040, SELECTED_ROW = 0xFF5A5A5A,
         ROW_HOVER = 0x30FFFFFF, NESTED_ROWS = 0x20000000;
-    /** ARGB colors of something marked good, such as a filled progress bar, and of something marked bad. */
-    public static final int GOOD = 0xFF60E060, BAD = 0xFFFF6060;
-    /** ARGB color of invalid text in an input field, Minecraft's red formatting color. */
-    public static final int INPUT_ERROR = 0xFFFF5555;
+    /**
+     * ARGB colors of something marked good, such as a filled progress bar, and of something marked bad, AE2 1.21's
+     * {@code ERROR} palette color.
+     */
+    public static final int GOOD = 0xFF60E060, BAD = 0xFFCE2401;
+    /** ARGB color of invalid text in an input field, AE2 1.21's {@code TEXTFIELD_ERROR} palette color. */
+    public static final int INPUT_ERROR = 0xFFFF1900;
     /** ARGB color of the thin scroll bar of drawn lists, the face color of Minecraft's scroll handle. */
     public static final int THIN_SCROLL_BAR = 0xFFC6C6C6;
     /** Width of the creative-inventory scroll bar: its 12-pixel handle and a one-pixel track border on each side. */
     public static final int SCROLLBAR_WIDTH = BIG_SCROLLER_WIDTH + 2;
+    /**
+     * Border width of MUI2's vanilla panel background on each side. Parts attached to a panel's edge, such as the
+     * toolbar and the upgrade panel, leave out their border on that side and cover the panel's border this far.
+     */
+    public static final int PANEL_BORDER = 4;
+    /** Width and height of a toolbar icon button: a square, as Minecraft's button has no shadow below its face. */
+    public static final int ICON_BUTTON_SIZE = ICON_BUTTON_WIDTH;
     /** Size of MUI2's check box as the plain look draws it for an on/off value. */
     public static final int CHECKBOX_SIZE = CHECKBOX_HEIGHT;
     /** Pixels from the left edge of a labelled check box to its label. */
     public static final int CHECKBOX_LABEL_X = CHECKBOX_SIZE + LABEL_PADDING * 2;
     private static final ResourceLocation CREATIVE_TABS = new ResourceLocation(
         "textures/gui/container/creative_inventory/tabs.png");
-    private static final int SCROLLER_U = 232, SCROLLER_DISABLED_U = 244;
-    private static final UITexture SCROLLER = scroller(SCROLLER_U), SCROLLER_DISABLED = scroller(SCROLLER_DISABLED_U);
+    /**
+     * Width of the small scroll bar: Minecraft's handle narrowed to five pixels in a sunken track with a one-pixel
+     * border, as wide as AE2's small scroll bar.
+     */
+    public static final int SMALL_SCROLLBAR_WIDTH = SMALL_SCROLLER_WIDTH;
+    private static final int SCROLLER_U = 232, SCROLLER_DISABLED_U = 244, SLIM_EDGE = 2, SLIM_GRIP = 1,
+        SLIM_RIGHT = BIG_SCROLLER_WIDTH - SLIM_EDGE;
+    private static final UITexture SCROLLER = scroller(SCROLLER_U, 0, BIG_SCROLLER_WIDTH),
+        SCROLLER_DISABLED = scroller(SCROLLER_DISABLED_U, 0, BIG_SCROLLER_WIDTH);
+    private static final UITexture[] SLIM = slim(SCROLLER_U), SLIM_DISABLED = slim(SCROLLER_DISABLED_U);
 
     private final @Nullable ITheme theme;
 
@@ -255,11 +275,37 @@ public class PlainLook {
         (enabled ? SCROLLER : SCROLLER_DISABLED).draw(x + 1, y + 1 + handleY, BIG_SCROLLER_WIDTH, SCROLLER_HEIGHT);
     }
 
-    private static UITexture scroller(int u) {
+    /**
+     * Draws the small scroll bar: a sunken track {@link #SMALL_SCROLLBAR_WIDTH} pixels wide and Minecraft's handle
+     * narrowed to five pixels, keeping its edges and one column of its grip.
+     *
+     * @param x       left edge of the track
+     * @param y       top edge of the track, including its one-pixel border
+     * @param height  total track height
+     * @param handleY handle offset from the inner track top
+     * @param enabled whether to draw the enabled handle
+     */
+    public static void drawSmallScrollbar(int x, int y, int height, int handleY, boolean enabled) {
+        GlStateManager.color(1, 1, 1, 1);
+        drawWell(x, y, SMALL_SCROLLBAR_WIDTH, height);
+        GlStateManager.color(1, 1, 1, 1);
+        UITexture[] handle = enabled ? SLIM : SLIM_DISABLED;
+        int left = x + 1, top = y + 1 + handleY;
+        handle[0].draw(left, top, SLIM_EDGE, SCROLLER_HEIGHT);
+        handle[1].draw(left + SLIM_EDGE, top, SLIM_GRIP, SCROLLER_HEIGHT);
+        handle[2].draw(left + SLIM_EDGE + SLIM_GRIP, top, SLIM_EDGE, SCROLLER_HEIGHT);
+    }
+
+    private static UITexture[] slim(int u) {
+        return new UITexture[] { scroller(u, 0, SLIM_EDGE), scroller(u, SLIM_EDGE, SLIM_GRIP),
+            scroller(u, SLIM_RIGHT, SLIM_EDGE) };
+    }
+
+    private static UITexture scroller(int u, int offset, int width) {
         return UITexture.builder()
             .location(CREATIVE_TABS)
             .imageSize(SHEET, SHEET)
-            .subAreaXYWH(u, 0, BIG_SCROLLER_WIDTH, SCROLLER_HEIGHT)
+            .subAreaXYWH(u + offset, 0, width, SCROLLER_HEIGHT)
             .build();
     }
 }

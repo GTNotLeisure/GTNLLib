@@ -13,9 +13,9 @@ import com.cleanroommc.modularui.drawable.GuiDraw;
 import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.theme.WidgetThemeEntry;
 import com.cleanroommc.modularui.widget.Widget;
+import com.cleanroommc.modularui.widget.sizer.Unit.Measure;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.ae2.AE2Look;
-import com.gtnllib.gui.theme.ae2.AE2ScrollbarPainter;
 import com.gtnllib.gui.theme.ae2.PlainLook;
 
 /**
@@ -35,11 +35,14 @@ import com.gtnllib.gui.theme.ae2.PlainLook;
  * draws its disabled handle at the top and swallows left presses.
  * <p>
  * The look follows the theme of the panel the bar is in, read while drawing. Under AE2 themes it is AE2's groove with
- * the fixed 12-by-15 handle, or with {@link #small(boolean)} the 5-pixel groove and 7-by-15 handle; make it
- * {@link AE2Theme#BIG_SCROLLER_WIDTH} or {@link AE2Theme#SMALL_SCROLLER_WIDTH} pixels wide. Other themes get the
- * vanilla creative-inventory scroll bar, {@link PlainLook#SCROLLBAR_WIDTH} pixels wide, or a {@link #plainBar plain
- * bar}. The groove border takes one pixel at the top and bottom, so the bar must be at least
- * {@code AE2Theme.SCROLLER_HEIGHT + 2} pixels high.
+ * the fixed 12-by-15 handle ({@link AE2Theme#BIG_SCROLLER_WIDTH} pixels wide), or with {@link #small(boolean)} the
+ * 5-pixel groove and 7-by-15 handle ({@link AE2Theme#SMALL_SCROLLER_WIDTH}). Other themes get the vanilla
+ * creative-inventory scroll bar, {@link PlainLook#SCROLLBAR_WIDTH} pixels wide, its handle narrowed to fit
+ * {@link PlainLook#SMALL_SCROLLBAR_WIDTH} pixels with {@link #small(boolean)}, or a {@link #plainBar plain bar}.
+ * <p>
+ * Unless the caller sets a width, the bar takes the width of its look while the panel is laid out, so the same bar is
+ * as wide as it draws in every theme; set only its height. The groove border takes one pixel at the top and bottom, so
+ * the bar must be at least {@code AE2Theme.SCROLLER_HEIGHT + 2} pixels high.
  */
 public class Scrollbar extends Widget<Scrollbar> implements Interactable {
 
@@ -52,7 +55,8 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable {
     private boolean small, pages;
 
     /**
-     * Creates a scroll bar over an owner's position. The caller sets its size.
+     * Creates a scroll bar over an owner's position. The caller sets its height; its width follows the look unless the
+     * caller sets one.
      *
      * @param position    supplier of the current position, read every frame and on every input; values outside zero to
      *                    the maximum are treated as the nearest end
@@ -65,6 +69,13 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable {
         this.position = position;
         this.maxPosition = maxPosition;
         this.scrollTo = scrollTo;
+        width(this::lookWidth, Measure.PIXEL);
+    }
+
+    private int lookWidth() {
+        return small ? AE2Theme.SMALL_SCROLLER_WIDTH
+            : AE2Look.of(this)
+                .scrollbarWidth();
     }
 
     /**
@@ -94,9 +105,10 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable {
     }
 
     /**
-     * Chooses the small AE2 handle, as in AE2's processing pattern panel, instead of the large one.
+     * Chooses the small scroll bar, as in AE2's processing pattern panel, instead of the large one. Make the bar
+     * {@link AE2Theme#SMALL_SCROLLER_WIDTH} pixels wide; other themes draw Minecraft's handle narrowed to fit.
      *
-     * @param small whether to draw the 7-pixel-wide handle under AE2 themes; other themes ignore it
+     * @param small whether to draw the 7-pixel-wide scroll bar
      * @return this scroll bar
      */
     public Scrollbar small(boolean small) {
@@ -179,8 +191,7 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable {
         int height = getArea().height, offset = handleOffset(look);
         if (plain(look)) {
             if (active) GuiDraw.drawRect(0, offset, getArea().width, handleLength(look), plainColor);
-        } else if (look.isAE2() && small)
-            AE2ScrollbarPainter.drawSmallScrollbar(look.variant(), 0, 0, height, offset, active);
+        } else if (small) look.drawSmallScrollbar(0, 0, height, offset, active);
         else look.drawScrollbar(0, 0, height, offset, active);
     }
 
