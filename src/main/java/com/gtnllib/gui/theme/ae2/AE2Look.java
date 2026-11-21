@@ -5,6 +5,7 @@ import org.jetbrains.annotations.Nullable;
 import com.cleanroommc.modularui.api.ITheme;
 import com.cleanroommc.modularui.api.IThemeApi;
 import com.cleanroommc.modularui.api.widget.IWidget;
+import com.cleanroommc.modularui.drawable.GuiDraw;
 import com.cleanroommc.modularui.screen.viewport.GuiContext;
 import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.theme.WidgetTheme;
@@ -35,6 +36,12 @@ public record AE2Look(@Nullable Variant variant) {
 
     /** Theme data entry that names the AE2 skin of a theme; themes without it get the plain look. */
     public static final WidgetThemeKey<Marker> KEY = Marker.register();
+    /** Pixels a list well's border takes on each side, under every look. */
+    public static final int WELL_EDGE = 1;
+    private static final int PLAIN_WELL = 0xFF8B8B8B, PLAIN_WELL_SHADOW = 0xFF373737, PLAIN_WELL_LIGHT = 0xFFFFFFFF,
+        PLAIN_TEXT = 0xFFFFFFFF, PLAIN_MUTED = 0xFF404040, PLAIN_SELECTED = 0xFF5A5A5A, PLAIN_HOVER = 0x30FFFFFF,
+        PLAIN_NESTED = 0x20000000, PLAIN_GOOD = 0xFF60E060, PLAIN_BAD = 0xFFFF6060, PLAIN_SCROLL_BAR = 0xFFC6C6C6,
+        LIGHT_SHADE = 0x18000000, DARK_SHADE = 0x18FFFFFF;
     private static final AE2Look PLAIN = new AE2Look(null);
     private static final AE2Look[] SKINNED = skinned();
 
@@ -116,6 +123,138 @@ public record AE2Look(@Nullable Variant variant) {
      */
     public boolean isAE2() {
         return variant != null;
+    }
+
+    /**
+     * Draws a list well: AE2's inset under an AE2 skin, Minecraft's sunken slot box (grey fill, dark top and left
+     * edges, white bottom and right edges) in the plain look. Rows inside start {@link #WELL_EDGE} pixels in. Client
+     * only.
+     *
+     * @param x      left edge
+     * @param y      top edge
+     * @param width  well width in pixels
+     * @param height well height in pixels
+     */
+    public void drawWell(int x, int y, int width, int height) {
+        if (variant != null) {
+            variant.inset.draw(x, y, width, height);
+            return;
+        }
+        GuiDraw.drawRect(x, y, width, height, PLAIN_WELL);
+        GuiDraw.drawRect(x, y, width - 1, 1, PLAIN_WELL_SHADOW);
+        GuiDraw.drawRect(x, y, 1, height - 1, PLAIN_WELL_SHADOW);
+        GuiDraw.drawRect(x + width - 1, y + 1, 1, height - 1, PLAIN_WELL_LIGHT);
+        GuiDraw.drawRect(x + 1, y + height - 1, width - 1, 1, PLAIN_WELL_LIGHT);
+    }
+
+    /**
+     * Returns the color of text in a list row: the skin's text color, or white in the plain look.
+     *
+     * @return ARGB color
+     */
+    public int listText() {
+        return variant == null ? PLAIN_TEXT : variant.colors.text();
+    }
+
+    /**
+     * Returns the color of a list row's detail on its right: the skin's secondary text color, or white in the plain
+     * look.
+     *
+     * @return ARGB color
+     */
+    public int listDetail() {
+        return variant == null ? PLAIN_TEXT : variant.colors.secondary();
+    }
+
+    /**
+     * Returns the color of section headers and of rows that cannot be used, drawn without a shadow: the skin's muted
+     * color, or Minecraft's dark grey in the plain look.
+     *
+     * @return ARGB color
+     */
+    public int listMuted() {
+        return variant == null ? PLAIN_MUTED : variant.colors.muted();
+    }
+
+    /**
+     * Reports whether list text other than headers and unavailable rows is drawn with a shadow, as Minecraft draws
+     * light text on its grey slots; only the plain look does.
+     *
+     * @return {@code true} in the plain look
+     */
+    public boolean listShadow() {
+        return variant == null;
+    }
+
+    /**
+     * Draws the background of a selected list row: AE2's selected row under an AE2 skin, a dark grey bar in the plain
+     * look. Client only.
+     *
+     * @param x      left edge
+     * @param y      top edge
+     * @param width  row width in pixels
+     * @param height row height in pixels
+     */
+    public void drawSelectedRow(int x, int y, int width, int height) {
+        if (variant != null) variant.listRowSelected.draw(x, y, width, height);
+        else GuiDraw.drawRect(x, y, width, height, PLAIN_SELECTED);
+    }
+
+    /**
+     * Returns the color of text on a selected row: the skin's text-on-selection color, or white in the plain look.
+     *
+     * @return ARGB color
+     */
+    public int selectedText() {
+        return variant == null ? PLAIN_TEXT : variant.highlightText;
+    }
+
+    /**
+     * Returns the color laid over a list row under the mouse: a faint shade that darkens a light skin and lightens a
+     * dark one, or a faint white in the plain look.
+     *
+     * @return ARGB color
+     */
+    public int hover() {
+        if (variant == null) return PLAIN_HOVER;
+        return variant.dark ? DARK_SHADE : LIGHT_SHADE;
+    }
+
+    /**
+     * Returns the color laid under nested rows, such as the options a list dropdown opens.
+     *
+     * @return ARGB color
+     */
+    public int nested() {
+        return variant == null ? PLAIN_NESTED : hover();
+    }
+
+    /**
+     * Returns the color of a row marked good, such as enough of a material.
+     *
+     * @return ARGB color
+     */
+    public int good() {
+        return variant == null ? PLAIN_GOOD : variant.colors.good();
+    }
+
+    /**
+     * Returns the color of a row marked bad, such as too little of a material.
+     *
+     * @return ARGB color
+     */
+    public int bad() {
+        return variant == null ? PLAIN_BAD : variant.colors.bad();
+    }
+
+    /**
+     * Returns the color of the thin scroll bar that lists with a look of their own draw in the plain look, the face
+     * color of Minecraft's scroll handle.
+     *
+     * @return ARGB color
+     */
+    public static int plainScrollBar() {
+        return PLAIN_SCROLL_BAR;
     }
 
     private static AE2Look[] skinned() {

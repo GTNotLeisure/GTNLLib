@@ -2,6 +2,7 @@ package com.gtnllib.gui;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -66,5 +67,25 @@ public class AE2LookTest {
             Variant.DARK.folder,
             new Marker(parent, new JsonObject(), null).skin(),
             "a theme that names no skin keeps its parent's");
+    }
+
+    @Test
+    public void listColors() {
+        for (Variant variant : Variant.values()) {
+            AE2Look look = AE2Look.of(variant);
+            assertEquals(variant.colors.text(), look.listText(), "AE2 rows use the skin's text color: " + variant);
+            assertEquals(variant.colors.bad(), look.bad(), "AE2 rows use the skin's bad color: " + variant);
+            assertEquals(look.hover(), look.nested(), "AE2 skins shade nested rows like hovered ones: " + variant);
+            assertFalse(look.listShadow(), "AE2 list text has no shadow: " + variant);
+        }
+        assertNotEquals(
+            AE2Look.of(Variant.LIGHT)
+                .hover(),
+            AE2Look.of(Variant.DARK)
+                .hover(),
+            "hover darkens a light skin and lightens a dark one");
+        AE2Look plain = AE2Look.plain();
+        assertTrue(plain.listShadow(), "plain list text has Minecraft's shadow on the grey slot");
+        assertNotEquals(plain.listText(), plain.listMuted(), "plain headers stand apart from row text");
     }
 }

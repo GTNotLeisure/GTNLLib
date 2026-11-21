@@ -177,31 +177,15 @@ public class AE2Panels {
     }
 
     /**
-     * Creates a list well: AE2's inset under AE2 themes, a flat rectangle otherwise. The well starts at the drawn
-     * area's left edge and has a fixed width, so a widget can be wider than its well, for example to leave room for
-     * the scroll bar that AE2 places beside it.
+     * Creates a list well in the screen's look, drawn by {@link AE2Look#drawWell}: AE2's inset under AE2 themes,
+     * Minecraft's sunken slot box otherwise. The well starts at the drawn area's left edge and has a fixed width, so a
+     * widget can be wider than its well, for example to leave room for the scroll bar that AE2 places beside it.
      *
-     * @param width      well width in pixels
-     * @param plainColor ARGB fill used outside the AE2 themes
+     * @param width well width in pixels
      * @return background drawable
      */
-    public static IDrawable well(int width, int plainColor) {
-        return (context, x, y, w, h, widgetTheme) -> drawWell(AE2Theme.active(context), x, y, width, h, plainColor);
-    }
-
-    /**
-     * Draws a list well directly, for widgets that draw their own content.
-     *
-     * @param variant    active AE2 variant, or {@code null} outside the AE2 themes
-     * @param x          left edge
-     * @param y          top edge
-     * @param width      well width in pixels
-     * @param height     well height in pixels
-     * @param plainColor ARGB fill used outside the AE2 themes
-     * @see #well(int, int)
-     */
-    public static void drawWell(@Nullable Variant variant, int x, int y, int width, int height, int plainColor) {
-        if (variant == null) GuiDraw.drawRect(x, y, width, height, plainColor);
-        else variant.inset.draw(x, y, width, height);
+    public static IDrawable well(int width) {
+        return (context, x, y, w, h, widgetTheme) -> AE2Look.of(context)
+            .drawWell(x, y, width, h);
     }
 }

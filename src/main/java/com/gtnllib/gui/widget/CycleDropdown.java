@@ -26,9 +26,8 @@ import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.menu.DropdownWidget;
 import com.cleanroommc.modularui.widgets.menu.Menu;
 import com.gtnllib.gui.theme.AE2Theme;
-import com.gtnllib.gui.theme.AE2Theme.Variant;
+import com.gtnllib.gui.theme.AE2Theme.ButtonText;
 import com.gtnllib.gui.theme.ae2.AE2Buttons;
-import com.gtnllib.gui.theme.ae2.AE2Draw;
 import com.gtnllib.gui.theme.ae2.AE2Look;
 import com.gtnllib.gui.theme.ae2.AE2Panels;
 import com.gtnllib.gui.widget.AE2ButtonDrawable.State;
@@ -40,9 +39,10 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
  * {@link #wheel(boolean) wheel(true)} it also cycles with the mouse wheel while the pointer is over it. It can be built
  * on either side, so it also works in GUIs the server opens.
  * <p>
- * Under AE2 themes the shown value reads like a button label: text widgets in it that have no color of their own,
- * and the caret, use the button text color of the current state, and the shown value sinks with the button face on
- * hover. The sinking uses the shown widget's {@code transform} hook, so a transform set on it by
+ * The shown value reads like a button label: text widgets in it that have no color of their own, and the caret, use
+ * the button text color and shadow of the current state, under AE2 themes and plain ones alike. Under AE2 themes the
+ * shown value also sinks with the button face on hover. The sinking uses the shown widget's {@code transform} hook, so
+ * a transform set on it by
  * {@code optionToWidget} is replaced.
  * <p>
  * While {@link #available(BooleanSupplier)} reports false the dropdown looks like a disabled button, shows no hover,
@@ -55,6 +55,7 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
     private static final int MENU_EDGE = 1, VALUE_INSET = 3, CARET_SPACE = AE2Theme.CARET_WIDTH + 4;
     private final List<T> choices = new ObjectArrayList<>();
     private final IDrawable disabledLook = AE2Buttons.button(this, () -> false, () -> false);
+    private final List<TextWidget<?>> labels = new ObjectArrayList<>();
     private BooleanSupplier available = () -> true;
     private T shown;
     private int menuWidth;
@@ -121,27 +122,21 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
             option.margin(VALUE_INSET, forSelectedDisplay ? CARET_SPACE : VALUE_INSET, 0, 0);
             if (forSelectedDisplay) {
                 option.transform((self, stack) -> stack.translate(0, labelSink()));
+                labels.clear();
                 followButtonText(option);
             }
         }
         return widget;
     }
 
-    // The shown value is a plain text widget, which MUI2 colors with the panel text color rather than the button's.
+    // The shown value is a plain text widget, which MUI2 draws in the panel's text style rather than the button's.
     private void followButtonText(IWidget widget) {
-        if (widget instanceof TextWidget<?>text && text.getColor() == null) text.color(this::labelColor);
+        if (widget instanceof TextWidget<?>text && text.getColor() == null) labels.add(text);
         for (IWidget child : widget.getChildren()) followButtonText(child);
     }
 
-    private int labelColor() {
-        Variant variant = AE2Look.of(this)
-            .variant();
-        if (variant != null) return variant.colors.button(State.of(this, isAvailable(), false));
-        if (!isAvailable()) return AE2Draw.panelTextColor(this, false);
-        return getPanel().getTheme()
-            .getFallback()
-            .getTheme()
-            .getTextColor();
+    private ButtonText labelText() {
+        return AE2Buttons.buttonText(this, State.of(this, isAvailable(), false), getArea().height);
     }
 
     private int labelSink() {
@@ -155,15 +150,14 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
     @Override
     public void draw(ModularGuiContext context, WidgetThemeEntry<?> widgetTheme) {
         super.draw(context, widgetTheme);
-        int color = AE2Look.of(this)
-            .isAE2() || !isAvailable() ? labelColor()
-                : widgetTheme.getTheme()
-                    .getTextColor();
+        ButtonText text = labelText();
+        for (TextWidget<?> label : labels) label.color(text.color())
+            .shadow(text.shadow());
         AE2Panels.drawCaret(
             getArea().width - CARET_SPACE + 1,
             (getArea().height - AE2Theme.CARET_HEIGHT) / 2 + labelSink(),
             isOpen(),
-            color);
+            text.color());
     }
 
     @Override

@@ -11,7 +11,6 @@ import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.item.ItemStack;
 
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
 import com.cleanroommc.modularui.api.UpOrDown;
@@ -40,7 +39,8 @@ import it.unimi.dsi.fastutil.ints.IntList;
  * {@link NumberEntry} children placed over the visible number rows, so only those rows cost a widget.
  * <p>
  * Under an AE2 theme the list draws as an AE2 inset with AE2 list-row highlights and switches, and AE2's scroll bar
- * beside the inset; otherwise it keeps its own dark look with MUI2's check boxes and a thin bar. The scroll bar is a
+ * beside the inset; otherwise it draws as Minecraft's sunken slot box with MUI2's check boxes and a thin bar, in the
+ * colors of {@link AE2Look#plain()}. The scroll bar is a
  * {@link RowScrollbar} child: the wheel moves one row, as in AE2's network status and
  * crafting CPU screens. The wheel scrolls the list everywhere, also over number fields, unless
  * {@link #numberWheel(boolean) numberWheel(true)} lets it step the field under the pointer instead.
@@ -48,8 +48,11 @@ import it.unimi.dsi.fastutil.ints.IntList;
 public class IconRowList extends ParentWidget<IconRowList> implements Interactable, RecipeViewerIngredientProvider {
 
     public static final int ROW = 18, SCROLLBAR = 3, INDENT = 10, CARET = 9, NUMBER_WIDTH = 64;
-    public static final int BACKGROUND = 0xFF1C1C22, NESTED = 0xFF26262E, HOVER = 0x30FFFFFF, SELECTED = 0x5040A0FF,
-        BAR = 0xFF808090, HEADER = 0xFFA0A0A8, TEXT = 0xFFE8E8E8, ACCENT = 0xFFFFD040;
+    /**
+     * Row colors that stand for the look's own colors: a row in {@code TEXT} uses the look's list text color, and
+     * header rows carry {@code HEADER}.
+     */
+    public static final int HEADER = 0xFFA0A0A8, TEXT = 0xFFE8E8E8;
     /** Row colors that AE2 themes replace with their own good and bad colors. */
     public static final int GOOD = 0xFF60E060, BAD = 0xFFFF6060;
     /**
@@ -57,7 +60,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
      * background, eight pixels from the inset's edge, as in AE2's network status and crafting CPU screens.
      */
     public static final int AE2_SCROLL_COLUMN = AE2Theme.BIG_SCROLLER_WIDTH + 5;
-    private static final int AE2_GUTTER = AE2_SCROLL_COLUMN + 1, LIGHT_SHADE = 0x18000000, DARK_SHADE = 0x18FFFFFF,
+    private static final int AE2_GUTTER = AE2_SCROLL_COLUMN + 1, PLAIN_GUTTER = SCROLLBAR + AE2Look.WELL_EDGE,
         HEADER_LINE_ALPHA = 0x40000000, ICON = 16, TEXT_HEIGHT = 8, MIN_ROW = ICON, MIN_NUMBER_WIDTH = 32;
     private static final float INACTIVE_ALPHA = 0.5F;
 
@@ -201,7 +204,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
     private int scroll, edge, gutter = SCROLLBAR, rowHeight = ROW, numberWidth = NUMBER_WIDTH;
     private boolean revealSelected, numberWheel;
     private final RowScrollbar scrollbar = new RowScrollbar(() -> scroll, this::maxScroll, row -> scroll = row)
-        .plainBar(BAR, this::visibleRows);
+        .plainBar(AE2Look.plainScrollBar(), this::visibleRows);
 
     public IconRowList(Supplier<List<Row>> source) {
         this.source = source;
@@ -387,11 +390,12 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
     }
 
     private void layout(boolean themed) {
-        int nextEdge = themed ? 1 : 0, nextGutter = themed ? AE2_GUTTER : SCROLLBAR;
-        if (nextEdge == edge && nextGutter == gutter) return;
-        edge = nextEdge;
+        int nextGutter = themed ? AE2_GUTTER : PLAIN_GUTTER;
+        if (edge == AE2Look.WELL_EDGE && nextGutter == gutter) return;
+        edge = AE2Look.WELL_EDGE;
         gutter = nextGutter;
-        scrollbar.width(themed ? AE2Theme.BIG_SCROLLER_WIDTH : SCROLLBAR);
+        scrollbar.width(themed ? AE2Theme.BIG_SCROLLER_WIDTH : SCROLLBAR)
+            .right(themed ? 0 : AE2Look.WELL_EDGE);
         for (NumberEntry entry : entries) entry.right(gutter + 2);
         entryTops.replaceAll(top -> -1);
         placeEntries();
@@ -419,39 +423,30 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
 
     @Override
     public void draw(ModularGuiContext context, WidgetThemeEntry<?> widgetTheme) {
-        Variant variant = AE2Look.of(this)
-            .variant();
+        AE2Look look = AE2Look.of(this);
+        Variant variant = look.variant();
         layout(variant != null);
         int width = getArea().width, height = getArea().height;
-        AE2Panels.drawWell(variant, 0, 0, variant == null ? width : width - AE2_SCROLL_COLUMN, height, BACKGROUND);
+        look.drawWell(0, 0, variant == null ? width : width - AE2_SCROLL_COLUMN, height);
         FontRenderer font = Minecraft.getMinecraft().fontRenderer;
         int hovered = hoveredRow(), visible = visibleRows();
         int rowRight = width - gutter, textRight = rowRight - 2;
-        int shade = hoverColor(variant);
         for (int i = 0; i < visible && scroll + i < rows.size(); i++) {
             int index = scroll + i;
             Row row = rows.get(index);
             int top = edge + i * rowHeight, left = edge + (nested[index] ? INDENT : 0);
-            boolean usable = row.available(), lit = usable && index == hovered;
-            int muted = variant == null ? HEADER : variant.colors.muted();
-            int textColor = usable ? color(variant, row.color(), variant == null ? TEXT : variant.colors.text())
-                : muted;
+            boolean usable = row.available(), lit = usable && index == hovered, shadow = usable && look.listShadow();
+            int textColor = usable ? color(look, row.color(), look.listText()) : look.listMuted();
             int detailColor = usable
-                ? color(
-                    variant,
-                    row.detailColor() != 0 ? row.detailColor() : row.color(),
-                    variant == null ? TEXT : variant.colors.secondary())
-                : muted;
-            if (nested[index])
-                GuiDraw.drawRect(edge, top, rowRight - edge, rowHeight, variant == null ? NESTED : shade);
+                ? color(look, row.detailColor() != 0 ? row.detailColor() : row.color(), look.listDetail())
+                : look.listMuted();
+            if (nested[index]) GuiDraw.drawRect(edge, top, rowRight - edge, rowHeight, look.nested());
             if (row.selected()) {
-                if (variant == null) GuiDraw.drawRect(left, top, rowRight - left, rowHeight, SELECTED);
-                else {
-                    variant.listRowSelected.draw(left, top, rowRight - left, rowHeight);
-                    textColor = detailColor = variant.highlightText;
-                }
+                look.drawSelectedRow(left, top, rowRight - left, rowHeight);
+                textColor = detailColor = look.selectedText();
             }
-            if (lit && !row.header() && !row.selected()) GuiDraw.drawRect(left, top, rowRight - left, rowHeight, shade);
+            if (lit && !row.header() && !row.selected())
+                GuiDraw.drawRect(left, top, rowRight - left, rowHeight, look.hover());
             int textLeft = left + 3;
             if (row.icon() != null) {
                 new ItemDrawable(row.icon())
@@ -466,39 +461,28 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
                     top + (rowHeight - AE2Theme.CARET_HEIGHT) / 2,
                     row.text()
                         .equals(expanded),
-                    variant == null ? ACCENT : textColor);
+                    textColor);
                 right -= CARET;
             }
             if (row.toggle() != null) {
                 GlStateManager.color(1, 1, 1, usable ? 1 : INACTIVE_ALPHA);
-                right -= drawSwitch(variant, textRight, top, rowHeight, row.toggle(), lit) + 3;
+                right -= drawSwitch(look, textRight, top, rowHeight, row.toggle(), lit) + 3;
                 GlStateManager.color(1, 1, 1, 1);
             }
             String detail = row.detail() == null ? "" : row.detail();
             int detailWidth = detail.isEmpty() ? 0 : font.getStringWidth(detail) + 3;
             if (!detail.isEmpty())
-                font.drawString(detail, right - detailWidth + 3, top + textTop(rowHeight), detailColor);
+                font.drawString(detail, right - detailWidth + 3, top + textTop(rowHeight), detailColor, shadow);
             String text = font.trimStringToWidth(row.text(), Math.max(0, right - detailWidth - textLeft));
-            if (row.header()) drawHeader(variant, font, text, textLeft, top, rowHeight, rowRight);
-            else font.drawString(text, textLeft, top + textTop(rowHeight), textColor);
+            if (row.header()) drawHeader(look, font, text, textLeft, top, rowHeight, rowRight);
+            else font.drawString(text, textLeft, top + textTop(rowHeight), textColor, shadow);
         }
         GL11.glColor4f(1f, 1f, 1f, 1f);
     }
 
-    private static int color(Variant variant, int color, int plain) {
+    private static int color(AE2Look look, int color, int plain) {
         if (color == TEXT) return plain;
-        if (variant == null) return color;
-        return color == GOOD ? variant.colors.good() : color == BAD ? variant.colors.bad() : color;
-    }
-
-    /**
-     * Returns the color laid over a row under the mouse.
-     *
-     * @param variant active AE2 variant, or {@code null} for the list's own dark look
-     * @return ARGB color
-     */
-    public static int hoverColor(@Nullable Variant variant) {
-        return variant == null ? HOVER : variant.dark ? DARK_SHADE : LIGHT_SHADE;
+        return color == GOOD ? look.good() : color == BAD ? look.bad() : color;
     }
 
     /**
@@ -516,7 +500,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
      * Draws a row's on/off switch against the row's right end, centered in the row; see
      * {@link AE2Switches#drawSwitch}.
      *
-     * @param variant   active AE2 variant, or {@code null} outside the AE2 themes
+     * @param look      look of the panel the row is in
      * @param right     pixel the switch ends at
      * @param top       top of the row
      * @param rowHeight row height in pixels, {@link #ROW} for the standard rows
@@ -524,17 +508,17 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
      * @param hovered   whether the row is under the mouse
      * @return width of the drawn switch
      */
-    public static int drawSwitch(@Nullable Variant variant, int right, int top, int rowHeight, boolean on,
-        boolean hovered) {
-        int width = variant == null ? AE2Theme.SWITCH_HEIGHT : AE2Theme.SWITCH_WIDTH;
+    public static int drawSwitch(AE2Look look, int right, int top, int rowHeight, boolean on, boolean hovered) {
+        int width = look.isAE2() ? AE2Theme.SWITCH_WIDTH : AE2Theme.SWITCH_HEIGHT;
         return AE2Switches
-            .drawSwitch(variant, right - width, top + (rowHeight - AE2Theme.SWITCH_HEIGHT) / 2, on, hovered);
+            .drawSwitch(look.variant(), right - width, top + (rowHeight - AE2Theme.SWITCH_HEIGHT) / 2, on, hovered);
     }
 
     /**
-     * Draws a section header: muted text followed, under AE2 themes, by a divider line up to the row's end.
+     * Draws a section header: text in the look's muted color, followed under AE2 themes by a divider line up to the
+     * row's end.
      *
-     * @param variant   active AE2 variant, or {@code null} for the list's own dark look
+     * @param look      look of the panel the row is in
      * @param font      font to draw with
      * @param text      header text, already cut to the available width
      * @param left      left edge of the text
@@ -542,10 +526,11 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
      * @param rowHeight row height in pixels, {@link #ROW} for the standard rows
      * @param right     right end of the row
      */
-    public static void drawHeader(@Nullable Variant variant, FontRenderer font, String text, int left, int top,
-        int rowHeight, int right) {
+    public static void drawHeader(AE2Look look, FontRenderer font, String text, int left, int top, int rowHeight,
+        int right) {
         int textY = top + textTop(rowHeight);
-        AE2Draw.text(text, left, textY, variant == null ? HEADER : variant.colors.muted(), false);
+        AE2Draw.text(text, left, textY, look.listMuted(), false);
+        Variant variant = look.variant();
         if (variant == null) return;
         int start = left + font.getStringWidth(text) + 4, width = right - 4 - start;
         if (width <= 0) return;

@@ -58,7 +58,7 @@ public class ServerWidgetScenario implements Runnable {
         AE2Switches.toggleSwitch(plain, () -> true, () -> "Auto", () -> true);
         AE2Switches.radio(plain, () -> true, () -> "Tier", () -> true);
         AE2Panels.listRow(() -> false);
-        AE2Panels.well(60, 0);
+        AE2Panels.well(60);
         AE2Panels.panelBackground(0, 0);
         ActionButton.text(() -> "Apply", () -> {})
             .available(() -> false)
