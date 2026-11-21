@@ -13,11 +13,12 @@ import com.gtnllib.gui.theme.ae2.AE2Buttons;
 import com.gtnllib.gui.theme.ae2.IconSource;
 
 /**
- * A button drawn by the active theme: a text button ({@link AE2Buttons#button} with {@link AE2Buttons#label}) or a
- * toolbar icon button ({@link AE2Buttons#iconButton}). It reacts to the left mouse button only, unless a mouse handler
- * set afterwards replaces the action. While it is not available it looks disabled, shows no hover and swallows every
- * mouse button, so clicks never reach a widget below it. An icon button takes the mouse on its whole frame; AE2's react
- * only on the 16-by-16 icon square. It can be built on either side, so it also works in GUIs the server opens.
+ * A button drawn by the active theme: a text button ({@link AE2Buttons#button} with {@link AE2Buttons#label}), a
+ * toolbar icon button ({@link AE2Buttons#iconButton}) or a tab button ({@link AE2Buttons#tabButton}). It reacts to the
+ * left mouse button only, unless a mouse handler set afterwards replaces the action. While it is not available it
+ * looks disabled, shows no hover and swallows every mouse button, so clicks never reach a widget below it. An icon
+ * button takes the mouse on its whole frame; AE2's react only on the 16-by-16 icon square. It can be built on either
+ * side, so it also works in GUIs the server opens.
  */
 public class ActionButton extends ButtonWidget<ActionButton> {
 
@@ -55,6 +56,24 @@ public class ActionButton extends ButtonWidget<ActionButton> {
         return button.background(look)
             .hoverBackground(look)
             .size(AE2Theme.ICON_BUTTON_WIDTH, AE2Theme.ICON_BUTTON_HEIGHT)
+            .onClick(action);
+    }
+
+    /**
+     * Creates a tab button of {@link AE2Theme#TAB_BUTTON_SIZE} pixels square ({@link AE2Buttons#tabButton}): AE2's
+     * framed icon button that sits on a panel's top edge, such as the button that returns from a sub-screen, which AE2
+     * places five pixels above the panel. Other themes draw a plain button with the icon.
+     *
+     * @param icon   supplier of the icon, read every frame
+     * @param action run on a left click while the button is available
+     * @return the button
+     */
+    public static ActionButton tab(Supplier<? extends IconSource> icon, Runnable action) {
+        ActionButton button = new ActionButton();
+        IDrawable look = AE2Buttons.tabButton(button, icon, button::isAvailable);
+        return button.background(look)
+            .hoverBackground(look)
+            .size(AE2Theme.TAB_BUTTON_SIZE, AE2Theme.TAB_BUTTON_SIZE)
             .onClick(action);
     }
 

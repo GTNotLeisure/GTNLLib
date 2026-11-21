@@ -14,6 +14,7 @@ import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.utils.JsonHelper;
 import com.cleanroommc.modularui.widget.Widget;
 import com.google.gson.JsonObject;
+import com.gtnllib.gui.theme.SkinDrawable;
 import com.gtnllib.utils.MathUtils;
 
 public class FillBar extends Widget<FillBar> {

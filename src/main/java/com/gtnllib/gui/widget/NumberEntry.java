@@ -28,8 +28,8 @@ import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widget.sizer.Unit.Measure;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import com.gtnllib.gui.theme.AE2Theme;
-import com.gtnllib.gui.theme.AE2Theme.Variant;
 import com.gtnllib.gui.theme.ae2.AE2Look;
+import com.gtnllib.gui.theme.ae2.AE2Variant;
 
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 
@@ -97,7 +97,7 @@ public class NumberEntry extends ParentWidget<NumberEntry> {
      * @deprecated use {@link #NumberEntry()}
      */
     @Deprecated
-    public NumberEntry(@Nullable Variant variant) {
+    public NumberEntry(@Nullable AE2Variant variant) {
         this();
     }
 
@@ -424,7 +424,7 @@ public class NumberEntry extends ParentWidget<NumberEntry> {
 
         @Override
         public @Nullable IDrawable getThemeBackground(WidgetThemeEntry<?> widgetTheme, WidgetTheme activeTheme) {
-            Variant shown = isAvailable() ? null
+            AE2Variant shown = isAvailable() ? null
                 : AE2Look.of(this)
                     .variant();
             return shown == null ? super.getThemeBackground(widgetTheme, activeTheme) : shown.textFieldDisabled;
@@ -440,7 +440,7 @@ public class NumberEntry extends ParentWidget<NumberEntry> {
         }
 
         private int errorColor() {
-            Variant variant = AE2Look.of(this)
+            AE2Variant variant = AE2Look.of(this)
                 .variant();
             return variant == null ? PLAIN_ERROR : variant.colors.error();
         }
@@ -454,9 +454,9 @@ public class NumberEntry extends ParentWidget<NumberEntry> {
 
         @Override
         public void draw(ModularGuiContext context, WidgetThemeEntry<?> widgetTheme) {
-            Variant variant = AE2Look.of(this)
+            AE2Variant variant = AE2Look.of(this)
                 .variant();
-            (variant == null ? Variant.LIGHT : variant).invalid.draw(0, 0, AE2Theme.ICON_SIZE, AE2Theme.ICON_SIZE);
+            (variant == null ? AE2Variant.LIGHT : variant).invalid.draw(0, 0, AE2Theme.ICON_SIZE, AE2Theme.ICON_SIZE);
         }
     }
 }

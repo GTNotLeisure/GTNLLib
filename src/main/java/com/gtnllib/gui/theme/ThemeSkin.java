@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 import com.cleanroommc.modularui.api.drawable.IDrawable;
-import com.gtnllib.gui.widget.SkinDrawable;
 
 public class ThemeSkin {
 

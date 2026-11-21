@@ -14,11 +14,9 @@ import com.cleanroommc.modularui.drawable.UITexture;
 import com.cleanroommc.modularui.screen.viewport.GuiContext;
 import com.cleanroommc.modularui.theme.WidgetTheme;
 import com.cleanroommc.modularui.utils.GlStateManager;
-import com.gtnllib.gui.theme.AE2Theme.Icon;
-import com.gtnllib.gui.theme.AE2Theme.Variant;
 
 /**
- * What a toolbar button, a tab or a page tab shows in its 16-by-16 icon square: one of the built-in {@link Icon}s,
+ * What a toolbar button, a tab or a page tab shows in its 16-by-16 icon square: one of the built-in {@link AE2Icon}s,
  * which follow the AE2 skin, or any texture or item through {@link #of(IDrawable)} and {@link #of(ItemStack)}.
  */
 public interface IconSource {
@@ -33,7 +31,7 @@ public interface IconSource {
      * @param y       top edge
      * @param enabled whether the control is usable; built-in icons and textures fade when it is not
      */
-    void drawIcon(GuiContext context, WidgetTheme theme, @Nullable Variant variant, int x, int y, boolean enabled);
+    void drawIcon(GuiContext context, WidgetTheme theme, @Nullable AE2Variant variant, int x, int y, boolean enabled);
 
     /**
      * Wraps a MUI2 drawable, such as a {@link UITexture} of a mod's own icon sheet, drawn at 16 by 16 pixels in

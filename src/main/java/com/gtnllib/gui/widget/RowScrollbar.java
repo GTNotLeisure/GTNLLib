@@ -14,9 +14,9 @@ import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.theme.WidgetThemeEntry;
 import com.cleanroommc.modularui.widget.Widget;
 import com.gtnllib.gui.theme.AE2Theme;
-import com.gtnllib.gui.theme.AE2Theme.Variant;
 import com.gtnllib.gui.theme.ae2.AE2Look;
 import com.gtnllib.gui.theme.ae2.AE2Scrollbars;
+import com.gtnllib.gui.theme.ae2.AE2Variant;
 
 /**
  * A vertical scroll bar that stands on its own, like AE2's {@code Scrollbar}, for widgets that draw or place their
@@ -36,7 +36,8 @@ import com.gtnllib.gui.theme.ae2.AE2Scrollbars;
  * <p>
  * The look follows the theme of the screen when drawn. Under AE2 themes it is AE2's groove with the fixed 12-by-15
  * handle, or with {@link #small(boolean)} the 5-pixel groove and 7-by-15 handle; make it
- * {@link AE2Theme#BIG_SCROLLER_WIDTH} or {@link AE2Theme#SCROLLBAR_WIDTH} pixels wide. Other themes get the vanilla
+ * {@link AE2Theme#BIG_SCROLLER_WIDTH} or {@link AE2Theme#SMALL_SCROLLER_WIDTH} pixels wide. Other themes get the
+ * vanilla
  * creative-inventory scroll bar, {@code AE2Scrollbars.scrollbarWidth(null)} pixels wide, or a {@link #plainBar plain
  * bar}.
  * The groove border takes one pixel at the top and bottom, so the bar must be at least
@@ -150,32 +151,32 @@ public class RowScrollbar extends Widget<RowScrollbar> implements Interactable {
         if (clamped != current) scrollTo.accept(clamped);
     }
 
-    private boolean plain(@Nullable Variant variant) {
+    private boolean plain(@Nullable AE2Variant variant) {
         return variant == null && plainVisible != null;
     }
 
-    private int border(@Nullable Variant variant) {
+    private int border(@Nullable AE2Variant variant) {
         return plain(variant) ? 0 : BORDER;
     }
 
-    private int handleLength(@Nullable Variant variant) {
+    private int handleLength(@Nullable AE2Variant variant) {
         if (!plain(variant)) return AE2Theme.SCROLLER_HEIGHT;
         int visible = Math.max(1, plainVisible.getAsInt()), height = getArea().height;
         return Math.min(height, Math.max(PLAIN_MIN_HANDLE, height * visible / (max() + visible)));
     }
 
-    private int travel(@Nullable Variant variant) {
+    private int travel(@Nullable AE2Variant variant) {
         return getArea().height - 2 * border(variant) - handleLength(variant);
     }
 
-    private int handleOffset(@Nullable Variant variant) {
+    private int handleOffset(@Nullable AE2Variant variant) {
         int max = max(), travel = travel(variant);
         return max == 0 || travel <= 0 ? 0 : (int) ((long) travel * position() / max);
     }
 
     @Override
     public void draw(ModularGuiContext context, WidgetThemeEntry<?> widgetTheme) {
-        Variant variant = AE2Look.of(this)
+        AE2Variant variant = AE2Look.of(this)
             .variant();
         boolean active = max() > 0;
         int height = getArea().height, offset = handleOffset(variant);
@@ -191,7 +192,7 @@ public class RowScrollbar extends Widget<RowScrollbar> implements Interactable {
         pageDirection = 0;
         if (mouseButton != 0) return Result.IGNORE;
         if (max() == 0) return Result.SUCCESS;
-        Variant variant = AE2Look.of(this)
+        AE2Variant variant = AE2Look.of(this)
             .variant();
         int mouseY = getContext().getMouseY(), top = border(variant) + handleOffset(variant),
             length = handleLength(variant);
@@ -218,7 +219,7 @@ public class RowScrollbar extends Widget<RowScrollbar> implements Interactable {
     @Override
     public void onMouseDrag(int mouseButton, long timeSinceClick) {
         if (grab < 0 || mouseButton != 0) return;
-        Variant variant = AE2Look.of(this)
+        AE2Variant variant = AE2Look.of(this)
             .variant();
         int max = max(), travel = travel(variant), mouseY = getContext().getMouseY();
         if (max == 0 || travel <= 0) return;

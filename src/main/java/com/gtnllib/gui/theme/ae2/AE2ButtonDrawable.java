@@ -1,4 +1,4 @@
-package com.gtnllib.gui.widget;
+package com.gtnllib.gui.theme.ae2;
 
 import java.util.Map;
 
@@ -32,7 +32,7 @@ public class AE2ButtonDrawable implements IDrawable, IJsonSerializable {
         DrawableSerialization.registerDrawableType(
             TYPE,
             AE2ButtonDrawable.class,
-            json -> new AE2ButtonDrawable(State.NORMAL, AE2Theme.Variant.LIGHT.folder));
+            json -> new AE2ButtonDrawable(State.NORMAL, AE2Variant.LIGHT.folder));
     }
 
     private State state;

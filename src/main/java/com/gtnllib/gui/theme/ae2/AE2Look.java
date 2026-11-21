@@ -16,7 +16,6 @@ import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.utils.JsonHelper;
 import com.google.gson.JsonObject;
 import com.gtnllib.gui.theme.AE2Theme;
-import com.gtnllib.gui.theme.AE2Theme.Variant;
 
 /**
  * The look GTNLLib's AE2-styled widgets take in one panel: one of the AE2 skins, or the plain look every other theme
@@ -32,7 +31,7 @@ import com.gtnllib.gui.theme.AE2Theme.Variant;
  *
  * @param variant AE2 skin, or {@code null} for the plain look
  */
-public record AE2Look(@Nullable Variant variant) {
+public record AE2Look(@Nullable AE2Variant variant) {
 
     /** Theme data entry that names the AE2 skin of a theme; themes without it get the plain look. */
     public static final WidgetThemeKey<Marker> KEY = Marker.register();
@@ -60,7 +59,7 @@ public record AE2Look(@Nullable Variant variant) {
      * @param variant AE2 skin, or {@code null} for the plain look
      * @return the shared look of that skin
      */
-    public static AE2Look of(@Nullable Variant variant) {
+    public static AE2Look of(@Nullable AE2Variant variant) {
         return variant == null ? PLAIN : SKINNED[variant.ordinal()];
     }
 
@@ -98,7 +97,7 @@ public record AE2Look(@Nullable Variant variant) {
     public static AE2Look of(@Nullable ITheme theme) {
         if (theme == null) return PLAIN;
         WidgetThemeEntry<Marker> entry = theme.getWidgetTheme(KEY);
-        Variant marked = entry == null ? null
+        AE2Variant marked = entry == null ? null
             : skin(
                 entry.getTheme()
                     .skin());
@@ -111,8 +110,8 @@ public record AE2Look(@Nullable Variant variant) {
      * @param folder skin folder name below {@code textures/gui/skin/}, such as {@code ae2_dark}
      * @return the matching skin, or {@code null} for an empty or unknown name
      */
-    public static @Nullable Variant skin(@Nullable String folder) {
-        for (Variant variant : Variant.values()) if (variant.folder.equals(folder)) return variant;
+    public static @Nullable AE2Variant skin(@Nullable String folder) {
+        for (AE2Variant variant : AE2Variant.values()) if (variant.folder.equals(folder)) return variant;
         return null;
     }
 
@@ -258,9 +257,9 @@ public record AE2Look(@Nullable Variant variant) {
     }
 
     private static AE2Look[] skinned() {
-        Variant[] variants = Variant.values();
+        AE2Variant[] variants = AE2Variant.values();
         AE2Look[] looks = new AE2Look[variants.length];
-        for (Variant variant : variants) looks[variant.ordinal()] = new AE2Look(variant);
+        for (AE2Variant variant : variants) looks[variant.ordinal()] = new AE2Look(variant);
         return looks;
     }
 

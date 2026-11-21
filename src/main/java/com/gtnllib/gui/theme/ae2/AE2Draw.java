@@ -19,9 +19,7 @@ import com.cleanroommc.modularui.theme.WidgetTheme;
 import com.cleanroommc.modularui.theme.WidgetThemeEntry;
 import com.cleanroommc.modularui.utils.GlStateManager;
 import com.cleanroommc.modularui.utils.Platform;
-import com.gtnllib.gui.theme.AE2Theme.Icon;
-import com.gtnllib.gui.theme.AE2Theme.Variant;
-import com.gtnllib.gui.widget.AE2ButtonDrawable.State;
+import com.gtnllib.gui.theme.ae2.AE2ButtonDrawable.State;
 
 /**
  * Drawing helpers shared by the AE2 painters: text, the theme a widget is drawn with, and the plain MUI2 button and
@@ -74,7 +72,7 @@ public class AE2Draw {
     }
 
     private static int panelTextColor(@Nullable ITheme theme, boolean available) {
-        Variant variant = AE2Look.of(theme)
+        AE2Variant variant = AE2Look.of(theme)
             .variant();
         if (variant != null) return available ? variant.colors.text() : variant.colors.muted();
         if (!available) return DISABLED_TEXT;
@@ -183,9 +181,9 @@ public class AE2Draw {
      * @param y     top edge
      * @param color RGB tint; the alpha byte is ignored
      */
-    public static void drawTintedIcon(Icon icon, int x, int y, int color) {
+    public static void drawTintedIcon(AE2Icon icon, int x, int y, int color) {
         GlStateManager.color((color >> 16 & 255) / 255f, (color >> 8 & 255) / 255f, (color & 255) / 255f, 1);
-        icon.texture(Variant.LIGHT)
+        icon.texture(AE2Variant.LIGHT)
             .draw(x, y, ICON_SIZE, ICON_SIZE);
         GlStateManager.color(1, 1, 1, 1);
     }

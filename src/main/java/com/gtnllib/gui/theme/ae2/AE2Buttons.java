@@ -23,10 +23,7 @@ import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.utils.GlStateManager;
 import com.cleanroommc.modularui.widget.Widget;
 import com.gtnllib.gui.theme.AE2Theme;
-import com.gtnllib.gui.theme.AE2Theme.ButtonText;
-import com.gtnllib.gui.theme.AE2Theme.Variant;
-import com.gtnllib.gui.widget.AE2ButtonDrawable;
-import com.gtnllib.gui.widget.AE2ButtonDrawable.State;
+import com.gtnllib.gui.theme.ae2.AE2ButtonDrawable.State;
 
 /**
  * AE2 text buttons, toolbar icon buttons, tabs and page tabs as drawables, resolved against the theme of the widget's
@@ -51,7 +48,7 @@ public class AE2Buttons {
         return (context, x, y, width, height, theme) -> {
             State state = State.of(widget, available.getAsBoolean(), selected.getAsBoolean());
             ITheme panel = AE2Draw.themeOf(widget, context);
-            Variant variant = AE2Look.of(panel)
+            AE2Variant variant = AE2Look.of(panel)
                 .variant();
             if (variant != null) AE2ButtonDrawable.draw(variant.folder, state, x, y, width, height);
             else AE2Draw.themeButton(context, panel, state, x, y, width, height);
@@ -84,7 +81,7 @@ public class AE2Buttons {
     }
 
     private static ButtonText buttonText(@Nullable ITheme theme, State state, int height) {
-        Variant variant = AE2Look.of(theme)
+        AE2Variant variant = AE2Look.of(theme)
             .variant();
         if (variant != null)
             return new ButtonText(variant.colors.button(state), AE2ButtonDrawable.textY(state, height), false);
@@ -168,7 +165,7 @@ public class AE2Buttons {
         return (context, x, y, width, height, theme) -> {
             boolean on = available.getAsBoolean(), lit = on && widget.isHovering(), chosen = selected.getAsBoolean();
             ITheme panel = AE2Draw.themeOf(widget, context);
-            Variant variant = AE2Look.of(panel)
+            AE2Variant variant = AE2Look.of(panel)
                 .variant();
             IconSource shown = icon.get();
             if (variant == null) {
@@ -205,7 +202,7 @@ public class AE2Buttons {
         return (context, x, y, width, height, theme) -> {
             boolean on = available.getAsBoolean(), lit = on && widget.isHovering();
             ITheme panel = AE2Draw.themeOf(widget, context);
-            Variant variant = AE2Look.of(panel)
+            AE2Variant variant = AE2Look.of(panel)
                 .variant();
             IconSource shown = icon.get();
             if (variant == null) {
@@ -258,7 +255,7 @@ public class AE2Buttons {
         return (context, x, y, width, height, theme) -> {
             boolean chosen = selected.getAsBoolean(), on = available.getAsBoolean(), lit = on && widget.isHovering();
             ITheme panel = AE2Draw.themeOf(widget, context);
-            Variant variant = AE2Look.of(panel)
+            AE2Variant variant = AE2Look.of(panel)
                 .variant();
             IconSource shown = icon.get();
             if (variant == null) {

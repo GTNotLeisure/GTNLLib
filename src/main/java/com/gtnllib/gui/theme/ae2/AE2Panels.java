@@ -15,9 +15,6 @@ import com.cleanroommc.modularui.drawable.GuiDraw;
 import com.cleanroommc.modularui.screen.viewport.GuiContext;
 import com.cleanroommc.modularui.theme.WidgetTheme;
 import com.cleanroommc.modularui.utils.GlStateManager;
-import com.gtnllib.gui.theme.AE2Theme;
-import com.gtnllib.gui.theme.AE2Theme.Variant;
-import com.gtnllib.gui.widget.AE2ButtonDrawable.State;
 
 /**
  * AE2 panel pieces: panel backgrounds, list wells and rows, the vertical toolbar strip, tables and the dropdown caret.
@@ -37,7 +34,7 @@ public class AE2Panels {
      * @see #BUTTON_BAR_MARGIN
      * @see #BUTTON_BAR_SPACING
      */
-    public static void drawButtonBar(Variant variant, int x, int y, int width, int height) {
+    public static void drawButtonBar(AE2Variant variant, int x, int y, int width, int height) {
         GlStateManager.color(1, 1, 1, 1);
         variant.buttonBar.draw(x, y, width, height);
     }
@@ -82,7 +79,8 @@ public class AE2Panels {
      * @param cellWidth  positive inner cell width
      * @param cellHeight positive inner cell height
      */
-    public static void drawTable(Variant variant, int x, int y, int columns, int rows, int cellWidth, int cellHeight) {
+    public static void drawTable(AE2Variant variant, int x, int y, int columns, int rows, int cellWidth,
+        int cellHeight) {
         int width = tableSize(columns, cellWidth), height = tableSize(rows, cellHeight);
         GlStateManager.color(1, 1, 1, 1);
         variant.inset.draw(x, y, width, height);
@@ -102,28 +100,19 @@ public class AE2Panels {
     }
 
     /**
-     * Creates a selectable list-row background resolved against the screen's theme at draw time.
+     * Creates a selectable list-row background resolved against the screen's theme at draw time. A selected row looks
+     * like a selected row of {@code IconRowList} ({@link AE2Look#drawSelectedRow}); an unselected row is AE2's framed
+     * row under AE2 themes and left clear otherwise.
      *
      * @param selected selection supplier; a hover supplier can be used for hover highlighting
-     * @return an AE2 nine-slice row or the current MUI2 button background
+     * @return the row background drawable
      */
     public static IDrawable listRow(BooleanSupplier selected) {
         return (context, x, y, width, height, theme) -> {
-            boolean lit = selected.getAsBoolean();
-            Variant variant = AE2Theme.active(context);
-            if (variant == null) {
-                AE2Draw.themeButton(
-                    context,
-                    AE2Draw.screenTheme(context),
-                    lit ? State.HOVER : State.NORMAL,
-                    x,
-                    y,
-                    width,
-                    height);
-                return;
-            }
+            AE2Look look = AE2Look.of(context);
             GlStateManager.color(1, 1, 1, 1);
-            (lit ? variant.listRowSelected : variant.listRow).draw(x, y, width, height);
+            if (selected.getAsBoolean()) look.drawSelectedRow(x, y, width, height);
+            else if (look.variant() != null) look.variant().listRow.draw(x, y, width, height);
         };
     }
 

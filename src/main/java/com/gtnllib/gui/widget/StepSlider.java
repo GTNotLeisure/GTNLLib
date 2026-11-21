@@ -31,6 +31,7 @@ import com.cleanroommc.modularui.utils.GlStateManager;
 import com.cleanroommc.modularui.utils.JsonHelper;
 import com.cleanroommc.modularui.widget.Widget;
 import com.google.gson.JsonObject;
+import com.gtnllib.gui.theme.SkinDrawable;
 import com.gtnllib.utils.ColorMath;
 
 public class StepSlider extends Widget<StepSlider> implements Interactable {

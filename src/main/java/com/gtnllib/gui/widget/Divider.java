@@ -11,6 +11,7 @@ import com.cleanroommc.modularui.theme.WidgetThemeKey;
 import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.widget.Widget;
 import com.google.gson.JsonObject;
+import com.gtnllib.gui.theme.SkinDrawable;
 
 public class Divider extends Widget<Divider> {
 

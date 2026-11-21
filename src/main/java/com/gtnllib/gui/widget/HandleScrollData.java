@@ -10,9 +10,9 @@ import com.cleanroommc.modularui.widget.scroll.ScrollArea;
 import com.cleanroommc.modularui.widget.scroll.ScrollData;
 import com.cleanroommc.modularui.widget.scroll.VerticalScrollData;
 import com.gtnllib.gui.theme.AE2Theme;
-import com.gtnllib.gui.theme.AE2Theme.Variant;
 import com.gtnllib.gui.theme.ae2.AE2Look;
 import com.gtnllib.gui.theme.ae2.AE2Scrollbars;
+import com.gtnllib.gui.theme.ae2.AE2Variant;
 
 /**
  * Vertical scroll data with a fixed-size AE2 or vanilla handle. It can be built on either side, so it also works in
@@ -66,7 +66,7 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
      * @deprecated use {@link #HandleScrollData()}; the handle follows the panel's theme
      */
     @Deprecated
-    public HandleScrollData(@Nullable Variant variant) {
+    public HandleScrollData(@Nullable AE2Variant variant) {
         this(variant, false);
     }
 
@@ -78,7 +78,7 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
      * @deprecated use {@link #HandleScrollData(boolean)}; the handle follows the panel's theme
      */
     @Deprecated
-    public HandleScrollData(@Nullable Variant variant, boolean small) {
+    public HandleScrollData(@Nullable AE2Variant variant, boolean small) {
         super(false, AE2Scrollbars.scrollbarWidth(variant));
         this.small = small;
         look = AE2Look.of(variant);
@@ -104,7 +104,7 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
      */
     @Override
     public int getThickness() {
-        return smallHandle() ? AE2Theme.SCROLLBAR_WIDTH : AE2Scrollbars.scrollbarWidth(look.variant());
+        return smallHandle() ? AE2Theme.SMALL_SCROLLER_WIDTH : AE2Scrollbars.scrollbarWidth(look.variant());
     }
 
     private boolean smallHandle() {
@@ -299,7 +299,7 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
         int top = trackTop(area);
         int height = getFullVisibleSize(area);
         // The groove border sits one pixel outside the scroll area so the handle can travel the full height.
-        Variant variant = look.variant();
+        AE2Variant variant = look.variant();
         if (smallHandle()) AE2Scrollbars.drawSmallScrollbar(variant, x, top - 1, height + 2, handleY, active);
         else AE2Scrollbars.drawScrollbar(variant, x, top - 1, height + 2, handleY, active);
     }

@@ -12,7 +12,7 @@ import com.cleanroommc.modularui.api.widget.IWidget;
 import com.gtnewhorizon.gtnhlib.config.Config;
 import com.gtnllib.gui.layout.Layout;
 import com.gtnllib.gui.layout.Size;
-import com.gtnllib.gui.widget.LayoutTheme;
+import com.gtnllib.gui.theme.LayoutTheme;
 import com.gtnllib.gui.widget.SlideSwitch;
 import com.gtnllib.gui.widget.StepSlider;
 

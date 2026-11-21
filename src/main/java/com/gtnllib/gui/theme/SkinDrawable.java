@@ -1,4 +1,4 @@
-package com.gtnllib.gui.widget;
+package com.gtnllib.gui.theme;
 
 import java.util.List;
 import java.util.Objects;

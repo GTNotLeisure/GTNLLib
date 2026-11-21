@@ -8,7 +8,6 @@ import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 import com.cleanroommc.modularui.drawable.GuiDraw;
-import com.gtnllib.gui.theme.AE2Theme.Variant;
 
 /**
  * The state and terminal sprite sheets of GTNH's AE2 (rv3), as AE2 ships them or recolored for each AE2 skin.
@@ -29,7 +28,7 @@ public class AE2Legacy {
      * @param variant recolored variant, or {@code null} for the resource supplied by AE2
      * @return state sheet resource location
      */
-    public static ResourceLocation legacyStates(@Nullable Variant variant) {
+    public static ResourceLocation legacyStates(@Nullable AE2Variant variant) {
         return variant == null ? AE2_LEGACY_STATES : variant.legacyStates;
     }
 
@@ -39,7 +38,7 @@ public class AE2Legacy {
      * @param variant recolored variant, or {@code null} for the resource supplied by AE2
      * @return terminal sheet resource location
      */
-    public static ResourceLocation legacyTerminal(@Nullable Variant variant) {
+    public static ResourceLocation legacyTerminal(@Nullable AE2Variant variant) {
         return variant == null ? AE2_LEGACY_TERMINAL : variant.legacyTerminal;
     }
 
@@ -52,7 +51,7 @@ public class AE2Legacy {
      * @param y       destination top edge
      * @param size    destination width and height in pixels
      */
-    public static void drawLegacyState(@Nullable Variant variant, int index, float x, float y, float size) {
+    public static void drawLegacyState(@Nullable AE2Variant variant, int index, float x, float y, float size) {
         float u = index % LEGACY_CELLS * ICON_SIZE / (float) SHEET,
             v = index / LEGACY_CELLS * ICON_SIZE / (float) SHEET, span = ICON_SIZE / (float) SHEET;
         GuiDraw.drawTexture(legacyStates(variant), x, y, x + size, y + size, u, v, u + span, v + span, true);

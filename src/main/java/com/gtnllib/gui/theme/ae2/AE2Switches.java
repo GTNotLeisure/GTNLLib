@@ -25,7 +25,6 @@ import com.cleanroommc.modularui.drawable.GuiTextures;
 import com.cleanroommc.modularui.utils.GlStateManager;
 import com.cleanroommc.modularui.widget.Widget;
 import com.gtnllib.gui.theme.AE2Theme;
-import com.gtnllib.gui.theme.AE2Theme.Variant;
 
 /**
  * AE2 switches and radio buttons: drawables, the sprite of a list-row switch, the label layout of AE2's check boxes and
@@ -56,7 +55,7 @@ public class AE2Switches {
             boolean usable = available.getAsBoolean(), lit = usable && widget.isHovering(),
                 checked = selected.getAsBoolean();
             ITheme panel = AE2Draw.themeOf(widget, context);
-            Variant variant = AE2Look.of(panel)
+            AE2Variant variant = AE2Look.of(panel)
                 .variant();
             GlStateManager.color(1, 1, 1, usable ? 1 : INACTIVE_ALPHA);
             if (variant == null) {
@@ -126,7 +125,7 @@ public class AE2Switches {
      * @return width of the drawn switch: {@link AE2Theme#SWITCH_WIDTH} under AE2 themes, {@link AE2Theme#SWITCH_HEIGHT}
      *         otherwise
      */
-    public static int drawSwitch(@Nullable Variant variant, int x, int y, boolean on, boolean hovered) {
+    public static int drawSwitch(@Nullable AE2Variant variant, int x, int y, boolean on, boolean hovered) {
         if (variant == null) {
             (on ? GuiTextures.CHECK_BOX_FULL : GuiTextures.CHECK_BOX_EMPTY).draw(x, y, SWITCH_HEIGHT, SWITCH_HEIGHT);
             return SWITCH_HEIGHT;
@@ -156,7 +155,7 @@ public class AE2Switches {
             boolean usable = available.getAsBoolean(), checked = on.getAsBoolean(),
                 lit = hover.lit(widget.isHovering(), checked) && usable;
             ITheme panel = AE2Draw.themeOf(widget, context);
-            Variant variant = AE2Look.of(panel)
+            AE2Variant variant = AE2Look.of(panel)
                 .variant();
             GlStateManager.color(1, 1, 1, usable ? 1 : INACTIVE_ALPHA);
             if (variant == null) {

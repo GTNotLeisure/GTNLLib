@@ -18,6 +18,7 @@ import com.cleanroommc.modularui.utils.GlStateManager;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widget.sizer.Unit.Measure;
+import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.ae2.AE2Draw;
 import com.gtnllib.gui.theme.ae2.AE2Look;
 
@@ -38,7 +39,6 @@ public class ListRow extends ParentWidget<ListRow> implements Interactable {
     /** Pixels from the row's left edge to the label and from its right edge to the control or switch. */
     public static final int TEXT_INSET = 4, END_INSET = 3;
     private static final int EDGE = AE2Look.WELL_EDGE, GAP = 4;
-    private static final float INACTIVE_ALPHA = 0.5F;
     private final Supplier<String> label;
     private final boolean header;
     private IntPredicate click;
@@ -155,7 +155,7 @@ public class ListRow extends ParentWidget<ListRow> implements Interactable {
         if (hovered) GuiDraw.drawRect(EDGE, 0, width - 2 * EDGE, height, look.hover());
         int right = width - END_INSET;
         if (toggle != null) {
-            GlStateManager.color(1, 1, 1, usable ? 1 : INACTIVE_ALPHA);
+            GlStateManager.color(1, 1, 1, usable ? 1 : AE2Theme.INACTIVE_ALPHA);
             right -= IconRowList.drawSwitch(look, right, 0, height, toggle.getAsBoolean(), hovered) + GAP;
             GlStateManager.color(1, 1, 1, 1);
         }

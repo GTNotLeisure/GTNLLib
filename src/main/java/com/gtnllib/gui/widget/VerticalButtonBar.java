@@ -13,9 +13,9 @@ import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.theme.WidgetThemeEntry;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.gtnllib.gui.theme.AE2Theme;
-import com.gtnllib.gui.theme.AE2Theme.Variant;
 import com.gtnllib.gui.theme.ae2.AE2Look;
 import com.gtnllib.gui.theme.ae2.AE2Panels;
+import com.gtnllib.gui.theme.ae2.AE2Variant;
 import com.gtnllib.gui.theme.ae2.IconSource;
 
 /**
@@ -150,7 +150,7 @@ public class VerticalButtonBar extends ParentWidget<VerticalButtonBar> {
     @Override
     public void draw(ModularGuiContext context, WidgetThemeEntry<?> widgetTheme) {
         int width = getArea().width, height = getArea().height;
-        Variant variant = AE2Look.of(this)
+        AE2Variant variant = AE2Look.of(this)
             .variant();
         if (variant != null) AE2Panels.drawButtonBar(variant, 0, 0, width, height);
         else plainStrip.draw(context, 0, 0, width, height, widgetTheme.getTheme());

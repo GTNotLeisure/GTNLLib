@@ -10,7 +10,7 @@ import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import com.gtnllib.gui.layout.Layout;
 import com.gtnllib.gui.layout.Size;
-import com.gtnllib.gui.widget.LayoutTheme;
+import com.gtnllib.gui.theme.LayoutTheme;
 
 /**
  * Three whole-block X, Y and Z fields for editing a position, laid out as cells of a {@link Layout#line} row. A field

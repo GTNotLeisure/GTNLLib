@@ -1,9 +1,9 @@
 package com.gtnllib.gui.theme.ae2;
 
 import static com.gtnllib.gui.theme.AE2Theme.BIG_SCROLLER_WIDTH;
-import static com.gtnllib.gui.theme.AE2Theme.SCROLLBAR_WIDTH;
 import static com.gtnllib.gui.theme.AE2Theme.SCROLLER_HEIGHT;
 import static com.gtnllib.gui.theme.AE2Theme.SHEET;
+import static com.gtnllib.gui.theme.AE2Theme.SMALL_SCROLLER_WIDTH;
 
 import net.minecraft.util.ResourceLocation;
 
@@ -12,7 +12,6 @@ import org.jetbrains.annotations.Nullable;
 import com.cleanroommc.modularui.drawable.GuiDraw;
 import com.cleanroommc.modularui.drawable.UITexture;
 import com.cleanroommc.modularui.utils.GlStateManager;
-import com.gtnllib.gui.theme.AE2Theme.Variant;
 
 /**
  * AE2 scroll-bar grooves and handles, and the vanilla creative-inventory scroll bar used outside AE2 themes.
@@ -35,7 +34,7 @@ public class AE2Scrollbars {
      * @param variant AE2 variant, or {@code null} for the vanilla creative-inventory style
      * @return 12 pixels for AE2 or 14 pixels for vanilla
      */
-    public static int scrollbarWidth(@Nullable Variant variant) {
+    public static int scrollbarWidth(@Nullable AE2Variant variant) {
         return variant == null ? BIG_SCROLLER_WIDTH + 2 : BIG_SCROLLER_WIDTH;
     }
 
@@ -49,7 +48,7 @@ public class AE2Scrollbars {
      * @param handleY handle offset from the inner track top, from zero to {@code height - SCROLLER_HEIGHT - 2}
      * @param enabled whether to draw the enabled handle
      */
-    public static void drawScrollbar(@Nullable Variant variant, int x, int y, int height, int handleY,
+    public static void drawScrollbar(@Nullable AE2Variant variant, int x, int y, int height, int handleY,
         boolean enabled) {
         GlStateManager.color(1, 1, 1, 1);
         int handleTop = y + 1 + handleY;
@@ -82,14 +81,14 @@ public class AE2Scrollbars {
      * @param handleY handle offset from the inner groove top, from zero to {@code height - SCROLLER_HEIGHT - 2}
      * @param enabled whether to draw the enabled handle
      */
-    public static void drawSmallScrollbar(Variant variant, int x, int y, int height, int handleY, boolean enabled) {
+    public static void drawSmallScrollbar(AE2Variant variant, int x, int y, int height, int handleY, boolean enabled) {
         int grooveX = x + SMALL_GROOVE_X, inner = SMALL_GROOVE_WIDTH - 2;
         GuiDraw.drawRect(grooveX, y, SMALL_GROOVE_WIDTH, height, variant.colors.line());
         GuiDraw.drawRect(grooveX + 1, y + 1, inner, 1, variant.colors.well());
         GuiDraw.drawRect(grooveX + 1, y + 2, inner, height - 3, variant.colors.raised());
         GlStateManager.color(1, 1, 1, 1);
         (enabled ? variant.scroller : variant.scrollerDisabled)
-            .draw(x, y + 1 + handleY, SCROLLBAR_WIDTH, SCROLLER_HEIGHT);
+            .draw(x, y + 1 + handleY, SMALL_SCROLLER_WIDTH, SCROLLER_HEIGHT);
     }
 
     private static UITexture vanillaScroller(int u) {

@@ -5,12 +5,11 @@ import static com.gtnllib.gui.theme.AE2Theme.PANEL_BOTTOM_EDGE;
 import static com.gtnllib.gui.theme.AE2Theme.PANEL_EDGE;
 import static com.gtnllib.gui.theme.AE2Theme.SLOT_SIZE;
 import static com.gtnllib.gui.theme.AE2Theme.UPGRADE_PADDING;
-import static com.gtnllib.gui.theme.AE2Theme.UPGRADE_ROWS;
+import static com.gtnllib.gui.theme.AE2Theme.UPGRADE_SLOTS_PER_COLUMN;
 
 import com.cleanroommc.modularui.drawable.GuiDraw;
 import com.cleanroommc.modularui.utils.GlStateManager;
 import com.gtnllib.gui.theme.AE2Theme;
-import com.gtnllib.gui.theme.AE2Theme.Variant;
 
 /**
  * Layout and drawing of AE2's upgrade panel, the strip of upgrade slots on the right of a screen.
@@ -22,7 +21,8 @@ public class AE2Upgrades {
     private AE2Upgrades() {}
 
     /**
-     * Calculates an upgrade panel's width for columns of at most {@link AE2Theme#UPGRADE_ROWS} slots. AE2 attaches the
+     * Calculates an upgrade panel's width for columns of at most {@link AE2Theme#UPGRADE_SLOTS_PER_COLUMN} slots. AE2
+     * attaches the
      * panel
      * to the right of the panel it belongs to, starting {@link AE2Theme#UPGRADE_OVERLAP} pixels inside that panel's
      * right edge,
@@ -32,14 +32,14 @@ public class AE2Upgrades {
      * @return panel width in pixels, 23 for one column
      */
     public static int upgradePanelWidth(int slots) {
-        return upgradePanelWidth(slots, UPGRADE_ROWS);
+        return upgradePanelWidth(slots, UPGRADE_SLOTS_PER_COLUMN);
     }
 
     /**
      * Calculates an upgrade panel's width like {@link #upgradePanelWidth(int)} for columns of a chosen length.
      *
      * @param slots     nonnegative slot count; zero still reserves one column
-     * @param perColumn slots in a full column, at least one; AE2 uses {@link AE2Theme#UPGRADE_ROWS}
+     * @param perColumn slots in a full column, at least one; AE2 uses {@link AE2Theme#UPGRADE_SLOTS_PER_COLUMN}
      * @return panel width in pixels
      */
     public static int upgradePanelWidth(int slots, int perColumn) {
@@ -56,11 +56,11 @@ public class AE2Upgrades {
      * one pixel inside, on the slot well the panel draws. Turn off the slot widget's theme background
      * ({@code disableThemeBackground(true)}), or its own frame covers AE2's wells.
      *
-     * @param index zero-based slot index; slots fill columns of {@link AE2Theme#UPGRADE_ROWS} from the top
+     * @param index zero-based slot index; slots fill columns of {@link AE2Theme#UPGRADE_SLOTS_PER_COLUMN} from the top
      * @return x offset in pixels
      */
     public static int upgradeSlotX(int index) {
-        return upgradeSlotX(index, UPGRADE_ROWS);
+        return upgradeSlotX(index, UPGRADE_SLOTS_PER_COLUMN);
     }
 
     /**
@@ -83,7 +83,7 @@ public class AE2Upgrades {
      * @see #upgradeSlotX(int)
      */
     public static int upgradeSlotY(int index) {
-        return upgradeSlotY(index, UPGRADE_ROWS);
+        return upgradeSlotY(index, UPGRADE_SLOTS_PER_COLUMN);
     }
 
     /**
@@ -104,7 +104,7 @@ public class AE2Upgrades {
      * @return panel height in pixels
      */
     public static int upgradePanelHeight(int slots) {
-        return upgradePanelHeight(slots, UPGRADE_ROWS);
+        return upgradePanelHeight(slots, UPGRADE_SLOTS_PER_COLUMN);
     }
 
     /**
@@ -123,7 +123,7 @@ public class AE2Upgrades {
      * Draws an upgrade panel and its empty slot wells as AE2 does. The panel has no left border: its first column
      * covers the right border of the panel it belongs to, so draw it after that panel at
      * {@code panelRight - UPGRADE_OVERLAP}. A light frame surrounds the block of 16-by-16 wells, which sit 18 pixels
-     * apart in columns of {@link AE2Theme#UPGRADE_ROWS}. With no slots nothing is drawn, as in AE2.
+     * apart in columns of {@link AE2Theme#UPGRADE_SLOTS_PER_COLUMN}. With no slots nothing is drawn, as in AE2.
      *
      * @param variant non-null AE2 variant
      * @param x       panel left edge
@@ -133,12 +133,12 @@ public class AE2Upgrades {
      * @see #upgradePanelHeight(int)
      * @see #upgradeSlotX(int)
      */
-    public static void drawUpgradePanel(Variant variant, int x, int y, int slots) {
-        drawUpgradePanel(variant, x, y, slots, UPGRADE_ROWS);
+    public static void drawUpgradePanel(AE2Variant variant, int x, int y, int slots) {
+        drawUpgradePanel(variant, x, y, slots, UPGRADE_SLOTS_PER_COLUMN);
     }
 
     /**
-     * Draws an upgrade panel like {@link #drawUpgradePanel(Variant, int, int, int)} with columns of a chosen length,
+     * Draws an upgrade panel like {@link #drawUpgradePanel(AE2Variant, int, int, int)} with columns of a chosen length,
      * such as a single row of slots with {@code perColumn} 1.
      *
      * @param variant   non-null AE2 variant
@@ -150,7 +150,7 @@ public class AE2Upgrades {
      * @see #upgradePanelHeight(int, int)
      * @see #upgradeSlotX(int, int)
      */
-    public static void drawUpgradePanel(Variant variant, int x, int y, int slots, int perColumn) {
+    public static void drawUpgradePanel(AE2Variant variant, int x, int y, int slots, int perColumn) {
         if (slots <= 0) return;
         int columnSlots = Math.max(1, perColumn), columns = upgradeColumns(slots, columnSlots),
             rows = Math.min(slots, columnSlots), width = upgradePanelWidth(slots, columnSlots),

@@ -27,7 +27,7 @@ public class UpgradePanelLayoutTest {
         assertEquals(23, AE2Upgrades.upgradeSlotY(3, 2), "the fourth slot of two-slot columns is on the second row");
         assertEquals(
             AE2Upgrades.upgradePanelWidth(5),
-            AE2Upgrades.upgradePanelWidth(5, AE2Theme.UPGRADE_ROWS),
+            AE2Upgrades.upgradePanelWidth(5, AE2Theme.UPGRADE_SLOTS_PER_COLUMN),
             "the default methods use AE2's column length");
     }
 }

@@ -26,11 +26,12 @@ import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.menu.DropdownWidget;
 import com.cleanroommc.modularui.widgets.menu.Menu;
 import com.gtnllib.gui.theme.AE2Theme;
-import com.gtnllib.gui.theme.AE2Theme.ButtonText;
+import com.gtnllib.gui.theme.ae2.AE2ButtonDrawable;
+import com.gtnllib.gui.theme.ae2.AE2ButtonDrawable.State;
 import com.gtnllib.gui.theme.ae2.AE2Buttons;
 import com.gtnllib.gui.theme.ae2.AE2Look;
 import com.gtnllib.gui.theme.ae2.AE2Panels;
-import com.gtnllib.gui.widget.AE2ButtonDrawable.State;
+import com.gtnllib.gui.theme.ae2.ButtonText;
 
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 

@@ -23,11 +23,11 @@ import com.cleanroommc.modularui.theme.WidgetThemeEntry;
 import com.cleanroommc.modularui.utils.GlStateManager;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.gtnllib.gui.theme.AE2Theme;
-import com.gtnllib.gui.theme.AE2Theme.Variant;
 import com.gtnllib.gui.theme.ae2.AE2Draw;
 import com.gtnllib.gui.theme.ae2.AE2Look;
 import com.gtnllib.gui.theme.ae2.AE2Panels;
 import com.gtnllib.gui.theme.ae2.AE2Switches;
+import com.gtnllib.gui.theme.ae2.AE2Variant;
 
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -62,7 +62,6 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
     public static final int AE2_SCROLL_COLUMN = AE2Theme.BIG_SCROLLER_WIDTH + 5;
     private static final int AE2_GUTTER = AE2_SCROLL_COLUMN + 1, PLAIN_GUTTER = SCROLLBAR + AE2Look.WELL_EDGE,
         HEADER_LINE_ALPHA = 0x40000000, ICON = 16, TEXT_HEIGHT = 8, MIN_ROW = ICON, MIN_NUMBER_WIDTH = 32;
-    private static final float INACTIVE_ALPHA = 0.5F;
 
     /**
      * The number field of a row.
@@ -424,7 +423,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
     @Override
     public void draw(ModularGuiContext context, WidgetThemeEntry<?> widgetTheme) {
         AE2Look look = AE2Look.of(this);
-        Variant variant = look.variant();
+        AE2Variant variant = look.variant();
         layout(variant != null);
         int width = getArea().width, height = getArea().height;
         look.drawWell(0, 0, variant == null ? width : width - AE2_SCROLL_COLUMN, height);
@@ -465,7 +464,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
                 right -= CARET;
             }
             if (row.toggle() != null) {
-                GlStateManager.color(1, 1, 1, usable ? 1 : INACTIVE_ALPHA);
+                GlStateManager.color(1, 1, 1, usable ? 1 : AE2Theme.INACTIVE_ALPHA);
                 right -= drawSwitch(look, textRight, top, rowHeight, row.toggle(), lit) + 3;
                 GlStateManager.color(1, 1, 1, 1);
             }
@@ -530,7 +529,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
         int right) {
         int textY = top + textTop(rowHeight);
         AE2Draw.text(text, left, textY, look.listMuted(), false);
-        Variant variant = look.variant();
+        AE2Variant variant = look.variant();
         if (variant == null) return;
         int start = left + font.getStringWidth(text) + 4, width = right - 4 - start;
         if (width <= 0) return;

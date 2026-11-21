@@ -24,16 +24,18 @@ import com.cleanroommc.modularui.utils.GlStateManager;
 import com.cleanroommc.modularui.utils.JsonHelper;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.google.gson.JsonObject;
+import com.gtnllib.gui.theme.AE2Theme;
+import com.gtnllib.gui.theme.LayoutTheme;
+import com.gtnllib.gui.theme.SkinDrawable;
 import com.gtnllib.gui.theme.ae2.AE2Switches;
 import com.gtnllib.utils.TextRenderUtils;
 
 public class SlideSwitch extends ButtonWidget<SlideSwitch> {
 
     private static final int LABEL_Y = 1, LABEL_END = 2;
-    private static final float INACTIVE_ALPHA = 0.5F;
 
     private final AE2Switches.SwitchHover hover = new AE2Switches.SwitchHover();
-    private BooleanSupplier on = () -> false, live = () -> true, available = () -> true;
+    private BooleanSupplier on = () -> false, glow = () -> true, available = () -> true;
     private IKey label = IKey.EMPTY;
 
     public SlideSwitch value(BooleanSupplier on) {
@@ -41,9 +43,29 @@ public class SlideSwitch extends ButtonWidget<SlideSwitch> {
         return this;
     }
 
-    public SlideSwitch liveWhen(BooleanSupplier live) {
-        this.live = live;
+    /**
+     * Sets when a switch that is on shows its bright look; otherwise it is drawn on but dimmed, such as a module that
+     * is switched on but not running. It does not change whether the switch can be used.
+     *
+     * @param glow supplier read every frame
+     * @return this switch
+     */
+    public SlideSwitch glowWhen(BooleanSupplier glow) {
+        this.glow = glow;
         return this;
+    }
+
+    /**
+     * Same as {@link #glowWhen(BooleanSupplier)}.
+     *
+     * @param glow supplier read every frame
+     * @return this switch
+     * @deprecated use {@link #glowWhen(BooleanSupplier)}; this name reads like "can be used", which
+     *             {@link #available(BooleanSupplier)} sets
+     */
+    @Deprecated
+    public SlideSwitch liveWhen(BooleanSupplier glow) {
+        return glowWhen(glow);
     }
 
     /**
@@ -114,13 +136,13 @@ public class SlideSwitch extends ButtonWidget<SlideSwitch> {
     public void draw(ModularGuiContext context, WidgetThemeEntry<?> widgetTheme) {
         Theme colors = colors(widgetTheme.getTheme());
         LayoutTheme style = LayoutTheme.of(getPanel().getTheme());
-        boolean on = this.on.getAsBoolean(), open = available.getAsBoolean(), lit = on && open && live.getAsBoolean();
+        boolean on = this.on.getAsBoolean(), open = available.getAsBoolean(), lit = on && open && glow.getAsBoolean();
         int width = getArea().w(), height = getArea().h(), switchWidth = style.switchWidth,
             switchHeight = style.switchHeight, top = (height - switchHeight) / 2, labelX = labelX(style);
         boolean hovered = hover.lit(isHovering(), on);
         UITexture sprite = colors.sprite(on, open && hovered);
         if (sprite != null) {
-            GlStateManager.color(1, 1, 1, open ? 1 : INACTIVE_ALPHA);
+            GlStateManager.color(1, 1, 1, open ? 1 : AE2Theme.INACTIVE_ALPHA);
             sprite.draw(0, top, switchWidth, switchHeight);
             GlStateManager.color(1, 1, 1, 1);
         } else {

@@ -1,4 +1,4 @@
-package com.gtnllib.gui.widget;
+package com.gtnllib.gui.theme;
 
 import com.cleanroommc.modularui.api.ITheme;
 import com.cleanroommc.modularui.api.IThemeApi;
