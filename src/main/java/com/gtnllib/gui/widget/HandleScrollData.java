@@ -1,6 +1,7 @@
 package com.gtnllib.gui.widget;
 
 import org.jetbrains.annotations.Nullable;
+import org.lwjgl.input.Mouse;
 
 import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
@@ -11,26 +12,31 @@ import com.cleanroommc.modularui.widget.scroll.VerticalScrollData;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.AE2Theme.Variant;
 
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
-
 /**
- * Client-side vertical scroll data with a fixed-size AE2 or vanilla handle.
+ * Vertical scroll data with a fixed-size AE2 or vanilla handle. It can be built on either side, so it also works in
+ * GUIs the server opens.
  * <p>
  * {@link GTNLListWidget} reserves the track width and draws the disabled handle when the content fits. Other scroll
  * widgets must reserve {@link #getThickness()} pixels on the right and draw the inactive track themselves. The
  * available vertical track must be at least {@link AE2Theme#SCROLLER_HEIGHT} pixels tall.
  * <p>
  * Scrolling is smooth by default. {@link #rows(int)} enables immediate scrolling snapped to row boundaries. Scroll
- * shadows are never drawn.
+ * shadows are never drawn. A press on the track beside the handle moves the handle's centre to the pointer at once,
+ * and the same press keeps dragging from there. {@link #pageOnTrackPress(boolean) pageOnTrackPress(true)} pages like
+ * AE2 instead: the press moves one wheel step (MUI2's scroll speed, one row after {@link #rows(int)}) towards the
+ * pointer, and inside a {@link GTNLListWidget} holding the button keeps paging, first after
+ * {@value #FIRST_REPEAT_MILLIS} ms and then every {@value #REPEAT_MILLIS} ms.
  */
-@SideOnly(Side.CLIENT)
 public class HandleScrollData extends VerticalScrollData implements IPersistentScrollbar {
 
+    /** Delay before a held track press pages again, and the interval between later pages, in milliseconds. */
+    public static final int FIRST_REPEAT_MILLIS = 250, REPEAT_MILLIS = 150;
     private final @Nullable Variant variant;
     private final boolean small;
     private int rowHeight;
-    private int dragMouse, dragScroll;
+    private int dragMouse, dragScroll, pageDirection;
+    private long nextPage;
+    private boolean pages;
 
     /**
      * Creates scroll data with a large handle.
@@ -70,6 +76,18 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
         return this;
     }
 
+    /**
+     * Chooses what a press on the track beside the handle does.
+     *
+     * @param pages {@code true} to page one wheel step towards the pointer like AE2; {@code false}, the default, to
+     *              move the handle's centre to the pointer and keep dragging
+     * @return this scroll data
+     */
+    public HandleScrollData pageOnTrackPress(boolean pages) {
+        this.pages = pages;
+        return this;
+    }
+
     @Override
     public int getScrollBarLength(ScrollArea area) {
         return Math.min(AE2Theme.SCROLLER_HEIGHT, getFullVisibleSize(area));
@@ -89,27 +107,66 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
     }
 
     /**
-     * Starts a drag when the press lands on an active track.
-     * <p>
-     * The drag is anchored to the scroll offset at the press. A press on the handle keeps that offset; a press
-     * elsewhere on the track targets the offset that centres the handle on the pointer.
+     * Handles a press on an active track: a press on the handle starts a drag anchored to the current scroll offset,
+     * and a press beside the handle scrolls at once to the offset centring the handle on the pointer and drags from
+     * there, or, with paging turned on, pages towards the pointer instead.
      *
      * @param area         owning scroll area
      * @param mainAxisPos  mouse Y coordinate relative to the scroll area
      * @param crossAxisPos mouse X coordinate relative to the scroll area
      * @param button       mouse button
-     * @return whether a drag started
+     * @return whether the press landed on the track
      */
     @Override
     public boolean onMouseClicked(ScrollArea area, int mainAxisPos, int crossAxisPos, int button) {
         int track = mainAxisPos - trackTop(area);
+        pageDirection = 0;
         if (!isScrollBarActive(area) || !super.onMouseClicked(area, track, crossAxisPos, button)) return false;
         int length = getScrollBarLength(area), visible = getFullVisibleSize(area);
         int start = getScrollBarStart(area, length, visible);
+        boolean beside = track < start || track > start + length;
+        if (beside && pages) {
+            dragging = false;
+            pageDirection = track < start ? -1 : 1;
+            nextPage = System.currentTimeMillis() + FIRST_REPEAT_MILLIS;
+            page(area);
+            return true;
+        }
+        // Why: MUI2 moves the content only once the pointer moves, so a still press would not jump.
+        if (beside) scrollTo(area, offsetAt(track - clickOffset, visible, length));
         dragMouse = track;
-        dragScroll = track < start || track > start + length ? offsetAt(track - clickOffset, visible, length)
-            : getScroll();
+        dragScroll = getScroll();
         return true;
+    }
+
+    /**
+     * Pages again while a track press is held, at most once per {@link #REPEAT_MILLIS}. {@link GTNLListWidget} calls it
+     * every client tick; other scroll widgets page once per press.
+     *
+     * @param area owning scroll area
+     */
+    public void repeatPaging(ScrollArea area) {
+        if (pageDirection == 0) return;
+        if (!Mouse.isButtonDown(0)) {
+            pageDirection = 0;
+            return;
+        }
+        long now = System.currentTimeMillis();
+        if (now < nextPage) return;
+        nextPage = now + REPEAT_MILLIS;
+        page(area);
+    }
+
+    /** Stops paging after the mouse button is released. */
+    public void stopPaging() {
+        pageDirection = 0;
+    }
+
+    private void page(ScrollArea area) {
+        int step = Math.max(1, getScrollSpeed());
+        int max = Math.max(0, getScrollSize() - getFullVisibleSize(area)),
+            from = isAnimating() ? getAnimatingTo() : getScroll();
+        animateTo(area, Math.max(0, Math.min(max, from + pageDirection * step)));
     }
 
     /**
