@@ -57,10 +57,10 @@ public class ServerWidgetScenario implements Runnable {
             .available(() -> false)
             .selected(() -> false);
         ActionButton.icon(() -> Icon.REFRESH, () -> {});
-        new NumberEntry(light).bounds(1, 64)
+        new NumberEntry().bounds(1, 64)
             .value(3)
             .available(() -> false);
-        new NumberEntry(null).size(64, 16);
+        new NumberEntry().size(64, 16);
         new ListRow(() -> "Row").toggle(() -> true, () -> {})
             .available(() -> false);
         ListRow.header(() -> "Header");
@@ -95,7 +95,7 @@ public class ServerWidgetScenario implements Runnable {
         new IconRowList(() -> rows).rowHeight(24)
             .numberWidth(48);
         new ListRow(() -> "Tall row").height(26)
-            .control(new NumberEntry(light), 64, 16);
+            .control(new NumberEntry(), 64, 16);
         int[] firstRow = { 0 };
         new RowScrollbar(() -> firstRow[0], () -> 5, row -> firstRow[0] = row).step(2)
             .small(true)
@@ -110,7 +110,7 @@ public class ServerWidgetScenario implements Runnable {
         panel.child(
             ActionButton.text(() -> "Apply", () -> {})
                 .size(40, 20))
-            .child(new NumberEntry(light))
+            .child(new NumberEntry())
             .child(new ListRow(() -> "Row").toggle(() -> false, () -> {}))
             .child(new VerticalButtonBar().button(() -> Icon.ADD, () -> "Add", () -> {}))
             .child(new ValueStepper(() -> "LV", step -> {}).size(84, 16))

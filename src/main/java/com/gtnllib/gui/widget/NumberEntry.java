@@ -61,8 +61,11 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
  * <p>
  * {@link #isInputValid()} describes the input. Inherited {@link #isValid()} describes the MUI2 widget lifecycle.
  * <p>
- * For example, {@code new NumberEntry(Variant.LIGHT).bounds(1, 1_000_000).value(64)} creates a bounded input with an
- * initial value of 64.
+ * Invalid text is drawn in the error color of the theme the entry is drawn with: AE2's input error color under AE2
+ * themes, a plain red otherwise.
+ * <p>
+ * For example, {@code new NumberEntry().bounds(1, 1_000_000).value(64)} creates a bounded input with an initial value
+ * of 64.
  */
 public class NumberEntry extends ParentWidget<NumberEntry> {
 
@@ -77,7 +80,6 @@ public class NumberEntry extends ParentWidget<NumberEntry> {
     private static final String LANG = "gtnllib.gui.number_entry.";
     private static final Pattern INTEGER = Pattern.compile("-?\\d+");
 
-    private final @Nullable Variant variant;
     private final Field field = new Field();
     private final Warning warning = new Warning();
     private final List<String> messages = new ObjectArrayList<>();
@@ -88,13 +90,21 @@ public class NumberEntry extends ParentWidget<NumberEntry> {
     private BooleanSupplier available = () -> true;
 
     /**
-     * Creates an entry with value zero and inclusive bounds from zero to {@link Long#MAX_VALUE}.
+     * Same as {@link #NumberEntry()}.
      *
-     * @param variant palette for validation feedback, or {@code null} for the default error color and light icon;
-     *                button and text-field styling follows the containing panel's theme
+     * @param variant ignored; the entry, its validation feedback included, follows the theme it is drawn with
+     * @deprecated use {@link #NumberEntry()}
      */
+    @Deprecated
     public NumberEntry(@Nullable Variant variant) {
-        this.variant = variant;
+        this();
+    }
+
+    /**
+     * Creates an entry with value zero and inclusive bounds from zero to {@link Long#MAX_VALUE}. Buttons, text field
+     * and validation feedback follow the theme the entry is drawn with.
+     */
+    public NumberEntry() {
         size(WIDTH, HEIGHT);
         for (int i = 0; i < STEPS.length; i++) {
             int index = i;
@@ -352,7 +362,6 @@ public class NumberEntry extends ParentWidget<NumberEntry> {
         else if (number.compareTo(BigDecimal.valueOf(min)) < 0) messages.add(tr("min", min));
         else if (number.compareTo(BigDecimal.valueOf(max)) > 0) messages.add(tr("max", max));
         inputValid = messages.isEmpty();
-        field.error(inputValid ? null : variant == null ? PLAIN_ERROR : variant.colors.error());
         if (!inputValid) return;
         value = number.longValueExact();
         if (!INTEGER.matcher(text.strip())
@@ -422,12 +431,14 @@ public class NumberEntry extends ParentWidget<NumberEntry> {
         public void preDraw(ModularGuiContext context, boolean transformed) {
             Integer color = textColor;
             if (!isAvailable()) textColor = AE2Theme.FIELD_DISABLED_TEXT;
+            else if (!inputValid) textColor = errorColor(context);
             super.preDraw(context, transformed);
             textColor = color;
         }
 
-        private void error(@Nullable Integer color) {
-            textColor = color;
+        private int errorColor(ModularGuiContext context) {
+            Variant variant = AE2Theme.active(context);
+            return variant == null ? PLAIN_ERROR : variant.colors.error();
         }
     }
 
@@ -439,6 +450,7 @@ public class NumberEntry extends ParentWidget<NumberEntry> {
 
         @Override
         public void draw(ModularGuiContext context, WidgetThemeEntry<?> widgetTheme) {
+            Variant variant = AE2Theme.active(context);
             (variant == null ? Variant.LIGHT : variant).invalid.draw(0, 0, AE2Theme.ICON_SIZE, AE2Theme.ICON_SIZE);
         }
     }

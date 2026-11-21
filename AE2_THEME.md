@@ -67,6 +67,12 @@ These differ from AE2 1.21 on purpose; the paragraphs above give the details.
 - Value controls ignore the wheel unless `wheel(true)` is set; with it they step while the pointer is over them, also in a scrolling list, where AE2 has no such controls.
 - The wheel does not scroll a list from anywhere on the screen by default.
 - Switch and radio labels wrap inside the widget; AE2's switch labels can run four pixels past it.
+- Unavailable toolbar buttons, tabs and page tabs fade their built-in or texture icon; AE2's full-size icon buttons keep their icon and are usually hidden instead.
+- `VerticalButtonBar.toggle` shows the selected frame while on and keeps its icon; AE2's `ToggleButton` switches between an on and an off icon.
+- `NumberEntry` arrows and wheel step by 10 while Shift is held, and a step from invalid input starts at zero; AE2's wheel steps by one and only on valid input.
+- `IconRowList` and clickable `ListRow` rows highlight under the pointer; AE2's crafting CPU rows do not.
+
+AE2 1.21 has no dropdown, stepper, slider, fill bar, divider, close button, breadcrumb or toast. `CycleDropdown`, `ValueStepper`, the single-row `NumberEntry`, `StepSlider`, `FillBar`, `Divider`, `CloseButton`, `Breadcrumb`, `FadingNotice`, `IconRowList`, `ListRow` and `GhostItemSlot` are GTNLLib's own controls, built from AE2's parts and colors where the AE2 themes apply.
 
 Two things cannot match AE2: Minecraft 1.7.10 has no keyboard focus for buttons, so AE2's focus look has no counterpart, and MUI2's own buttons place their text themselves.
 
@@ -122,16 +128,15 @@ RowScrollbar bar = new RowScrollbar(() -> firstRow, () -> rowCount - visibleRows
 ```java
 import java.util.OptionalLong;
 
-import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.widget.NumberEntry;
 
-NumberEntry amount = new NumberEntry(AE2Theme.variant(themeId)).bounds(1, 1_000_000)
+NumberEntry amount = new NumberEntry().bounds(1, 1_000_000)
     .value(64)
     .available(() -> canEdit);
 OptionalLong requested = amount.value();
 ```
 
-The variant passed to the constructor colors the validation feedback, so pass the panel's variant here too. While `available` reports false the entry looks like AE2's disabled amount entry: disabled buttons, the dark uneditable field background and grey text; input is ignored and the field gives up keyboard focus. Invalid input turns the text red and lists the problems in the field's tooltip; the tall layout also shows AE2's 16×16 warning icon to the right of the field (its tooltip area is the top-left 8×8 pixels, as in AE2). `value()` returns an empty result for invalid input. `follow(LongSupplier)` keeps the field showing a value that other controls can change too, except while the player is typing in it. `isInputValid()` checks the input; inherited `isValid()` reports the MUI2 widget lifecycle. Callback semantics are defined by `NumberEntry.onChange(LongConsumer)`.
+The entry follows the theme it is drawn with, validation feedback included: invalid text is AE2's input error color under AE2 themes and a plain red otherwise. The older constructor that takes a `Variant` still works and ignores it. While `available` reports false the entry looks like AE2's disabled amount entry: disabled buttons, the dark uneditable field background and grey text; input is ignored and the field gives up keyboard focus. Invalid input turns the text red and lists the problems in the field's tooltip; the tall layout also shows AE2's 16×16 warning icon to the right of the field (its tooltip area is the top-left 8×8 pixels, as in AE2). `value()` returns an empty result for invalid input. `follow(LongSupplier)` keeps the field showing a value that other controls can change too, except while the player is typing in it. `isInputValid()` checks the input; inherited `isValid()` reports the MUI2 widget lifecycle. Callback semantics are defined by `NumberEntry.onChange(LongConsumer)`.
 
 The layout follows the size: from 62 pixels high it shows the AE2 step buttons stretched to the width, and lower entries are one row of `<`, the text field and `>`, such as `.size(64, 16)`. The arrows step by 1, or 10 with Shift, and so does the mouse wheel over the field after `wheel(true)`. The wheel steps only while the pointer is over the text field, even after the player has clicked into it, as in AE2. Right-clicking the field applies `resetValue(long)` (default 0) clamped to the bounds.
 

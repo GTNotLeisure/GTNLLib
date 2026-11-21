@@ -767,9 +767,10 @@ public class AE2Theme {
     }
 
     /**
-     * Creates a centered button label matching {@link #button}. Under AE2 themes a label wider than the button scrolls
-     * back and forth inside it, as AE2 buttons do, and stays at the height of a hovered button's label in every state;
-     * other themes trim it to the width.
+     * Creates a centered button label matching {@link #button}. Under AE2 themes a label that fits starts half its
+     * width left of the button's middle, both halves rounded down as AE2 rounds them, and a label wider than the
+     * button scrolls back and forth inside it, as AE2 buttons do, and stays at the height of a hovered button's label
+     * in every state; other themes trim it to the width.
      *
      * @param widget    widget supplying hover state
      * @param text      supplier of non-null display text
@@ -785,14 +786,12 @@ public class AE2Theme {
             FontRenderer font = Minecraft.getMinecraft().fontRenderer;
             String full = text.get();
             int room = Math.max(0, width - LABEL_PADDING * 2), overflow = font.getStringWidth(full) - room;
-            if (overflow <= 0 || active(context) == null) {
+            boolean ae2 = active(context) != null;
+            if (overflow <= 0 || !ae2) {
                 String fitted = font.trimStringToWidth(full, room);
-                text(
-                    fitted,
-                    x + (width - font.getStringWidth(fitted)) / 2,
-                    y + style.y(),
-                    style.color(),
-                    style.shadow());
+                int fittedWidth = font.getStringWidth(fitted);
+                int left = ae2 ? x + width / 2 - fittedWidth / 2 : x + (width - fittedWidth) / 2;
+                text(fitted, left, y + style.y(), style.color(), style.shadow());
                 return;
             }
             // Why: AE2Button draws a scrolling label at the hovered label's height whatever the state; only a

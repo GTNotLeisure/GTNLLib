@@ -362,7 +362,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
 
     private void addEntry() {
         int index = entries.size();
-        NumberEntry entry = new NumberEntry(null).right(gutter + 2)
+        NumberEntry entry = new NumberEntry().right(gutter + 2)
             .top(0)
             .size(numberWidth, rowHeight - 2)
             .wheel(numberWheel)
