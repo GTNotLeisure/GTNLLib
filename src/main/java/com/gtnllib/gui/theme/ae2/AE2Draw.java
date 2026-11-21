@@ -11,6 +11,7 @@ import org.jetbrains.annotations.Nullable;
 import com.cleanroommc.modularui.api.ITheme;
 import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.api.widget.IWidget;
+import com.cleanroommc.modularui.drawable.GuiDraw;
 import com.cleanroommc.modularui.drawable.GuiTextures;
 import com.cleanroommc.modularui.drawable.UITexture;
 import com.cleanroommc.modularui.screen.viewport.GuiContext;
@@ -95,6 +96,21 @@ public class AE2Draw {
             : theme.getFallback()
                 .getTheme();
         text(text, x, y, look == null ? VANILLA_TEXT : look.getTextColor(), look != null && look.getTextShadow());
+    }
+
+    /**
+     * Draws a label in the plain look: the theme's own text color and shadow while available, MUI2's disabled grey
+     * otherwise.
+     *
+     * @param theme     theme to read, possibly {@code null} for Minecraft's dark grey
+     * @param text      text to draw
+     * @param x         left edge
+     * @param y         top edge
+     * @param available whether the control the label belongs to can be used
+     */
+    public static void plainText(@Nullable ITheme theme, String text, int x, int y, boolean available) {
+        if (available) plainText(theme, text, x, y);
+        else text(text, x, y, DISABLED_TEXT, false);
     }
 
     /**
@@ -198,7 +214,31 @@ public class AE2Draw {
      */
     public static void drawSprite(UITexture icon, int x, int y, boolean active) {
         GlStateManager.color(1, 1, 1, active ? 1 : INACTIVE_ALPHA);
-        icon.draw(x, y, ICON_SIZE, ICON_SIZE);
+        drawBlended(icon, x, y, ICON_SIZE, ICON_SIZE);
         GlStateManager.color(1, 1, 1, 1);
+    }
+
+    /**
+     * Draws a texture with blending on, in the current color. MUI2 draws its own icons and check box without blending,
+     * which drops the alpha of a faded color; this keeps it.
+     *
+     * @param texture texture to draw
+     * @param x       left edge
+     * @param y       top edge
+     * @param width   width in pixels
+     * @param height  height in pixels
+     */
+    public static void drawBlended(UITexture texture, int x, int y, int width, int height) {
+        GuiDraw.drawTexture(
+            texture.location,
+            x,
+            y,
+            x + width,
+            y + height,
+            texture.u0,
+            texture.v0,
+            texture.u1,
+            texture.v1,
+            true);
     }
 }

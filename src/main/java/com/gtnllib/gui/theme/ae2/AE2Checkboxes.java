@@ -30,11 +30,11 @@ import com.gtnllib.gui.theme.AE2Theme;
  * AE2 switches and radio buttons: drawables, the sprite of a list-row switch, the label layout of AE2's check boxes and
  * AE2's hover rule after a click.
  */
-public class AE2Switches {
+public class AE2Checkboxes {
 
     private static final int CHECKBOX_LINES_Y = 1;
 
-    private AE2Switches() {}
+    private AE2Checkboxes() {}
 
     /**
      * Creates a radio-indicator drawable with a label, without installing input handlers.
@@ -59,11 +59,16 @@ public class AE2Switches {
                 .variant();
             GlStateManager.color(1, 1, 1, usable ? 1 : INACTIVE_ALPHA);
             if (variant == null) {
-                (checked ? GuiTextures.CHECK_BOX_FULL : GuiTextures.CHECK_BOX_EMPTY).draw(x, y, RADIO_SIZE, RADIO_SIZE);
+                AE2Draw.drawBlended(
+                    checked ? GuiTextures.CHECK_BOX_FULL : GuiTextures.CHECK_BOX_EMPTY,
+                    x,
+                    y,
+                    RADIO_SIZE,
+                    RADIO_SIZE);
                 GlStateManager.color(1, 1, 1, 1);
                 String fitted = Minecraft.getMinecraft().fontRenderer
                     .trimStringToWidth(label.get(), Math.max(0, width - RADIO_LABEL_X));
-                AE2Draw.plainText(panel, fitted, x + RADIO_LABEL_X, y + (RADIO_SIZE - LABEL_HEIGHT) / 2);
+                AE2Draw.plainText(panel, fitted, x + RADIO_LABEL_X, y + (RADIO_SIZE - LABEL_HEIGHT) / 2, usable);
                 return;
             }
             variant.radioSprite(checked, lit)
@@ -115,7 +120,7 @@ public class AE2Switches {
 
     /**
      * Draws an on/off switch: AE2's switch sprite under AE2 themes, MUI2's check box otherwise. List rows and
-     * {@link #toggleSwitch} both use it, so a switch looks the same everywhere in a theme.
+     * {@link #checkbox} both use it, so a switch looks the same everywhere in a theme.
      *
      * @param variant active AE2 variant, or {@code null} outside the AE2 themes
      * @param x       left edge
@@ -125,9 +130,14 @@ public class AE2Switches {
      * @return width of the drawn switch: {@link AE2Theme#SWITCH_WIDTH} under AE2 themes, {@link AE2Theme#SWITCH_HEIGHT}
      *         otherwise
      */
-    public static int drawSwitch(@Nullable AE2Variant variant, int x, int y, boolean on, boolean hovered) {
+    public static int drawCheckbox(@Nullable AE2Variant variant, int x, int y, boolean on, boolean hovered) {
         if (variant == null) {
-            (on ? GuiTextures.CHECK_BOX_FULL : GuiTextures.CHECK_BOX_EMPTY).draw(x, y, SWITCH_HEIGHT, SWITCH_HEIGHT);
+            AE2Draw.drawBlended(
+                on ? GuiTextures.CHECK_BOX_FULL : GuiTextures.CHECK_BOX_EMPTY,
+                x,
+                y,
+                SWITCH_HEIGHT,
+                SWITCH_HEIGHT);
             return SWITCH_HEIGHT;
         }
         variant.switchSprite(on, hovered)
@@ -148,9 +158,9 @@ public class AE2Switches {
      * @param available supplier of the visual enabled state
      * @return combined switch and label drawable
      */
-    public static IDrawable toggleSwitch(Widget<?> widget, BooleanSupplier on, Supplier<String> label,
+    public static IDrawable checkbox(Widget<?> widget, BooleanSupplier on, Supplier<String> label,
         BooleanSupplier available) {
-        SwitchHover hover = new SwitchHover();
+        CheckboxHover hover = new CheckboxHover();
         return (context, x, y, width, height, theme) -> {
             boolean usable = available.getAsBoolean(), checked = on.getAsBoolean(),
                 lit = hover.lit(widget.isHovering(), checked) && usable;
@@ -159,18 +169,15 @@ public class AE2Switches {
                 .variant();
             GlStateManager.color(1, 1, 1, usable ? 1 : INACTIVE_ALPHA);
             if (variant == null) {
-                drawSwitch(null, x, y, checked, lit);
+                drawCheckbox(null, x, y, checked, lit);
                 GlStateManager.color(1, 1, 1, 1);
+                int labelX = SWITCH_HEIGHT + LABEL_PADDING * 2;
                 String fitted = Minecraft.getMinecraft().fontRenderer
-                    .trimStringToWidth(label.get(), Math.max(0, width - SWITCH_LABEL_X));
-                AE2Draw.plainText(
-                    panel,
-                    fitted,
-                    x + SWITCH_HEIGHT + LABEL_PADDING * 2,
-                    y + (SWITCH_HEIGHT - LABEL_HEIGHT) / 2);
+                    .trimStringToWidth(label.get(), Math.max(0, width - labelX));
+                AE2Draw.plainText(panel, fitted, x + labelX, y + (SWITCH_HEIGHT - LABEL_HEIGHT) / 2, usable);
                 return;
             }
-            drawSwitch(variant, x, y, checked, lit);
+            drawCheckbox(variant, x, y, checked, lit);
             GlStateManager.color(1, 1, 1, 1);
             checkboxLabel(
                 label.get(),
@@ -187,7 +194,7 @@ public class AE2Switches {
      * leaves it, as AE2's check box does while it keeps the focus of the click. Radio buttons always show hover in AE2.
      * Keep one instance per switch and ask it every frame.
      */
-    public static class SwitchHover {
+    public static class CheckboxHover {
 
         private @Nullable Boolean shown;
         private boolean quiet;
@@ -214,7 +221,7 @@ public class AE2Switches {
      * @param label display text
      * @return required width in pixels
      */
-    public static int switchWidth(String label) {
+    public static int checkboxWidth(String label) {
         return SWITCH_LABEL_X + Minecraft.getMinecraft().fontRenderer.getStringWidth(label);
     }
 }

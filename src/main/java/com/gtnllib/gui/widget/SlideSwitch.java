@@ -27,14 +27,14 @@ import com.google.gson.JsonObject;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.LayoutTheme;
 import com.gtnllib.gui.theme.SkinDrawable;
-import com.gtnllib.gui.theme.ae2.AE2Switches;
+import com.gtnllib.gui.theme.ae2.AE2Checkboxes;
 import com.gtnllib.utils.TextRenderUtils;
 
 public class SlideSwitch extends ButtonWidget<SlideSwitch> {
 
     private static final int LABEL_Y = 1, LABEL_END = 2;
 
-    private final AE2Switches.SwitchHover hover = new AE2Switches.SwitchHover();
+    private final AE2Checkboxes.CheckboxHover hover = new AE2Checkboxes.CheckboxHover();
     private BooleanSupplier on = () -> false, glow = () -> true, available = () -> true;
     private IKey label = IKey.EMPTY;
 
@@ -155,7 +155,7 @@ public class SlideSwitch extends ButtonWidget<SlideSwitch> {
         }
         int color = textColor(colors, on, lit, open);
         boolean shadow = lit && colors.getTextShadow();
-        if (sprite != null) AE2Switches.checkboxLabel(label.get(), labelX, top, width - labelX, color, shadow);
+        if (sprite != null) AE2Checkboxes.checkboxLabel(label.get(), labelX, top, width - labelX, color, shadow);
         else TextRenderUtils.drawTextFitted(
             label.get(),
             labelX,

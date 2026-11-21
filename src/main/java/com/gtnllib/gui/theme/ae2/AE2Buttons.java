@@ -276,7 +276,8 @@ public class AE2Buttons {
 
     private static void drawPlainIconButton(GuiContext context, @Nullable ITheme panel, WidgetTheme theme,
         IconSource icon, boolean lit, int x, int y, int width, int height, boolean enabled) {
-        AE2Draw.themeButton(context, panel, lit ? State.HOVER : State.NORMAL, x, y, width, height);
+        State state = !enabled ? State.DISABLED : lit ? State.HOVER : State.NORMAL;
+        AE2Draw.themeButton(context, panel, state, x, y, width, height);
         icon.drawIcon(context, theme, null, x + (width - ICON_SIZE) / 2, y + (height - ICON_SIZE) / 2, enabled);
     }
 }

@@ -23,25 +23,26 @@ import com.cleanroommc.modularui.theme.WidgetThemeEntry;
 import com.cleanroommc.modularui.utils.GlStateManager;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.gtnllib.gui.theme.AE2Theme;
+import com.gtnllib.gui.theme.ae2.AE2Checkboxes;
 import com.gtnllib.gui.theme.ae2.AE2Draw;
 import com.gtnllib.gui.theme.ae2.AE2Look;
 import com.gtnllib.gui.theme.ae2.AE2Panels;
-import com.gtnllib.gui.theme.ae2.AE2Switches;
 import com.gtnllib.gui.theme.ae2.AE2Variant;
 
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 
 /**
  * A scrolling list whose rows are drawn directly instead of being widgets, so it stays fast with hundreds of rows.
  * The rows are read from a supplier every tick. A row can carry an item icon, a right-aligned detail, an on/off
  * switch, a dropdown whose options open as indented rows under it, or a number field. Number fields are
- * {@link NumberEntry} children placed over the visible number rows, so only those rows cost a widget.
+ * {@link NumberEntryWidget} children placed over the visible number rows, so only those rows cost a widget.
  * <p>
  * Under an AE2 theme the list draws as an AE2 inset with AE2 list-row highlights and switches, and AE2's scroll bar
  * beside the inset; otherwise it draws as Minecraft's sunken slot box with MUI2's check boxes and a thin bar, in the
  * colors of {@link AE2Look#plain()}. The scroll bar is a
- * {@link RowScrollbar} child: the wheel moves one row, as in AE2's network status and
+ * {@link Scrollbar} child: the wheel moves one row, as in AE2's network status and
  * crafting CPU screens. The wheel scrolls the list everywhere, also over number fields, unless
  * {@link #numberWheel(boolean) numberWheel(true)} lets it step the field under the pointer instead.
  */
@@ -76,7 +77,8 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
 
     /**
      * One row. Only one of click, options, toggle and number is normally set; options turn the row into a
-     * dropdown, a non-null toggle draws a switch whose state is that value, and a number puts a {@link NumberEntry}
+     * dropdown, a non-null toggle draws a switch whose state is that value, and a number puts a
+     * {@link NumberEntryWidget}
      * on the right of the row. A right click runs {@code secondary} when it is set. A nonzero {@code detailColor}
      * colors only the detail; zero uses {@code color} for both. An unavailable row is drawn muted with a faded switch,
      * does not highlight and ignores clicks; its number field looks disabled.
@@ -194,15 +196,17 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
     }
 
     private final Supplier<List<Row>> source;
-    private final List<NumberEntry> entries = new ArrayList<>();
+    private final List<NumberEntryWidget> entries = new ArrayList<>();
     private final List<Row> entryRows = new ArrayList<>();
     private final IntList entryTops = new IntArrayList();
     private List<Row> rows = Collections.emptyList();
     private boolean[] nested = new boolean[0];
+    private int[] occurrence = new int[0];
     private String expanded;
+    private int expandedOccurrence;
     private int scroll, edge, gutter = SCROLLBAR, rowHeight = ROW, numberWidth = NUMBER_WIDTH;
     private boolean revealSelected, numberWheel;
-    private final RowScrollbar scrollbar = new RowScrollbar(() -> scroll, this::maxScroll, row -> scroll = row)
+    private final Scrollbar scrollbar = new Scrollbar(() -> scroll, this::maxScroll, row -> scroll = row)
         .plainBar(AE2Look.plainScrollBar(), this::visibleRows);
 
     public IconRowList(Supplier<List<Row>> source) {
@@ -254,7 +258,8 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
     }
 
     /**
-     * Sets whether the mouse wheel over a number row's field steps its value, as {@link NumberEntry#wheel(boolean)}
+     * Sets whether the mouse wheel over a number row's field steps its value, as
+     * {@link NumberEntryWidget#wheel(boolean)}
      * does. Off by default, so the wheel scrolls the list there too.
      *
      * @param numberWheel true to let the wheel step number fields
@@ -262,12 +267,12 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
      */
     public IconRowList numberWheel(boolean numberWheel) {
         this.numberWheel = numberWheel;
-        for (NumberEntry entry : entries) entry.wheel(numberWheel);
+        for (NumberEntryWidget entry : entries) entry.wheel(numberWheel);
         return this;
     }
 
     private void resizeEntries() {
-        for (NumberEntry entry : entries) entry.size(numberWidth, rowHeight - 2);
+        for (NumberEntryWidget entry : entries) entry.size(numberWidth, rowHeight - 2);
         entryTops.replaceAll(top -> -1);
         scheduleResize();
     }
@@ -295,6 +300,10 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
         expanded = null;
     }
 
+    private boolean isExpanded(String text, int occurrence) {
+        return text.equals(expanded) && occurrence == expandedOccurrence;
+    }
+
     @Override
     public void onUpdate() {
         super.onUpdate();
@@ -302,11 +311,14 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
         if (!isEnabled()) return;
         List<Row> flat = new ArrayList<>();
         List<Boolean> inside = new ArrayList<>();
+        IntList seen = new IntArrayList();
+        Object2IntOpenHashMap<String> counts = new Object2IntOpenHashMap<>();
         for (Row row : source.get()) {
+            int count = counts.addTo(row.text(), 1);
             flat.add(row);
             inside.add(false);
-            if (row.options() == null || !row.text()
-                .equals(expanded)) continue;
+            seen.add(count);
+            if (row.options() == null || !isExpanded(row.text(), count)) continue;
             if (!row.available()) {
                 expanded = null;
                 continue;
@@ -314,11 +326,13 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
             for (Row option : row.options()) {
                 flat.add(option);
                 inside.add(true);
+                seen.add(-1);
             }
         }
         rows = flat;
         nested = new boolean[flat.size()];
         for (int i = 0; i < nested.length; i++) nested[i] = inside.get(i);
+        occurrence = seen.toIntArray();
         if (revealSelected && getArea().height >= rowHeight) {
             revealSelected = false;
             for (int i = 0; i < flat.size(); i++) {
@@ -342,7 +356,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
                 addEntry();
                 moved = true;
             }
-            NumberEntry entry = entries.get(used);
+            NumberEntryWidget entry = entries.get(used);
             int top = edge + i * rowHeight + 1;
             if (entryTops.getInt(used) != top) {
                 entry.top(top);
@@ -368,7 +382,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
 
     private void addEntry() {
         int index = entries.size();
-        NumberEntry entry = new NumberEntry().right(gutter + 2)
+        NumberEntryWidget entry = new NumberEntryWidget().right(gutter + 2)
             .top(0)
             .size(numberWidth, rowHeight - 2)
             .wheel(numberWheel)
@@ -395,7 +409,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
         gutter = nextGutter;
         scrollbar.width(themed ? AE2Theme.BIG_SCROLLER_WIDTH : SCROLLBAR)
             .right(themed ? 0 : AE2Look.WELL_EDGE);
-        for (NumberEntry entry : entries) entry.right(gutter + 2);
+        for (NumberEntryWidget entry : entries) entry.right(gutter + 2);
         entryTops.replaceAll(top -> -1);
         placeEntries();
         scheduleResize();
@@ -458,8 +472,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
                 AE2Panels.drawCaret(
                     textRight - CARET + 2,
                     top + (rowHeight - AE2Theme.CARET_HEIGHT) / 2,
-                    row.text()
-                        .equals(expanded),
+                    isExpanded(row.text(), occurrence[index]),
                     textColor);
                 right -= CARET;
             }
@@ -497,7 +510,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
 
     /**
      * Draws a row's on/off switch against the row's right end, centered in the row; see
-     * {@link AE2Switches#drawSwitch}.
+     * {@link AE2Checkboxes#drawCheckbox}.
      *
      * @param look      look of the panel the row is in
      * @param right     pixel the switch ends at
@@ -509,8 +522,8 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
      */
     public static int drawSwitch(AE2Look look, int right, int top, int rowHeight, boolean on, boolean hovered) {
         int width = look.isAE2() ? AE2Theme.SWITCH_WIDTH : AE2Theme.SWITCH_HEIGHT;
-        return AE2Switches
-            .drawSwitch(look.variant(), right - width, top + (rowHeight - AE2Theme.SWITCH_HEIGHT) / 2, on, hovered);
+        return AE2Checkboxes
+            .drawCheckbox(look.variant(), right - width, top + (rowHeight - AE2Theme.SWITCH_HEIGHT) / 2, on, hovered);
     }
 
     /**
@@ -552,8 +565,11 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
         }
         if (mouseButton != 0) return Result.ACCEPT;
         if (row.options() != null) {
-            expanded = row.text()
-                .equals(expanded) ? null : row.text();
+            if (isExpanded(row.text(), occurrence[index])) expanded = null;
+            else {
+                expanded = row.text();
+                expandedOccurrence = occurrence[index];
+            }
             Interactable.playButtonClickSound();
         } else if (row.click() != null) {
             row.click()

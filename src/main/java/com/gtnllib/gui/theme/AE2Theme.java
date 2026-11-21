@@ -20,13 +20,13 @@ import com.gtnllib.GTNLLib;
 import com.gtnllib.gui.theme.ae2.AE2ButtonDrawable;
 import com.gtnllib.gui.theme.ae2.AE2ButtonDrawable.State;
 import com.gtnllib.gui.theme.ae2.AE2Buttons;
+import com.gtnllib.gui.theme.ae2.AE2Checkboxes;
 import com.gtnllib.gui.theme.ae2.AE2Draw;
 import com.gtnllib.gui.theme.ae2.AE2Icon;
 import com.gtnllib.gui.theme.ae2.AE2Legacy;
 import com.gtnllib.gui.theme.ae2.AE2Look;
 import com.gtnllib.gui.theme.ae2.AE2Panels;
 import com.gtnllib.gui.theme.ae2.AE2Scrollbars;
-import com.gtnllib.gui.theme.ae2.AE2Switches;
 import com.gtnllib.gui.theme.ae2.AE2Upgrades;
 import com.gtnllib.gui.theme.ae2.AE2Variant;
 import com.gtnllib.gui.theme.ae2.ButtonText;
@@ -46,7 +46,7 @@ import cpw.mods.fml.relauncher.SideOnly;
  * are supplied by the registered theme. Use {@link #useMenuTheme(String, String, String, String...)} to map child
  * menus and {@link #sliderHandles(IWidget, String)} to style slider handles.
  * <p>
- * The drawing helpers live in the {@code ae2} package, one class per part: {@link AE2Buttons}, {@link AE2Switches},
+ * The drawing helpers live in the {@code ae2} package, one class per part: {@link AE2Buttons}, {@link AE2Checkboxes},
  * {@link AE2Scrollbars}, {@link AE2Panels}, {@link AE2Upgrades}, {@link AE2Legacy} and {@link AE2Draw}. Widgets ask
  * {@link AE2Look#of(IWidget)} for the skin of the panel they are in. The drawing methods still declared here forward
  * to those classes and are deprecated.
@@ -132,7 +132,7 @@ public class AE2Theme {
     public static final Set<String> PURPLE_TEXTURES = Set
         .of("button_highlighted", "checkbox", "legacy_states", "list_row", "slider_fill", "slider_tag", "states");
     private static final String ROOT = "textures/gui/skin/";
-    /** Shared sizing and spacing used by both AE2 variants. */
+    /** Shared sizing and spacing used by all three AE2 skins. */
     public static final ThemeStyle STYLE = new ThemeStyle(
         ThemeStyle.DEFAULT.cornerLength(),
         ThemeStyle.DEFAULT.cornerThickness(),
@@ -148,7 +148,7 @@ public class AE2Theme {
         1F);
 
     /**
-     * Registers fresh definitions for both panel themes and their menu themes.
+     * Registers fresh definitions for the three panel themes and their menu themes.
      * <p>
      * GTNLLib installs the themes during client initialization and invokes this method on theme reload. Consumers
      * select a theme identifier without registering these definitions themselves.
@@ -417,31 +417,31 @@ public class AE2Theme {
     }
 
     /**
-     * Same as {@link AE2Switches#radio}.
+     * Same as {@link AE2Checkboxes#radio}.
      *
      * @param widget    widget supplying hover state
      * @param selected  supplier of the selected state
      * @param label     supplier of non-null display text
      * @param available supplier of the visual enabled state
      * @return the indicator and label drawable
-     * @deprecated use {@link AE2Switches#radio}
+     * @deprecated use {@link AE2Checkboxes#radio}
      */
     @Deprecated
     public static IDrawable radio(Widget<?> widget, BooleanSupplier selected, Supplier<String> label,
         BooleanSupplier available) {
-        return AE2Switches.radio(widget, selected, label, available);
+        return AE2Checkboxes.radio(widget, selected, label, available);
     }
 
     /**
-     * Same as {@link AE2Switches#radioWidth}.
+     * Same as {@link AE2Checkboxes#radioWidth}.
      *
      * @param label display text
      * @return required width in pixels
-     * @deprecated use {@link AE2Switches#radioWidth}
+     * @deprecated use {@link AE2Checkboxes#radioWidth}
      */
     @Deprecated
     public static int radioWidth(String label) {
-        return AE2Switches.radioWidth(label);
+        return AE2Checkboxes.radioWidth(label);
     }
 
     /**
@@ -534,31 +534,31 @@ public class AE2Theme {
     }
 
     /**
-     * Same as {@link AE2Switches#toggleSwitch}.
+     * Same as {@link AE2Checkboxes#checkbox}.
      *
      * @param widget    widget supplying hover state
      * @param on        supplier of the switch value
      * @param label     supplier of non-null display text
      * @param available supplier of the visual enabled state
      * @return combined switch and label drawable
-     * @deprecated use {@link AE2Switches#toggleSwitch}
+     * @deprecated use {@link AE2Checkboxes#checkbox}
      */
     @Deprecated
     public static IDrawable toggleSwitch(Widget<?> widget, BooleanSupplier on, Supplier<String> label,
         BooleanSupplier available) {
-        return AE2Switches.toggleSwitch(widget, on, label, available);
+        return AE2Checkboxes.checkbox(widget, on, label, available);
     }
 
     /**
-     * Same as {@link AE2Switches#switchWidth}.
+     * Same as {@link AE2Checkboxes#checkboxWidth}.
      *
      * @param label display text
      * @return required width in pixels
-     * @deprecated use {@link AE2Switches#switchWidth}
+     * @deprecated use {@link AE2Checkboxes#checkboxWidth}
      */
     @Deprecated
     public static int switchWidth(String label) {
-        return AE2Switches.switchWidth(label);
+        return AE2Checkboxes.checkboxWidth(label);
     }
 
     /**

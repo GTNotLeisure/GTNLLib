@@ -1,19 +1,16 @@
 package com.gtnllib.gui.theme.ae2;
 
 import static com.gtnllib.gui.theme.AE2Theme.ICON_SIZE;
-import static com.gtnllib.gui.theme.AE2Theme.INACTIVE_ALPHA;
 
 import net.minecraft.item.ItemStack;
 
 import org.jetbrains.annotations.Nullable;
 
 import com.cleanroommc.modularui.api.drawable.IDrawable;
-import com.cleanroommc.modularui.drawable.GuiDraw;
 import com.cleanroommc.modularui.drawable.ItemDrawable;
 import com.cleanroommc.modularui.drawable.UITexture;
 import com.cleanroommc.modularui.screen.viewport.GuiContext;
 import com.cleanroommc.modularui.theme.WidgetTheme;
-import com.cleanroommc.modularui.utils.GlStateManager;
 
 /**
  * What a toolbar button, a tab or a page tab shows in its 16-by-16 icon square: one of the built-in {@link AE2Icon}s,
@@ -47,21 +44,7 @@ public interface IconSource {
                 drawable.draw(context, x, y, ICON_SIZE, ICON_SIZE, theme);
                 return;
             }
-            // Why: UITexture.draw sets an opaque color first and turns blending off for opaque textures, which
-            // would undo the fade.
-            GlStateManager.color(1, 1, 1, enabled ? 1 : INACTIVE_ALPHA);
-            GuiDraw.drawTexture(
-                texture.location,
-                x,
-                y,
-                x + ICON_SIZE,
-                y + ICON_SIZE,
-                texture.u0,
-                texture.v0,
-                texture.u1,
-                texture.v1,
-                true);
-            GlStateManager.color(1, 1, 1, 1);
+            AE2Draw.drawSprite(texture, x, y, enabled);
         };
     }
 

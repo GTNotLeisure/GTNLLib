@@ -34,7 +34,7 @@ public class PageTabs extends ParentWidget<PageTabs> {
     private final IntSupplier open;
     private final IntConsumer select;
     private final List<BooleanSupplier[]> usable = new ArrayList<>();
-    private final List<ActionButton> buttons = new ArrayList<>();
+    private final List<ThemedButton> buttons = new ArrayList<>();
     private int tabWidth = AE2Theme.PAGE_TAB_SIZE, tabHeight = AE2Theme.PAGE_TAB_SIZE;
 
     /**
@@ -88,7 +88,7 @@ public class PageTabs extends ParentWidget<PageTabs> {
         int index = usable.size();
         BooleanSupplier[] available = { () -> true };
         usable.add(available);
-        ActionButton tab = new ActionButton();
+        ThemedButton tab = new ThemedButton();
         IDrawable look = AE2Buttons
             .pageTab(tab, icon, () -> open.getAsInt() == index, () -> available[0].getAsBoolean());
         tab.available(() -> available[0].getAsBoolean())

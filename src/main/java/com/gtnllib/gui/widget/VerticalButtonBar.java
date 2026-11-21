@@ -36,9 +36,9 @@ public class VerticalButtonBar extends ParentWidget<VerticalButtonBar> {
     public static final int WIDTH = 21, PITCH = 22, OVERLAP = 2;
     private static final int BUTTON_X = 3, BUTTON_Y = 3, EDGES = 6, BUTTON_GAP = PITCH - AE2Theme.ICON_BUTTON_HEIGHT;
     private final IDrawable plainStrip = AE2Panels.panelBackground(this, 0, 0);
-    private final List<ActionButton> buttons = new ArrayList<>();
+    private final List<ThemedButton> buttons = new ArrayList<>();
     private int buttonWidth = AE2Theme.ICON_BUTTON_WIDTH, buttonHeight = AE2Theme.ICON_BUTTON_HEIGHT;
-    private ActionButton last;
+    private ThemedButton last;
 
     public VerticalButtonBar() {
         size(WIDTH, EDGES);
@@ -134,8 +134,7 @@ public class VerticalButtonBar extends ParentWidget<VerticalButtonBar> {
 
     private VerticalButtonBar add(Supplier<? extends IconSource> icon, Consumer<RichTooltip> tooltip,
         IntPredicate click, BooleanSupplier selected) {
-        last = ActionButton.icon(icon, () -> {})
-            .selected(selected)
+        last = new IconButton(icon, () -> {}).selected(selected)
             .pos(BUTTON_X, BUTTON_Y + buttons.size() * pitch())
             .size(buttonWidth, buttonHeight)
             .tooltipAutoUpdate(true)

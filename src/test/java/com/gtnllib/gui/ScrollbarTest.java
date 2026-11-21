@@ -11,15 +11,15 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import com.cleanroommc.modularui.api.UpOrDown;
-import com.gtnllib.gui.widget.RowScrollbar;
+import com.gtnllib.gui.widget.Scrollbar;
 
-public class RowScrollbarTest {
+public class ScrollbarTest {
 
     private int firstRow, lastRow;
     private final List<Integer> changes = new ArrayList<>();
 
-    private RowScrollbar bar() {
-        return new RowScrollbar(() -> firstRow, () -> lastRow, row -> {
+    private Scrollbar bar() {
+        return new Scrollbar(() -> firstRow, () -> lastRow, row -> {
             changes.add(row);
             firstRow = row;
         });
@@ -28,7 +28,7 @@ public class RowScrollbarTest {
     @Test
     public void wheelMovesOneStepAndStopsAtTheEnds() {
         lastRow = 5;
-        RowScrollbar bar = bar().step(2);
+        Scrollbar bar = bar().step(2);
         assertTrue(bar.scroll(UpOrDown.DOWN), "a notch down must scroll a bar with a range");
         assertEquals(2, firstRow, "a notch moves one step");
         bar.scroll(UpOrDown.DOWN);
@@ -43,7 +43,7 @@ public class RowScrollbarTest {
     @Test
     public void barWithoutRangeLeavesTheWheel() {
         lastRow = 0;
-        RowScrollbar bar = bar();
+        Scrollbar bar = bar();
         assertFalse(bar.scroll(UpOrDown.DOWN), "a bar whose content fits must leave the wheel to others");
         assertTrue(changes.isEmpty(), "a bar whose content fits must not move");
     }

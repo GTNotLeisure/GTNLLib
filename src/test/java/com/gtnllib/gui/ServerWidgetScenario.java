@@ -20,27 +20,29 @@ import com.cleanroommc.modularui.widgets.SliderWidget;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.ScreenTheme;
 import com.gtnllib.gui.theme.ae2.AE2Buttons;
+import com.gtnllib.gui.theme.ae2.AE2Checkboxes;
 import com.gtnllib.gui.theme.ae2.AE2Icon;
 import com.gtnllib.gui.theme.ae2.AE2Legacy;
 import com.gtnllib.gui.theme.ae2.AE2Look;
 import com.gtnllib.gui.theme.ae2.AE2Panels;
-import com.gtnllib.gui.theme.ae2.AE2Switches;
 import com.gtnllib.gui.theme.ae2.AE2Variant;
 import com.gtnllib.gui.theme.ae2.IconSource;
 import com.gtnllib.gui.wheel.WheelStyle;
-import com.gtnllib.gui.widget.ActionButton;
+import com.gtnllib.gui.widget.AE2Button;
 import com.gtnllib.gui.widget.CycleDropdown;
 import com.gtnllib.gui.widget.GTNLListWidget;
 import com.gtnllib.gui.widget.HandleScrollData;
+import com.gtnllib.gui.widget.IconButton;
 import com.gtnllib.gui.widget.IconRowList;
 import com.gtnllib.gui.widget.ListRow;
-import com.gtnllib.gui.widget.NumberEntry;
+import com.gtnllib.gui.widget.NumberEntryWidget;
 import com.gtnllib.gui.widget.PageTabs;
 import com.gtnllib.gui.widget.ProgressBar;
-import com.gtnllib.gui.widget.RowScrollbar;
-import com.gtnllib.gui.widget.SettingButton;
+import com.gtnllib.gui.widget.Scrollbar;
+import com.gtnllib.gui.widget.SettingToggleButton;
 import com.gtnllib.gui.widget.SlideSwitch;
 import com.gtnllib.gui.widget.StepSlider;
+import com.gtnllib.gui.widget.TabButton;
 import com.gtnllib.gui.widget.ValueStepper;
 import com.gtnllib.gui.widget.VerticalButtonBar;
 
@@ -62,19 +64,18 @@ public class ServerWidgetScenario implements Runnable {
         AE2Buttons.iconButton(plain, () -> AE2Icon.ADD, () -> true, () -> false);
         AE2Buttons.tabButton(plain, () -> AE2Icon.GEAR, () -> true);
         AE2Buttons.pageTab(plain, () -> AE2Icon.FILE, () -> true);
-        AE2Switches.toggleSwitch(plain, () -> true, () -> "Auto", () -> true);
-        AE2Switches.radio(plain, () -> true, () -> "Tier", () -> true);
+        AE2Checkboxes.checkbox(plain, () -> true, () -> "Auto", () -> true);
+        AE2Checkboxes.radio(plain, () -> true, () -> "Tier", () -> true);
         AE2Panels.listRow(() -> false);
         AE2Panels.well(60);
         AE2Panels.panelBackground(0, 0);
-        ActionButton.text(() -> "Apply", () -> {})
-            .available(() -> false)
+        new AE2Button(() -> "Apply", () -> {}).available(() -> false)
             .selected(() -> false);
-        ActionButton.icon(() -> AE2Icon.REFRESH, () -> {});
-        new NumberEntry().bounds(1, 64)
+        new IconButton(() -> AE2Icon.REFRESH, () -> {});
+        new NumberEntryWidget().bounds(1, 64)
             .value(3)
             .available(() -> false);
-        new NumberEntry().size(64, 16);
+        new NumberEntryWidget().size(64, 16);
         new ListRow(() -> "Row").toggle(() -> true, () -> {})
             .available(() -> false);
         ListRow.header(() -> "Header");
@@ -111,20 +112,20 @@ public class ServerWidgetScenario implements Runnable {
         new IconRowList(() -> rows).rowHeight(24)
             .numberWidth(48);
         new ListRow(() -> "Tall row").height(26)
-            .control(new NumberEntry(), 64, 16);
+            .control(new NumberEntryWidget(), 64, 16);
         int[] firstRow = { 0 };
-        new RowScrollbar(() -> firstRow[0], () -> 5, row -> firstRow[0] = row).step(2)
+        new Scrollbar(() -> firstRow[0], () -> 5, row -> firstRow[0] = row).step(2)
             .small(true)
             .plainBar(0xFF808090, () -> 3);
-        ActionButton.tab(() -> AE2Icon.GEAR, () -> {});
-        new SettingButton().value(new EnumValue<>(ScreenTheme.class, ScreenTheme.AE2_LIGHT))
+        new TabButton(() -> AE2Icon.GEAR, () -> {});
+        new SettingToggleButton().value(new EnumValue<>(ScreenTheme.class, ScreenTheme.AE2_LIGHT))
             .title(IKey.str("Theme"))
             .state(ScreenTheme.AE2_LIGHT, AE2Icon.VISIBLE, IKey.str("Light"))
             .available(() -> false);
-        new SettingButton().value(new BoolValue(true))
+        new SettingToggleButton().value(new BoolValue(true))
             .state(true, AE2Icon.VISIBLE, IKey.str("Shown"))
             .state(false, AE2Icon.INVISIBLE, IKey.str("Hidden"));
-        new SettingButton().value(new IntValue(0))
+        new SettingToggleButton().value(new IntValue(0))
             .stateCount(3)
             .state(2, AE2Icon.ADD);
         new ProgressBar().value(new DoubleValue(0.4));
@@ -135,16 +136,14 @@ public class ServerWidgetScenario implements Runnable {
         light.wheel(WheelStyle.builder());
 
         ModularPanel panel = ModularPanel.defaultPanel("server_scenario");
-        panel.child(
-            ActionButton.text(() -> "Apply", () -> {})
-                .size(40, 20))
-            .child(new NumberEntry())
+        panel.child(new AE2Button(() -> "Apply", () -> {}).size(40, 20))
+            .child(new NumberEntryWidget())
             .child(new ListRow(() -> "Row").toggle(() -> false, () -> {}))
             .child(new VerticalButtonBar().button(() -> AE2Icon.ADD, () -> "Add", () -> {}))
             .child(new ValueStepper(() -> "LV", step -> {}).size(84, 16))
             .child(new CycleDropdown<>("server_scenario_menu", String.class).choices(Arrays.asList("a", "b")))
             .child(new IconRowList(() -> rows))
-            .child(new RowScrollbar(() -> 0, () -> 0, row -> {}).size(AE2Theme.BIG_SCROLLER_WIDTH, 40))
+            .child(new Scrollbar(() -> 0, () -> 0, row -> {}).size(AE2Theme.BIG_SCROLLER_WIDTH, 40))
             .child(new PageTabs(() -> 0, page -> {}).tab(() -> AE2Icon.GEAR, () -> "Settings"))
             .child(new StepSlider().size(60, 12))
             .child(new GTNLListWidget<>().scrollDirection(new HandleScrollData()));

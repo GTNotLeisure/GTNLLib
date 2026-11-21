@@ -5,13 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
-import com.gtnllib.gui.theme.ae2.AE2Switches.SwitchHover;
+import com.gtnllib.gui.theme.ae2.AE2Checkboxes.CheckboxHover;
 
-public class SwitchHoverTest {
+public class CheckboxHoverTest {
 
     @Test
     public void flippedSwitchStaysPlainUntilThePointerLeaves() {
-        SwitchHover hover = new SwitchHover();
+        CheckboxHover hover = new CheckboxHover();
         assertTrue(hover.lit(true, false), "a switch under the pointer shows its hover look");
         assertFalse(hover.lit(true, true), "a switch flipped under the pointer drops its hover look");
         assertFalse(hover.lit(true, true), "the plain look stays while the pointer stays");

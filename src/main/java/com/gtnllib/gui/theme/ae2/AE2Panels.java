@@ -15,6 +15,7 @@ import com.cleanroommc.modularui.drawable.GuiDraw;
 import com.cleanroommc.modularui.screen.viewport.GuiContext;
 import com.cleanroommc.modularui.theme.WidgetTheme;
 import com.cleanroommc.modularui.utils.GlStateManager;
+import com.gtnllib.gui.theme.AE2Theme;
 
 /**
  * AE2 panel pieces: panel backgrounds, list wells and rows, the vertical toolbar strip, tables and the dropdown caret.
@@ -31,7 +32,7 @@ public class AE2Panels {
      * @param y       top edge of the background
      * @param width   background width, including button margins
      * @param height  background height, including button margins and spacing
-     * @see #BUTTON_BAR_MARGIN
+     * @see AE2Theme#BUTTON_BAR_MARGIN
      * @see #BUTTON_BAR_SPACING
      */
     public static void drawButtonBar(AE2Variant variant, int x, int y, int width, int height) {

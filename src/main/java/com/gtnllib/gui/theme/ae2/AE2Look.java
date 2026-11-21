@@ -33,6 +33,7 @@ import com.gtnllib.gui.theme.AE2Theme;
  */
 public record AE2Look(@Nullable AE2Variant variant) {
 
+    private static final AE2Variant[] VARIANTS = AE2Variant.values();
     /** Theme data entry that names the AE2 skin of a theme; themes without it get the plain look. */
     public static final WidgetThemeKey<Marker> KEY = Marker.register();
     /** Pixels a list well's border takes on each side, under every look. */
@@ -98,9 +99,8 @@ public record AE2Look(@Nullable AE2Variant variant) {
         if (theme == null) return PLAIN;
         WidgetThemeEntry<Marker> entry = theme.getWidgetTheme(KEY);
         AE2Variant marked = entry == null ? null
-            : skin(
-                entry.getTheme()
-                    .skin());
+            : entry.getTheme()
+                .variant();
         return of(marked != null ? marked : AE2Theme.variant(theme.getId()));
     }
 
@@ -111,7 +111,7 @@ public record AE2Look(@Nullable AE2Variant variant) {
      * @return the matching skin, or {@code null} for an empty or unknown name
      */
     public static @Nullable AE2Variant skin(@Nullable String folder) {
-        for (AE2Variant variant : AE2Variant.values()) if (variant.folder.equals(folder)) return variant;
+        for (AE2Variant variant : VARIANTS) if (variant.folder.equals(folder)) return variant;
         return null;
     }
 
@@ -269,6 +269,7 @@ public record AE2Look(@Nullable AE2Variant variant) {
         /** JSON key holding the skin folder name. */
         public static final String SKIN = "skin";
         private final String skin;
+        private final @Nullable AE2Variant variant;
 
         /**
          * Creates the entry of a theme.
@@ -278,6 +279,7 @@ public record AE2Look(@Nullable AE2Variant variant) {
         public Marker(String skin) {
             super(0, 0, null, Color.WHITE.main, Color.WHITE.main, false, Color.WHITE.main);
             this.skin = skin;
+            variant = AE2Look.skin(skin);
         }
 
         /**
@@ -290,6 +292,7 @@ public record AE2Look(@Nullable AE2Variant variant) {
         public Marker(Marker parent, JsonObject json, JsonObject fallback) {
             super(parent, json, fallback);
             skin = JsonHelper.getString(json, parent.skin, SKIN);
+            variant = AE2Look.skin(skin);
         }
 
         /**
@@ -299,6 +302,15 @@ public record AE2Look(@Nullable AE2Variant variant) {
          */
         public String skin() {
             return skin;
+        }
+
+        /**
+         * Returns the AE2 skin the folder name stands for, found once when the theme is read.
+         *
+         * @return the skin, or {@code null} for the plain look or an unknown name
+         */
+        public @Nullable AE2Variant variant() {
+            return variant;
         }
 
         private static WidgetThemeKey<Marker> register() {

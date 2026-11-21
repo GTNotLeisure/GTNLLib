@@ -29,7 +29,7 @@ import com.gtnllib.gui.theme.ae2.AE2Look;
  * <p>
  * The row is meant to sit inside a list inset, like {@link IconRowList}'s rows: a row as wide as that list's inset
  * places its label {@link #TEXT_INSET} pixels and its control {@link #END_INSET} pixels from the inset's edges, the
- * same as the list's own rows. Use it where a list mixes MUI2 controls such as {@link NumberEntry} and
+ * same as the list's own rows. Use it where a list mixes MUI2 controls such as {@link NumberEntryWidget} and
  * {@link CycleDropdown} with plain rows. The row is {@link IconRowList#ROW} pixels high unless its height is set; the
  * label, switch and control stay centred in any height. It can be built on either side, so it also works in GUIs the
  * server opens.

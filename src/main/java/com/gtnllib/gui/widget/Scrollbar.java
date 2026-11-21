@@ -34,7 +34,8 @@ import com.gtnllib.gui.theme.ae2.AE2Variant;
  * step per notch; an owner forwards the wheel over its content with {@link #scroll(UpOrDown)}. Without a range the
  * bar draws its disabled handle at the top and swallows left presses.
  * <p>
- * The look follows the theme of the screen when drawn. Under AE2 themes it is AE2's groove with the fixed 12-by-15
+ * The look follows the theme of the panel the bar is in, read while drawing. Under AE2 themes it is AE2's groove with
+ * the fixed 12-by-15
  * handle, or with {@link #small(boolean)} the 5-pixel groove and 7-by-15 handle; make it
  * {@link AE2Theme#BIG_SCROLLER_WIDTH} or {@link AE2Theme#SMALL_SCROLLER_WIDTH} pixels wide. Other themes get the
  * vanilla
@@ -43,7 +44,7 @@ import com.gtnllib.gui.theme.ae2.AE2Variant;
  * The groove border takes one pixel at the top and bottom, so the bar must be at least
  * {@code AE2Theme.SCROLLER_HEIGHT + 2} pixels high.
  */
-public class RowScrollbar extends Widget<RowScrollbar> implements Interactable {
+public class Scrollbar extends Widget<Scrollbar> implements Interactable {
 
     private static final int BORDER = 1, PLAIN_MIN_HANDLE = 8;
     private final IntSupplier position, maxPosition;
@@ -63,7 +64,7 @@ public class RowScrollbar extends Widget<RowScrollbar> implements Interactable {
      * @param scrollTo    receives every new position chosen with the bar or the wheel, from zero to the maximum; it is
      *                    not called when the position stays the same
      */
-    public RowScrollbar(IntSupplier position, IntSupplier maxPosition, IntConsumer scrollTo) {
+    public Scrollbar(IntSupplier position, IntSupplier maxPosition, IntConsumer scrollTo) {
         this.position = position;
         this.maxPosition = maxPosition;
         this.scrollTo = scrollTo;
@@ -77,7 +78,7 @@ public class RowScrollbar extends Widget<RowScrollbar> implements Interactable {
      * @param step positions per notch and per page, at least one; the default is one
      * @return this scroll bar
      */
-    public RowScrollbar step(int step) {
+    public Scrollbar step(int step) {
         this.step = Math.max(1, step);
         return this;
     }
@@ -90,7 +91,7 @@ public class RowScrollbar extends Widget<RowScrollbar> implements Interactable {
      *              dragging
      * @return this scroll bar
      */
-    public RowScrollbar pageOnTrackPress(boolean pages) {
+    public Scrollbar pageOnTrackPress(boolean pages) {
         this.pages = pages;
         return this;
     }
@@ -101,7 +102,7 @@ public class RowScrollbar extends Widget<RowScrollbar> implements Interactable {
      * @param small whether to draw the 7-pixel-wide handle under AE2 themes; other themes ignore it
      * @return this scroll bar
      */
-    public RowScrollbar small(boolean small) {
+    public Scrollbar small(boolean small) {
         this.small = small;
         return this;
     }
@@ -115,7 +116,7 @@ public class RowScrollbar extends Widget<RowScrollbar> implements Interactable {
      * @param visible supplier of how many positions are visible at once
      * @return this scroll bar
      */
-    public RowScrollbar plainBar(int color, IntSupplier visible) {
+    public Scrollbar plainBar(int color, IntSupplier visible) {
         plainColor = color;
         plainVisible = visible;
         return this;

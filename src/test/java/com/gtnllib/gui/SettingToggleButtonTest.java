@@ -6,14 +6,14 @@ import org.junit.jupiter.api.Test;
 
 import com.cleanroommc.modularui.value.BoolValue;
 import com.cleanroommc.modularui.value.IntValue;
-import com.gtnllib.gui.widget.SettingButton;
+import com.gtnllib.gui.widget.SettingToggleButton;
 
-public class SettingButtonTest {
+public class SettingToggleButtonTest {
 
     @Test
     public void cyclesBothWays() {
         IntValue value = new IntValue(0);
-        SettingButton button = new SettingButton().value(value)
+        SettingToggleButton button = new SettingToggleButton().value(value)
             .stateCount(3)
             .playClickSound(false);
         button.onMousePressed(0);
@@ -28,7 +28,7 @@ public class SettingButtonTest {
     @Test
     public void flipsBoolean() {
         BoolValue value = new BoolValue(false);
-        SettingButton button = new SettingButton().value(value)
+        SettingToggleButton button = new SettingToggleButton().value(value)
             .playClickSound(false);
         button.onMousePressed(1);
         assertEquals(true, value.getBoolValue(), "either click flips a two-icon toggle");
@@ -37,7 +37,7 @@ public class SettingButtonTest {
     @Test
     public void unavailableIgnoresClicks() {
         IntValue value = new IntValue(1);
-        SettingButton button = new SettingButton().value(value)
+        SettingToggleButton button = new SettingToggleButton().value(value)
             .stateCount(3)
             .playClickSound(false)
             .available(() -> false);

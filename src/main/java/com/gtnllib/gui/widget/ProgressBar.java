@@ -29,6 +29,20 @@ public class ProgressBar extends ProgressWidget {
         direction(Direction.UP);
     }
 
+    /**
+     * Sets the direction the bar fills in.
+     *
+     * @param direction {@code UP}, {@code DOWN}, {@code LEFT} or {@code RIGHT}
+     * @return this bar
+     * @throws IllegalArgumentException for {@code CIRCULAR_CW}, which needs a texture split into quarters
+     */
+    @Override
+    public ProgressWidget direction(Direction direction) {
+        if (direction == Direction.CIRCULAR_CW)
+            throw new IllegalArgumentException("A ProgressBar fills in a straight line, not around a circle");
+        return super.direction(direction);
+    }
+
     @Override
     public void draw(ModularGuiContext context, WidgetThemeEntry<?> widgetTheme) {
         AE2Look look = AE2Look.of(this);

@@ -65,10 +65,11 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
  * Invalid text is drawn in the error color of the theme the entry is drawn with: AE2's input error color under AE2
  * themes, a plain red otherwise.
  * <p>
- * For example, {@code new NumberEntry().bounds(1, 1_000_000).value(64)} creates a bounded input with an initial value
+ * For example, {@code new NumberEntryWidget().bounds(1, 1_000_000).value(64)} creates a bounded input with an initial
+ * value
  * of 64.
  */
-public class NumberEntry extends ParentWidget<NumberEntry> {
+public class NumberEntryWidget extends ParentWidget<NumberEntryWidget> {
 
     /** Default widget dimensions in GUI pixels; lower entries use the single-row layout. */
     public static final int WIDTH = 138, HEIGHT = 62;
@@ -91,21 +92,10 @@ public class NumberEntry extends ParentWidget<NumberEntry> {
     private BooleanSupplier available = () -> true;
 
     /**
-     * Same as {@link #NumberEntry()}.
-     *
-     * @param variant ignored; the entry, its validation feedback included, follows the theme it is drawn with
-     * @deprecated use {@link #NumberEntry()}
-     */
-    @Deprecated
-    public NumberEntry(@Nullable AE2Variant variant) {
-        this();
-    }
-
-    /**
      * Creates an entry with value zero and inclusive bounds from zero to {@link Long#MAX_VALUE}. Buttons, text field
      * and validation feedback follow the theme the entry is drawn with.
      */
-    public NumberEntry() {
+    public NumberEntryWidget() {
         size(WIDTH, HEIGHT);
         for (int i = 0; i < STEPS.length; i++) {
             int index = i;
@@ -161,7 +151,7 @@ public class NumberEntry extends ParentWidget<NumberEntry> {
      * @param reset value to apply; the default is zero
      * @return this widget
      */
-    public NumberEntry resetValue(long reset) {
+    public NumberEntryWidget resetValue(long reset) {
         this.reset = reset;
         return this;
     }
@@ -172,7 +162,7 @@ public class NumberEntry extends ParentWidget<NumberEntry> {
      * @param available supplier read every frame and on every input
      * @return this widget
      */
-    public NumberEntry available(BooleanSupplier available) {
+    public NumberEntryWidget available(BooleanSupplier available) {
         this.available = available;
         return this;
     }
@@ -219,7 +209,7 @@ public class NumberEntry extends ParentWidget<NumberEntry> {
      * @param max maximum accepted value; values below {@code min} are replaced with {@code min}
      * @return this widget
      */
-    public NumberEntry bounds(long min, long max) {
+    public NumberEntryWidget bounds(long min, long max) {
         this.min = min;
         this.max = Math.max(min, max);
         validate(false);
@@ -232,7 +222,7 @@ public class NumberEntry extends ParentWidget<NumberEntry> {
      * @param value value to display; values outside the bounds remain visible as invalid input
      * @return this widget
      */
-    public NumberEntry value(long value) {
+    public NumberEntryWidget value(long value) {
         setText(Long.toString(value));
         validate(false);
         return this;
@@ -248,7 +238,7 @@ public class NumberEntry extends ParentWidget<NumberEntry> {
      * @param listener non-null callback receiving the accepted value on the client thread
      * @return this widget
      */
-    public NumberEntry onChange(LongConsumer listener) {
+    public NumberEntryWidget onChange(LongConsumer listener) {
         this.listener = listener;
         return this;
     }
@@ -261,7 +251,7 @@ public class NumberEntry extends ParentWidget<NumberEntry> {
      * @param source supplier of the current value, read on the client thread every update
      * @return this widget
      */
-    public NumberEntry follow(LongSupplier source) {
+    public NumberEntryWidget follow(LongSupplier source) {
         value(source.getAsLong());
         onUpdateListener(widget -> {
             long current = source.getAsLong();
@@ -276,7 +266,7 @@ public class NumberEntry extends ParentWidget<NumberEntry> {
      * @param alignment placement of the text inside the field; MUI2's default is {@link Alignment#CenterLeft}
      * @return this widget
      */
-    public NumberEntry textAlignment(Alignment alignment) {
+    public NumberEntryWidget textAlignment(Alignment alignment) {
         field.setTextAlignment(alignment);
         return this;
     }
@@ -288,7 +278,7 @@ public class NumberEntry extends ParentWidget<NumberEntry> {
      * @param wheel true to let the wheel step the value
      * @return this widget
      */
-    public NumberEntry wheel(boolean wheel) {
+    public NumberEntryWidget wheel(boolean wheel) {
         this.wheel = wheel;
         return this;
     }
@@ -311,15 +301,14 @@ public class NumberEntry extends ParentWidget<NumberEntry> {
         return inputValid;
     }
 
-    private ActionButton step(int index, int sign) {
-        return ActionButton.text(() -> (sign > 0 ? "+" : "-") + steps()[index], () -> add(sign * steps()[index]))
+    private ThemedButton step(int index, int sign) {
+        return new AE2Button(() -> (sign > 0 ? "+" : "-") + steps()[index], () -> add(sign * steps()[index]))
             .available(this::isAvailable)
             .setEnabledIf(widget -> !compact());
     }
 
-    private ActionButton arrow(int sign) {
-        return ActionButton.text(() -> sign > 0 ? ">" : "<", () -> add(sign * fineStep()))
-            .available(this::isAvailable)
+    private ThemedButton arrow(int sign) {
+        return new AE2Button(() -> sign > 0 ? ">" : "<", () -> add(sign * fineStep())).available(this::isAvailable)
             .setEnabledIf(widget -> compact());
     }
 

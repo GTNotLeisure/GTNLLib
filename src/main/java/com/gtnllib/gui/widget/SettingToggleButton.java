@@ -27,13 +27,13 @@ import com.gtnllib.gui.theme.ae2.IconSource;
  * {@link #available(BooleanSupplier) available} it looks disabled and swallows every mouse button. A value without an
  * icon shows {@link AE2Icon#MORE}.
  */
-public class SettingButton extends AbstractCycleButtonWidget<SettingButton> {
+public class SettingToggleButton extends AbstractCycleButtonWidget<SettingToggleButton> {
 
     private IconSource[] icons = new IconSource[0];
     private BooleanSupplier available = () -> true;
     private IKey title = IKey.EMPTY;
 
-    public SettingButton() {
+    public SettingToggleButton() {
         IDrawable look = AE2Buttons.iconButton(this, this::icon, this::isAvailable);
         background(look).hoverBackground(look)
             .size(AE2Theme.ICON_BUTTON_WIDTH, AE2Theme.ICON_BUTTON_HEIGHT);
@@ -46,7 +46,7 @@ public class SettingButton extends AbstractCycleButtonWidget<SettingButton> {
      * @return this button
      */
     @Override
-    public SettingButton value(IIntValue<?> value) {
+    public SettingToggleButton value(IIntValue<?> value) {
         return super.value(value);
     }
 
@@ -57,7 +57,7 @@ public class SettingButton extends AbstractCycleButtonWidget<SettingButton> {
      * @return this button
      */
     @Override
-    public SettingButton stateCount(int count) {
+    public SettingToggleButton stateCount(int count) {
         return super.stateCount(count);
     }
 
@@ -67,7 +67,7 @@ public class SettingButton extends AbstractCycleButtonWidget<SettingButton> {
      * @param title setting name
      * @return this button
      */
-    public SettingButton title(IKey title) {
+    public SettingToggleButton title(IKey title) {
         this.title = title;
         return this;
     }
@@ -80,7 +80,7 @@ public class SettingButton extends AbstractCycleButtonWidget<SettingButton> {
      * @param description tooltip lines below the title while the value is current
      * @return this button
      */
-    public SettingButton state(int state, IconSource icon, IKey... description) {
+    public SettingToggleButton state(int state, IconSource icon, IKey... description) {
         if (state >= icons.length) icons = Arrays.copyOf(icons, state + 1);
         icons[state] = icon;
         return tooltipBuilder(state, tooltip -> {
@@ -98,7 +98,7 @@ public class SettingButton extends AbstractCycleButtonWidget<SettingButton> {
      * @param <E>         enum type of the button's value
      * @return this button
      */
-    public <E extends Enum<E>> SettingButton state(E state, IconSource icon, IKey... description) {
+    public <E extends Enum<E>> SettingToggleButton state(E state, IconSource icon, IKey... description) {
         return state(state.ordinal(), icon, description);
     }
 
@@ -110,7 +110,7 @@ public class SettingButton extends AbstractCycleButtonWidget<SettingButton> {
      * @param description tooltip lines below the title while the value is current
      * @return this button
      */
-    public SettingButton state(boolean state, IconSource icon, IKey... description) {
+    public SettingToggleButton state(boolean state, IconSource icon, IKey... description) {
         return state(state ? 1 : 0, icon, description);
     }
 
@@ -121,7 +121,7 @@ public class SettingButton extends AbstractCycleButtonWidget<SettingButton> {
      * @param available supplier read every frame and on every click
      * @return this button
      */
-    public SettingButton available(BooleanSupplier available) {
+    public SettingToggleButton available(BooleanSupplier available) {
         this.available = available;
         return this;
     }
