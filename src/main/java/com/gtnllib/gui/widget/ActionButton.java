@@ -9,11 +9,12 @@ import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.api.layout.IViewportStack;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.gtnllib.gui.theme.AE2Theme;
-import com.gtnllib.gui.theme.AE2Theme.IconSource;
+import com.gtnllib.gui.theme.ae2.AE2Buttons;
+import com.gtnllib.gui.theme.ae2.IconSource;
 
 /**
- * A button drawn by the active theme: a text button ({@link AE2Theme#button} with {@link AE2Theme#label}) or a
- * toolbar icon button ({@link AE2Theme#iconButton}). It reacts to the left mouse button only, unless a mouse handler
+ * A button drawn by the active theme: a text button ({@link AE2Buttons#button} with {@link AE2Buttons#label}) or a
+ * toolbar icon button ({@link AE2Buttons#iconButton}). It reacts to the left mouse button only, unless a mouse handler
  * set afterwards replaces the action. While it is not available it looks disabled, shows no hover and swallows every
  * mouse button, so clicks never reach a widget below it. An icon button takes the mouse on its whole frame; AE2's react
  * only on the 16-by-16 icon square. It can be built on either side, so it also works in GUIs the server opens.
@@ -32,10 +33,10 @@ public class ActionButton extends ButtonWidget<ActionButton> {
      */
     public static ActionButton text(Supplier<String> label, Runnable action) {
         ActionButton button = new ActionButton();
-        IDrawable look = AE2Theme.button(button, button::isAvailable, button::isSelected);
+        IDrawable look = AE2Buttons.button(button, button::isAvailable, button::isSelected);
         return button.background(look)
             .hoverBackground(look)
-            .overlay(AE2Theme.label(button, label, button::isAvailable, button::isSelected))
+            .overlay(AE2Buttons.label(button, label, button::isAvailable, button::isSelected))
             .onClick(action);
     }
 
@@ -50,7 +51,7 @@ public class ActionButton extends ButtonWidget<ActionButton> {
      */
     public static ActionButton icon(Supplier<? extends IconSource> icon, Runnable action) {
         ActionButton button = new ActionButton();
-        IDrawable look = AE2Theme.iconButton(button, icon, button::isAvailable, button::isSelected);
+        IDrawable look = AE2Buttons.iconButton(button, icon, button::isAvailable, button::isSelected);
         return button.background(look)
             .hoverBackground(look)
             .size(AE2Theme.ICON_BUTTON_WIDTH, AE2Theme.ICON_BUTTON_HEIGHT)

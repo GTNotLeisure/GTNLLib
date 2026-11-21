@@ -14,10 +14,14 @@ import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.SliderWidget;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.AE2Theme.Icon;
-import com.gtnllib.gui.theme.AE2Theme.IconSource;
 import com.gtnllib.gui.theme.AE2Theme.Variant;
 import com.gtnllib.gui.theme.ScreenTheme;
+import com.gtnllib.gui.theme.ae2.AE2Buttons;
+import com.gtnllib.gui.theme.ae2.AE2Legacy;
 import com.gtnllib.gui.theme.ae2.AE2Look;
+import com.gtnllib.gui.theme.ae2.AE2Panels;
+import com.gtnllib.gui.theme.ae2.AE2Switches;
+import com.gtnllib.gui.theme.ae2.IconSource;
 import com.gtnllib.gui.wheel.WheelStyle;
 import com.gtnllib.gui.widget.ActionButton;
 import com.gtnllib.gui.widget.CycleDropdown;
@@ -46,16 +50,16 @@ public class ServerWidgetScenario implements Runnable {
         new AE2Look.Marker.Builder().skin(Variant.DARK.folder);
         Variant light = AE2Theme.variant(AE2Theme.LIGHT_ID);
         ButtonWidget<?> plain = new ButtonWidget<>();
-        plain.background(AE2Theme.button(plain, () -> true, () -> false))
-            .overlay(AE2Theme.label(plain, () -> "Apply", () -> true, () -> false));
-        AE2Theme.iconButton(plain, () -> Icon.ADD, () -> true, () -> false);
-        AE2Theme.tabButton(plain, () -> Icon.GEAR, () -> true);
-        AE2Theme.pageTab(plain, () -> Icon.FILE, () -> true);
-        AE2Theme.toggleSwitch(plain, () -> true, () -> "Auto", () -> true);
-        AE2Theme.radio(plain, () -> true, () -> "Tier", () -> true);
-        AE2Theme.listRow(() -> false);
-        AE2Theme.well(60, 0);
-        AE2Theme.panelBackground(0, 0);
+        plain.background(AE2Buttons.button(plain, () -> true, () -> false))
+            .overlay(AE2Buttons.label(plain, () -> "Apply", () -> true, () -> false));
+        AE2Buttons.iconButton(plain, () -> Icon.ADD, () -> true, () -> false);
+        AE2Buttons.tabButton(plain, () -> Icon.GEAR, () -> true);
+        AE2Buttons.pageTab(plain, () -> Icon.FILE, () -> true);
+        AE2Switches.toggleSwitch(plain, () -> true, () -> "Auto", () -> true);
+        AE2Switches.radio(plain, () -> true, () -> "Tier", () -> true);
+        AE2Panels.listRow(() -> false);
+        AE2Panels.well(60, 0);
+        AE2Panels.panelBackground(0, 0);
         ActionButton.text(() -> "Apply", () -> {})
             .available(() -> false)
             .selected(() -> false);
@@ -107,8 +111,8 @@ public class ServerWidgetScenario implements Runnable {
             .plainBar(0xFF808090, () -> 3);
         AE2Theme.sliderHandles(new ParentWidget<>().child(new SliderWidget()), AE2Theme.LIGHT_ID);
         AE2Theme.useMenuTheme(AE2Theme.DARK_ID, "gtnllib", "server_scenario", "menu");
-        AE2Theme.legacyStates(light);
-        AE2Theme.legacyTerminal(null);
+        AE2Legacy.legacyStates(light);
+        AE2Legacy.legacyTerminal(null);
         light.wheel(WheelStyle.builder());
 
         ModularPanel panel = ModularPanel.defaultPanel("server_scenario");

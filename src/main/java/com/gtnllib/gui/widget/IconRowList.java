@@ -25,7 +25,10 @@ import com.cleanroommc.modularui.utils.GlStateManager;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.AE2Theme.Variant;
+import com.gtnllib.gui.theme.ae2.AE2Draw;
 import com.gtnllib.gui.theme.ae2.AE2Look;
+import com.gtnllib.gui.theme.ae2.AE2Panels;
+import com.gtnllib.gui.theme.ae2.AE2Switches;
 
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -420,7 +423,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
             .variant();
         layout(variant != null);
         int width = getArea().width, height = getArea().height;
-        AE2Theme.drawWell(variant, 0, 0, variant == null ? width : width - AE2_SCROLL_COLUMN, height, BACKGROUND);
+        AE2Panels.drawWell(variant, 0, 0, variant == null ? width : width - AE2_SCROLL_COLUMN, height, BACKGROUND);
         FontRenderer font = Minecraft.getMinecraft().fontRenderer;
         int hovered = hoveredRow(), visible = visibleRows();
         int rowRight = width - gutter, textRight = rowRight - 2;
@@ -458,7 +461,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
             int right = textRight;
             if (row.number() != null) right -= numberWidth + 2;
             if (row.options() != null) {
-                AE2Theme.drawCaret(
+                AE2Panels.drawCaret(
                     textRight - CARET + 2,
                     top + (rowHeight - AE2Theme.CARET_HEIGHT) / 2,
                     row.text()
@@ -511,7 +514,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
 
     /**
      * Draws a row's on/off switch against the row's right end, centered in the row; see
-     * {@link AE2Theme#drawSwitch}.
+     * {@link AE2Switches#drawSwitch}.
      *
      * @param variant   active AE2 variant, or {@code null} outside the AE2 themes
      * @param right     pixel the switch ends at
@@ -524,7 +527,8 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
     public static int drawSwitch(@Nullable Variant variant, int right, int top, int rowHeight, boolean on,
         boolean hovered) {
         int width = variant == null ? AE2Theme.SWITCH_HEIGHT : AE2Theme.SWITCH_WIDTH;
-        return AE2Theme.drawSwitch(variant, right - width, top + (rowHeight - AE2Theme.SWITCH_HEIGHT) / 2, on, hovered);
+        return AE2Switches
+            .drawSwitch(variant, right - width, top + (rowHeight - AE2Theme.SWITCH_HEIGHT) / 2, on, hovered);
     }
 
     /**
@@ -541,7 +545,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
     public static void drawHeader(@Nullable Variant variant, FontRenderer font, String text, int left, int top,
         int rowHeight, int right) {
         int textY = top + textTop(rowHeight);
-        AE2Theme.text(text, left, textY, variant == null ? HEADER : variant.colors.muted(), false);
+        AE2Draw.text(text, left, textY, variant == null ? HEADER : variant.colors.muted(), false);
         if (variant == null) return;
         int start = left + font.getStringWidth(text) + 4, width = right - 4 - start;
         if (width <= 0) return;

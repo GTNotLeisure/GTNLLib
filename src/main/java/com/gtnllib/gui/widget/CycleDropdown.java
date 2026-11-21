@@ -27,7 +27,10 @@ import com.cleanroommc.modularui.widgets.menu.DropdownWidget;
 import com.cleanroommc.modularui.widgets.menu.Menu;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.AE2Theme.Variant;
+import com.gtnllib.gui.theme.ae2.AE2Buttons;
+import com.gtnllib.gui.theme.ae2.AE2Draw;
 import com.gtnllib.gui.theme.ae2.AE2Look;
+import com.gtnllib.gui.theme.ae2.AE2Panels;
 import com.gtnllib.gui.widget.AE2ButtonDrawable.State;
 
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
@@ -51,7 +54,7 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
     public static final int OPTION_HEIGHT = 16;
     private static final int MENU_EDGE = 1, VALUE_INSET = 3, CARET_SPACE = AE2Theme.CARET_WIDTH + 4;
     private final List<T> choices = new ObjectArrayList<>();
-    private final IDrawable disabledLook = AE2Theme.button(this, () -> false, () -> false);
+    private final IDrawable disabledLook = AE2Buttons.button(this, () -> false, () -> false);
     private BooleanSupplier available = () -> true;
     private T shown;
     private int menuWidth;
@@ -134,7 +137,7 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
         Variant variant = AE2Look.of(this)
             .variant();
         if (variant != null) return variant.colors.button(State.of(this, isAvailable(), false));
-        if (!isAvailable()) return AE2Theme.panelTextColor(this, false);
+        if (!isAvailable()) return AE2Draw.panelTextColor(this, false);
         return getPanel().getTheme()
             .getFallback()
             .getTheme()
@@ -156,7 +159,7 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
             .isAE2() || !isAvailable() ? labelColor()
                 : widgetTheme.getTheme()
                     .getTextColor();
-        AE2Theme.drawCaret(
+        AE2Panels.drawCaret(
             getArea().width - CARET_SPACE + 1,
             (getArea().height - AE2Theme.CARET_HEIGHT) / 2 + labelSink(),
             isOpen(),

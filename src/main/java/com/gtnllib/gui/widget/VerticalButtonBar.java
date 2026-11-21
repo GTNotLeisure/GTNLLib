@@ -13,9 +13,10 @@ import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.theme.WidgetThemeEntry;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.gtnllib.gui.theme.AE2Theme;
-import com.gtnllib.gui.theme.AE2Theme.IconSource;
 import com.gtnllib.gui.theme.AE2Theme.Variant;
 import com.gtnllib.gui.theme.ae2.AE2Look;
+import com.gtnllib.gui.theme.ae2.AE2Panels;
+import com.gtnllib.gui.theme.ae2.IconSource;
 
 /**
  * A column of icon buttons on the left of a panel, laid out like AE2 1.21's vertical toolbar: 18-by-20-pixel
@@ -34,7 +35,7 @@ public class VerticalButtonBar extends ParentWidget<VerticalButtonBar> {
     /** Strip width, distance between button tops and pixels drawn over the panel's left border. */
     public static final int WIDTH = 21, PITCH = 22, OVERLAP = 2;
     private static final int BUTTON_X = 3, BUTTON_Y = 3, EDGES = 6, BUTTON_GAP = PITCH - AE2Theme.ICON_BUTTON_HEIGHT;
-    private final IDrawable plainStrip = AE2Theme.panelBackground(this, 0, 0);
+    private final IDrawable plainStrip = AE2Panels.panelBackground(this, 0, 0);
     private final List<ActionButton> buttons = new ArrayList<>();
     private int buttonWidth = AE2Theme.ICON_BUTTON_WIDTH, buttonHeight = AE2Theme.ICON_BUTTON_HEIGHT;
     private ActionButton last;
@@ -151,7 +152,7 @@ public class VerticalButtonBar extends ParentWidget<VerticalButtonBar> {
         int width = getArea().width, height = getArea().height;
         Variant variant = AE2Look.of(this)
             .variant();
-        if (variant != null) AE2Theme.drawButtonBar(variant, 0, 0, width, height);
+        if (variant != null) AE2Panels.drawButtonBar(variant, 0, 0, width, height);
         else plainStrip.draw(context, 0, 0, width, height, widgetTheme.getTheme());
     }
 }

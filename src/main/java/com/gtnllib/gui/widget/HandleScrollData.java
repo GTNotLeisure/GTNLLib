@@ -12,6 +12,7 @@ import com.cleanroommc.modularui.widget.scroll.VerticalScrollData;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.AE2Theme.Variant;
 import com.gtnllib.gui.theme.ae2.AE2Look;
+import com.gtnllib.gui.theme.ae2.AE2Scrollbars;
 
 /**
  * Vertical scroll data with a fixed-size AE2 or vanilla handle. It can be built on either side, so it also works in
@@ -78,7 +79,7 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
      */
     @Deprecated
     public HandleScrollData(@Nullable Variant variant, boolean small) {
-        super(false, AE2Theme.scrollbarWidth(variant));
+        super(false, AE2Scrollbars.scrollbarWidth(variant));
         this.small = small;
         look = AE2Look.of(variant);
     }
@@ -103,7 +104,7 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
      */
     @Override
     public int getThickness() {
-        return smallHandle() ? AE2Theme.SCROLLBAR_WIDTH : AE2Theme.scrollbarWidth(look.variant());
+        return smallHandle() ? AE2Theme.SCROLLBAR_WIDTH : AE2Scrollbars.scrollbarWidth(look.variant());
     }
 
     private boolean smallHandle() {
@@ -299,8 +300,8 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
         int height = getFullVisibleSize(area);
         // The groove border sits one pixel outside the scroll area so the handle can travel the full height.
         Variant variant = look.variant();
-        if (smallHandle()) AE2Theme.drawSmallScrollbar(variant, x, top - 1, height + 2, handleY, active);
-        else AE2Theme.drawScrollbar(variant, x, top - 1, height + 2, handleY, active);
+        if (smallHandle()) AE2Scrollbars.drawSmallScrollbar(variant, x, top - 1, height + 2, handleY, active);
+        else AE2Scrollbars.drawScrollbar(variant, x, top - 1, height + 2, handleY, active);
     }
 
     private int trackTop(ScrollArea area) {

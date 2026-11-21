@@ -11,7 +11,8 @@ import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widget.Widget;
 import com.gtnllib.gui.theme.AE2Theme;
-import com.gtnllib.gui.theme.AE2Theme.IconSource;
+import com.gtnllib.gui.theme.ae2.AE2Buttons;
+import com.gtnllib.gui.theme.ae2.IconSource;
 
 /**
  * AE2's page tabs, the mode tabs of its pattern encoding terminal, as one widget: 22-by-22 tabs stacked
@@ -88,7 +89,8 @@ public class PageTabs extends ParentWidget<PageTabs> {
         BooleanSupplier[] available = { () -> true };
         usable.add(available);
         ActionButton tab = new ActionButton();
-        IDrawable look = AE2Theme.pageTab(tab, icon, () -> open.getAsInt() == index, () -> available[0].getAsBoolean());
+        IDrawable look = AE2Buttons
+            .pageTab(tab, icon, () -> open.getAsInt() == index, () -> available[0].getAsBoolean());
         tab.available(() -> available[0].getAsBoolean())
             .background(look)
             .hoverBackground(look)

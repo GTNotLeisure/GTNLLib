@@ -12,7 +12,7 @@ import com.cleanroommc.modularui.api.widget.Interactable;
 import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
-import com.gtnllib.gui.theme.AE2Theme;
+import com.gtnllib.gui.theme.ae2.AE2Draw;
 
 /**
  * Steps through a list of named values: {@code <} and {@code >} buttons around the current value's name, and, after
@@ -50,7 +50,7 @@ public class ValueStepper extends ParentWidget<ValueStepper> implements Interact
                 .child(
                     IKey.dynamic(value)
                         .asWidget()
-                        .color(() -> AE2Theme.panelTextColor(this, isAvailable()))
+                        .color(() -> AE2Draw.panelTextColor(this, isAvailable()))
                         .alignment(Alignment.Center)
                         .expanded()
                         .heightRel(1f))

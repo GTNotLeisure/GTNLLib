@@ -13,6 +13,7 @@ import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.AE2Theme.Variant;
 import com.gtnllib.gui.theme.ae2.AE2Look;
 import com.gtnllib.gui.theme.ae2.AE2Look.Marker;
+import com.gtnllib.gui.theme.ae2.AE2Scrollbars;
 import com.gtnllib.gui.widget.HandleScrollData;
 
 public class AE2LookTest {
@@ -20,7 +21,7 @@ public class AE2LookTest {
     @Test
     public void scrollWidthFollowsLook() {
         HandleScrollData large = new HandleScrollData(), small = new HandleScrollData(true);
-        int vanilla = AE2Theme.scrollbarWidth(null);
+        int vanilla = AE2Scrollbars.scrollbarWidth(null);
         assertEquals(vanilla, large.getThickness(), "a new list scroll bar starts plain");
         assertEquals(vanilla, small.getThickness(), "the small handle is an AE2 handle; plain looks use vanilla");
         large.look(AE2Look.of(Variant.DARK));

@@ -24,7 +24,7 @@ import com.cleanroommc.modularui.utils.GlStateManager;
 import com.cleanroommc.modularui.utils.JsonHelper;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.google.gson.JsonObject;
-import com.gtnllib.gui.theme.AE2Theme;
+import com.gtnllib.gui.theme.ae2.AE2Switches;
 import com.gtnllib.utils.TextRenderUtils;
 
 public class SlideSwitch extends ButtonWidget<SlideSwitch> {
@@ -32,7 +32,7 @@ public class SlideSwitch extends ButtonWidget<SlideSwitch> {
     private static final int LABEL_Y = 1, LABEL_END = 2;
     private static final float INACTIVE_ALPHA = 0.5F;
 
-    private final AE2Theme.SwitchHover hover = new AE2Theme.SwitchHover();
+    private final AE2Switches.SwitchHover hover = new AE2Switches.SwitchHover();
     private BooleanSupplier on = () -> false, live = () -> true, available = () -> true;
     private IKey label = IKey.EMPTY;
 
@@ -133,7 +133,7 @@ public class SlideSwitch extends ButtonWidget<SlideSwitch> {
         }
         int color = textColor(colors, on, lit, open);
         boolean shadow = lit && colors.getTextShadow();
-        if (sprite != null) AE2Theme.checkboxLabel(label.get(), labelX, top, width - labelX, color, shadow);
+        if (sprite != null) AE2Switches.checkboxLabel(label.get(), labelX, top, width - labelX, color, shadow);
         else TextRenderUtils.drawTextFitted(
             label.get(),
             labelX,

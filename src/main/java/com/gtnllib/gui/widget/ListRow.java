@@ -18,8 +18,8 @@ import com.cleanroommc.modularui.utils.GlStateManager;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widget.sizer.Unit.Measure;
-import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.AE2Theme.Variant;
+import com.gtnllib.gui.theme.ae2.AE2Draw;
 import com.gtnllib.gui.theme.ae2.AE2Look;
 
 /**
@@ -171,7 +171,7 @@ public class ListRow extends ParentWidget<ListRow> implements Interactable {
             boolean muted = !usable || control != null && !control.isEnabled();
             int color = variant == null ? muted ? IconRowList.HEADER : IconRowList.TEXT
                 : muted ? variant.colors.muted() : variant.colors.text();
-            AE2Theme.text(shown, TEXT_INSET, IconRowList.textTop(height), color, false);
+            AE2Draw.text(shown, TEXT_INSET, IconRowList.textTop(height), color, false);
         }
         GL11.glColor4f(1f, 1f, 1f, 1f);
     }

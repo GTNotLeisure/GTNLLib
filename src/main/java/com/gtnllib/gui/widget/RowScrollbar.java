@@ -16,6 +16,7 @@ import com.cleanroommc.modularui.widget.Widget;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.AE2Theme.Variant;
 import com.gtnllib.gui.theme.ae2.AE2Look;
+import com.gtnllib.gui.theme.ae2.AE2Scrollbars;
 
 /**
  * A vertical scroll bar that stands on its own, like AE2's {@code Scrollbar}, for widgets that draw or place their
@@ -36,7 +37,8 @@ import com.gtnllib.gui.theme.ae2.AE2Look;
  * The look follows the theme of the screen when drawn. Under AE2 themes it is AE2's groove with the fixed 12-by-15
  * handle, or with {@link #small(boolean)} the 5-pixel groove and 7-by-15 handle; make it
  * {@link AE2Theme#BIG_SCROLLER_WIDTH} or {@link AE2Theme#SCROLLBAR_WIDTH} pixels wide. Other themes get the vanilla
- * creative-inventory scroll bar, {@code AE2Theme.scrollbarWidth(null)} pixels wide, or a {@link #plainBar plain bar}.
+ * creative-inventory scroll bar, {@code AE2Scrollbars.scrollbarWidth(null)} pixels wide, or a {@link #plainBar plain
+ * bar}.
  * The groove border takes one pixel at the top and bottom, so the bar must be at least
  * {@code AE2Theme.SCROLLER_HEIGHT + 2} pixels high.
  */
@@ -179,8 +181,8 @@ public class RowScrollbar extends Widget<RowScrollbar> implements Interactable {
         int height = getArea().height, offset = handleOffset(variant);
         if (plain(variant)) {
             if (active) GuiDraw.drawRect(0, offset, getArea().width, handleLength(variant), plainColor);
-        } else if (variant != null && small) AE2Theme.drawSmallScrollbar(variant, 0, 0, height, offset, active);
-        else AE2Theme.drawScrollbar(variant, 0, 0, height, offset, active);
+        } else if (variant != null && small) AE2Scrollbars.drawSmallScrollbar(variant, 0, 0, height, offset, active);
+        else AE2Scrollbars.drawScrollbar(variant, 0, 0, height, offset, active);
     }
 
     @Override
