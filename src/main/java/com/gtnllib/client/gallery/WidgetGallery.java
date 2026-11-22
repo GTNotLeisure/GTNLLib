@@ -2,30 +2,64 @@ package com.gtnllib.client.gallery;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.StatCollector;
+import net.minecraftforge.fluids.FluidRegistry;
+import net.minecraftforge.fluids.FluidStack;
 
 import org.jetbrains.annotations.Nullable;
 
 import com.cleanroommc.modularui.api.IPanelHandler;
+import com.cleanroommc.modularui.api.IThemeApi;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.widget.IWidget;
+import com.cleanroommc.modularui.drawable.GuiTextures;
+import com.cleanroommc.modularui.drawable.ItemDrawable;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.ModularScreen;
 import com.cleanroommc.modularui.value.BoolValue;
 import com.cleanroommc.modularui.value.DoubleValue;
 import com.cleanroommc.modularui.value.IntValue;
 import com.cleanroommc.modularui.value.LongValue;
+import com.cleanroommc.modularui.value.StringValue;
+import com.cleanroommc.modularui.widget.AbstractScrollWidget;
 import com.cleanroommc.modularui.widget.ParentWidget;
+import com.cleanroommc.modularui.widget.ScrollWidget;
+import com.cleanroommc.modularui.widget.Widget;
+import com.cleanroommc.modularui.widget.scroll.VerticalScrollData;
+import com.cleanroommc.modularui.widgets.ButtonWidget;
+import com.cleanroommc.modularui.widgets.CategoryList;
+import com.cleanroommc.modularui.widgets.CycleButtonWidget;
+import com.cleanroommc.modularui.widgets.Dialog;
+import com.cleanroommc.modularui.widgets.Expandable;
+import com.cleanroommc.modularui.widgets.FluidDisplayWidget;
+import com.cleanroommc.modularui.widgets.ItemDisplayWidget;
 import com.cleanroommc.modularui.widgets.ListWidget;
+import com.cleanroommc.modularui.widgets.PageButton;
+import com.cleanroommc.modularui.widgets.PagedWidget;
+import com.cleanroommc.modularui.widgets.ProgressWidget;
+import com.cleanroommc.modularui.widgets.ScrollingTextWidget;
+import com.cleanroommc.modularui.widgets.SliderWidget;
+import com.cleanroommc.modularui.widgets.SortableListWidget;
+import com.cleanroommc.modularui.widgets.TextWidget;
+import com.cleanroommc.modularui.widgets.ToggleButton;
+import com.cleanroommc.modularui.widgets.layout.Flow;
+import com.cleanroommc.modularui.widgets.menu.ContextMenuButton;
+import com.cleanroommc.modularui.widgets.menu.DropdownWidget;
+import com.cleanroommc.modularui.widgets.menu.Menu;
+import com.cleanroommc.modularui.widgets.textfield.TextEditorWidget;
+import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import com.gtnllib.GTNLLib;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.ae2.AE2Icon;
 import com.gtnllib.gui.theme.ae2.AE2SettingIcon;
+import com.gtnllib.gui.theme.ae2.AE2Variant;
 import com.gtnllib.gui.widget.AE2Button;
 import com.gtnllib.gui.widget.AECheckbox;
 import com.gtnllib.gui.widget.CloseButton;
@@ -55,11 +89,15 @@ import com.gtnllib.gui.widget.VerticalButtonBar;
  * A client-only screen with every AE2-styled widget of GTNLLib, all working, opened by {@code /gtnl_widgets}. The
  * buttons on top reopen it in each AE2 skin or the plain look, keeping the widgets' values; the dialog button opens a
  * panel in another theme. A check box hides one toolbar button and all upgrade slots, so the toolbar shortens and the
- * empty upgrade panel no longer asks NEI to keep clear. Client only.
+ * empty upgrade panel no longer asks NEI to keep clear. Two pages show MUI2's own widgets under the theme, with the
+ * few lines an AE2 screen adds for menus, scroll areas and slider handles; the last page compares MUI2 and GTNLLib
+ * buttons at several heights and the three ways to change a number with the mouse wheel. Client only.
  */
 public class WidgetGallery {
 
-    private static final String LANG = "gtnllib.widget_gallery.";
+    private static final String LANG = "gtnllib.widget_gallery.", PANEL_NAME = "gtnllib_widget_gallery",
+        NATIVE_DROPDOWN = "gtnllib_gallery_native_dropdown", NATIVE_MENU = "gtnllib_gallery_native_menu";
+    private static final int[] BUTTON_HEIGHTS = { 12, 16, 20, 28 };
     private static final int WIDTH = 300, HEIGHT = 214, PAGE_X = 8, PAGE_Y = 50, PAGE_WIDTH = 284, PAGE_HEIGHT = 156,
         NOTICE_RGB = 0x55FF55, DIALOG_WIDTH = 180;
     private static final String[] TIERS = { "LV", "MV", "HV", "EV", "IV", "LuV", "ZPM", "UV" };
@@ -88,7 +126,7 @@ public class WidgetGallery {
     }
 
     private ModularPanel panel() {
-        ModularPanel panel = ModularPanel.defaultPanel("gtnllib_widget_gallery", WIDTH, HEIGHT);
+        ModularPanel panel = ModularPanel.defaultPanel(PANEL_NAME, WIDTH, HEIGHT);
         for (int i = 0; i < THEMES.length; i++) {
             String id = THEMES[i], key = THEME_KEYS[i];
             panel.child(
@@ -116,10 +154,18 @@ public class WidgetGallery {
         PageTabs tabs = new PageTabs(() -> state.page, page -> state.page = page)
             .tab(() -> AE2Icon.GEAR, () -> tr("page.buttons"))
             .tab(() -> AE2SettingIcon.PRIORITY, () -> tr("page.inputs"))
-            .tab(() -> AE2Icon.FILE, () -> tr("page.lists"));
+            .tab(() -> AE2Icon.FILE, () -> tr("page.lists"))
+            .tab(() -> AE2Icon.PROCESSOR, () -> tr("page.native"))
+            .tab(() -> AE2Icon.MORE, () -> tr("page.native_more"))
+            .tab(() -> AE2Icon.FILTER, () -> tr("page.compare"));
+        IPanelHandler nativeDialog = IPanelHandler.simple(panel, (parent, player) -> nativeDialog(), true);
+        AE2Theme.useMenuTheme(themeId, GTNLLib.MODID, PANEL_NAME, NATIVE_DROPDOWN, NATIVE_MENU);
         return panel.child(tabs.page(0, buttonsPage()))
             .child(tabs.page(1, inputsPage()))
             .child(tabs.page(2, listsPage()))
+            .child(tabs.page(3, nativePage()))
+            .child(tabs.page(4, nativeMorePage(nativeDialog)))
+            .child(tabs.page(5, comparePage()))
             .child(toolbar())
             .child(upgrades())
             .child(tabs.pos(WIDTH - AE2Theme.PAGE_TAB_INSET, 80));
@@ -284,6 +330,318 @@ public class WidgetGallery {
             .child(list);
     }
 
+    private ParentWidget<?> nativePage() {
+        DropdownWidget<Integer, ?> dropdown = new DropdownWidget<>(NATIVE_DROPDOWN, Integer.class);
+        dropdown.optionToWidget((value, selected) -> {
+            TextWidget<?> text = IKey.str(TIERS[value])
+                .asWidget()
+                .paddingLeft(4)
+                .widthRel(1f);
+            return selected ? text.heightRel(1f) : text.height(12);
+        })
+            .value(new IntValue.Dynamic(() -> state.tier, v -> state.tier = v));
+        dropdown.options(Arrays.asList(0, 1, 2, 3, 4, 5, 6, 7));
+        CycleButtonWidget cycle = new CycleButtonWidget()
+            .value(new IntValue.Dynamic(() -> state.nativeCycle, v -> state.nativeCycle = v))
+            .stateCount(3);
+        for (int i = 0; i < 3; i++) cycle.stateOverlay(i, IKey.str("CycleButtonWidget " + (i + 1)));
+        PagedWidget.Controller controller = new PagedWidget.Controller();
+        PagedWidget<?> paged = new PagedWidget<>().controller(controller)
+            .initialPage(state.nativePage)
+            .onPageChange(page -> state.nativePage = page);
+        ParentWidget<?> page = page();
+        for (int i = 0; i < 3; i++) {
+            paged.addPage(
+                IKey.str("PagedWidget " + (i + 1))
+                    .asWidget());
+            page.child(
+                new PageButton(i, controller).overlay(IKey.str(String.valueOf(i + 1)))
+                    .pos(i * 22, 100)
+                    .size(20, 20));
+        }
+        ListWidget<IWidget, ?> list = new ListWidget<>().pos(196, 48)
+            .size(76, 88);
+        nativeScroll(list);
+        for (int i = 0; i < 8; i++) {
+            String name = "ListWidget " + (i + 1);
+            list.child(
+                new ButtonWidget<>().overlay(IKey.str(name))
+                    .onMousePressed(mouse -> {
+                        show(name);
+                        return true;
+                    })
+                    .widthRel(1f)
+                    .height(16));
+        }
+        page.child(
+            new ButtonWidget<>().overlay(IKey.str("ButtonWidget"))
+                .onMousePressed(mouse -> {
+                    show("ButtonWidget");
+                    return true;
+                })
+                .pos(0, 0)
+                .size(84, 20))
+            .child(
+                new ToggleButton().value(new BoolValue.Dynamic(() -> state.nativeToggle, on -> state.nativeToggle = on))
+                    .overlay(IKey.str("ToggleButton"))
+                    .pos(88, 0)
+                    .size(84, 20))
+            .child(
+                cycle.pos(176, 0)
+                    .size(96, 20))
+            .child(
+                new TextFieldWidget().value(new StringValue.Dynamic(() -> state.nativeText, v -> state.nativeText = v))
+                    .pos(0, 26)
+                    .size(120, 18))
+            .child(
+                dropdown.pos(126, 26)
+                    .size(64, 18))
+            .child(
+                new ButtonWidget<>().widgetTheme(IThemeApi.CLOSE_BUTTON)
+                    .overlay(GuiTextures.CROSS_TINY)
+                    .onMousePressed(mouse -> {
+                        show("closeButton");
+                        return true;
+                    })
+                    .pos(196, 28))
+            .child(
+                new Widget<>().widgetTheme(IThemeApi.ITEM_SLOT)
+                    .overlay(
+                        new ItemDrawable(new ItemStack(Items.diamond)).asIcon()
+                            .size(16))
+                    .pos(0, 50)
+                    .size(18, 18))
+            .child(
+                new Widget<>().widgetTheme(IThemeApi.FLUID_SLOT)
+                    .pos(22, 50)
+                    .size(18, 18))
+            .child(
+                IKey.str("itemSlot / fluidSlot")
+                    .asWidget()
+                    .pos(46, 55))
+            .child(
+                new SliderWidget().value(new DoubleValue.Dynamic(() -> state.nativeSlider, v -> state.nativeSlider = v))
+                    .pos(0, 76)
+                    .size(120, 14))
+            .child(
+                new ProgressWidget().value(new DoubleValue.Dynamic(() -> state.progress, v -> state.progress = v))
+                    .texture(GuiTextures.PROGRESS_ARROW, 20)
+                    .pos(126, 75)
+                    .size(20, 16))
+            .child(
+                paged.pos(70, 105)
+                    .size(120, 12))
+            .child(list);
+        AE2Theme.sliderHandles(page, themeId);
+        return page;
+    }
+
+    private ParentWidget<?> nativeMorePage(IPanelHandler dialog) {
+        VerticalScrollData vertical = new VerticalScrollData();
+        vertical.setScrollSize(8 * 12);
+        ScrollWidget<?> scroll = new ScrollWidget<>(vertical).pos(144, 0)
+            .size(64, 60);
+        nativeScroll(scroll);
+        for (int i = 0; i < 8; i++) scroll.child(
+            IKey.str("ScrollWidget " + (i + 1))
+                .asWidget()
+                .pos(2, i * 12 + 2));
+        Map<String, SortableListWidget.Item<String>> items = new HashMap<>();
+        List<String> names = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            String name = "Sortable " + (i + 1);
+            names.add(name);
+            items.put(
+                name,
+                new SortableListWidget.Item<>(name).child(
+                    item -> Flow.row()
+                        .child(
+                            new Widget<>().widgetTheme(IThemeApi.BUTTON)
+                                .overlay(IKey.str(name))
+                                .expanded()
+                                .heightRel(1f))
+                        .child(
+                            new ButtonWidget<>().onMousePressed(mouse -> item.removeSelfFromList())
+                                .overlay(
+                                    GuiTextures.CROSS_TINY.asIcon()
+                                        .size(10))
+                                .width(10)
+                                .heightRel(1f)))
+                    .height(14));
+        }
+        CategoryList.Root categories = new CategoryList.Root().pos(144, 66)
+            .size(128, 70);
+        nativeScroll(categories);
+        SortableListWidget<String> sortable = new SortableListWidget<String>().children(names, items::get)
+            .pos(212, 0)
+            .size(60, 60);
+        nativeScroll(sortable);
+        for (int i = 0; i < 2; i++) {
+            Category category = new Category();
+            category.widthRel(1f)
+                .height(14)
+                .widgetTheme(IThemeApi.BUTTON)
+                .overlay(IKey.str("CategoryList " + (i + 1)));
+            for (int j = 0; j < 3; j++) category.item(
+                IKey.str("Entry " + (j + 1))
+                    .asWidget()
+                    .paddingLeft(8)
+                    .widthRel(1f)
+                    .height(12));
+            categories.child(category);
+        }
+        return page().child(
+            new TextEditorWidget().hintText("TextEditorWidget")
+                .pos(0, 0)
+                .size(138, 40))
+            .child(
+                new ItemDisplayWidget().item(new ItemStack(Items.diamond, 64))
+                    .displayAmount(true)
+                    .pos(0, 46)
+                    .size(18, 18))
+            .child(
+                new FluidDisplayWidget().value(new FluidStack(FluidRegistry.WATER, 8000))
+                    .capacity(16000)
+                    .pos(22, 46)
+                    .size(18, 18))
+            .child(
+                new ScrollingTextWidget(IKey.str("ScrollingTextWidget: a long line that scrolls")).pos(46, 51)
+                    .size(92, 10))
+            .child(
+                nativeContextMenu().pos(0, 70)
+                    .size(96, 18))
+            .child(
+                new ButtonWidget<>().overlay(IKey.str("Dialog"))
+                    .onMousePressed(mouse -> {
+                        dialog.openPanel();
+                        return true;
+                    })
+                    .pos(100, 70)
+                    .size(38, 18))
+            .child(
+                new Expandable().animationDuration(0)
+                    .widgetTheme(IThemeApi.PANEL)
+                    .collapsedView(expandableTitle("Expandable", 80))
+                    .expandedView(
+                        new ParentWidget<>().size(120, 40)
+                            .child(expandableTitle("Expandable: open", 120))
+                            .child(
+                                new ItemDisplayWidget().item(new ItemStack(Items.redstone))
+                                    .pos(4, 18)
+                                    .size(18, 18)))
+                    .pos(0, 96))
+            .child(scroll)
+            .child(sortable)
+            .child(categories);
+    }
+
+    private ParentWidget<?> comparePage() {
+        ParentWidget<?> page = page();
+        page.child(
+            IKey.str("ButtonWidget (MUI2)")
+                .asWidget()
+                .pos(0, 0))
+            .child(
+                IKey.str("AE2Button (GTNLLib)")
+                    .asWidget()
+                    .pos(0, 46));
+        for (int i = 0; i < BUTTON_HEIGHTS.length; i++) {
+            String label = String.valueOf(BUTTON_HEIGHTS[i]);
+            page.child(
+                new ButtonWidget<>().overlay(IKey.str(label))
+                    .onMousePressed(mouse -> {
+                        show("ButtonWidget " + label);
+                        return true;
+                    })
+                    .pos(i * 70, 12)
+                    .size(64, BUTTON_HEIGHTS[i]))
+                .child(
+                    new AE2Button(() -> label, () -> show("AE2Button " + label)).available(() -> state.usable)
+                        .pos(i * 70, 58)
+                        .size(64, BUTTON_HEIGHTS[i]));
+        }
+        page.child(
+            IKey.str("TextFieldWidget")
+                .asWidget()
+                .pos(0, 92))
+            .child(
+                new TextFieldWidget().setNumbers(0, 64)
+                    .scrollValues(1, 10, 100, 1000)
+                    .value(new StringValue.Dynamic(() -> state.compareText, v -> state.compareText = v))
+                    .pos(0, 104)
+                    .size(86, 16))
+            .child(
+                IKey.dynamic(() -> "SliderWidget " + Math.round(state.compareSlider))
+                    .asWidget()
+                    .pos(92, 92))
+            .child(
+                new SliderWidget().bounds(0, 64)
+                    .value(new DoubleValue.Dynamic(() -> state.compareSlider, v -> state.compareSlider = v))
+                    .scrollValues(1, 10, 1, 1)
+                    .pos(92, 104)
+                    .size(86, 16))
+            .child(
+                IKey.str("NumberEntryWidget")
+                    .asWidget()
+                    .pos(184, 92))
+            .child(
+                new NumberEntryWidget().bounds(0, 64)
+                    .value(new LongValue.Dynamic(() -> state.compareEntry, v -> state.compareEntry = v))
+                    .wheel(true)
+                    .available(() -> state.usable)
+                    .pos(184, 104)
+                    .size(90, 16));
+        AE2Theme.sliderHandles(page, themeId);
+        return page;
+    }
+
+    private ContextMenuButton<?> nativeContextMenu() {
+        ContextMenuButton<?> button = new ContextMenuButton<>(NATIVE_MENU);
+        ListWidget<IWidget, ?> options = new ListWidget<>().widthRel(1f)
+            .maxSize(70);
+        nativeScroll(options);
+        for (String tier : TIERS) options.child(
+            new ButtonWidget<>().overlay(IKey.str(tier))
+                .onMousePressed(mouse -> {
+                    show(tier);
+                    button.closeMenu(false);
+                    return true;
+                })
+                .widthRel(1f)
+                .height(12));
+        Menu<?> menu = new Menu<>().widthRel(1f)
+            .coverChildrenHeight()
+            .child(options);
+        // MUI2 menus put their list on the panel border.
+        if (AE2Theme.variant(themeId) != null)
+            menu.padding(AE2Theme.PANEL_EDGE, AE2Theme.PANEL_EDGE, AE2Theme.PANEL_EDGE, AE2Theme.PANEL_BOTTOM_EDGE);
+        return button.overlay(IKey.str("ContextMenuButton"))
+            .menu(menu);
+    }
+
+    private static TextWidget<?> expandableTitle(String text, int width) {
+        return IKey.str(text)
+            .asWidget()
+            .padding(4, 0, AE2Theme.PANEL_EDGE, AE2Theme.PANEL_BOTTOM_EDGE)
+            .size(width, 18);
+    }
+
+    private void nativeScroll(AbstractScrollWidget<?, ?> scroll) {
+        scroll.showScrollShadows(false);
+        AE2Variant variant = AE2Theme.variant(themeId);
+        if (variant != null) scroll.getScrollArea()
+            .setScrollBarBackgroundColor(variant.colors.line());
+    }
+
+    private ModularPanel nativeDialog() {
+        return new Dialog<>("gtnllib_gallery_native_dialog").size(120, 50)
+            .child(
+                IKey.str("Dialog")
+                    .asWidget()
+                    .pos(8, 8))
+            .child(ButtonWidget.panelCloseButton());
+    }
+
     private List<IconRowList.Row> rows() {
         List<IconRowList.Row> rows = new ArrayList<>();
         rows.add(IconRowList.Row.header("IconRowList"));
@@ -391,12 +749,22 @@ public class WidgetGallery {
         return StatCollector.translateToLocalFormatted(LANG + key, args);
     }
 
+    // MUI2 2.3.94's CategoryList has no public way to add entries.
+    private static class Category extends CategoryList {
+
+        private void item(IWidget entry) {
+            addChild(entry, -1);
+        }
+    }
+
     private static class State {
 
-        private boolean usable = true, hide, selected, fuzzy, slide, checked, rowChecked, visible = true;
-        private int page, redstone, radio, access, tier, scroll, selectedRow;
+        private boolean usable = true, hide, selected, fuzzy, slide, checked, rowChecked, visible = true, nativeToggle;
+        private int page, redstone, radio, access, tier, scroll, selectedRow, nativeCycle, nativePage;
         private long amount = 64, small = 8;
-        private double progress = 0.4;
+        private double progress = 0.4, nativeSlider = 40, compareSlider = 8;
+        private long compareEntry = 8;
+        private String nativeText = "", compareText = "8";
         private final boolean[] rows = new boolean[6];
     }
 }

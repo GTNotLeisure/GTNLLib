@@ -144,6 +144,12 @@ public class AE2ThemeDefinitions {
         theme.mergeAdd(
             IThemeApi.TOGGLE_BUTTON.getFullName(),
             new JsonBuilder().add(IThemeApi.SELECTED_TEXT_SHADOW, false));
+        // MUI2 2.3.94's ThemeBuilder.defaultWidth/defaultHeight write keys its theme parser never reads. A vertical
+        // scroll bar is as thick as the default width, a horizontal one as the default height.
+        theme.mergeAdd(
+            IThemeApi.SCROLLBAR.getFullName(),
+            new JsonBuilder().add("width", AE2Theme.SMALL_SCROLLER_WIDTH)
+                .add("height", AE2Theme.SMALL_SCROLLER_WIDTH));
         PaletteThemes.decorate(theme, variant.palette);
         return theme;
     }

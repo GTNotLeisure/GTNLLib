@@ -19,11 +19,14 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
 import com.cleanroommc.modularui.api.ITheme;
+import com.cleanroommc.modularui.api.IThemeApi;
+import com.cleanroommc.modularui.theme.WidgetTheme;
 import com.google.gson.JsonObject;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.ae2.AE2Colors;
 import com.gtnllib.gui.theme.ae2.AE2Look;
 import com.gtnllib.gui.theme.ae2.AE2Look.Marker;
+import com.gtnllib.gui.theme.ae2.AE2ThemeDefinitions;
 import com.gtnllib.gui.theme.ae2.AE2Variant;
 import com.gtnllib.gui.theme.ae2.PlainLook;
 import com.gtnllib.gui.widget.AE2Button;
@@ -48,6 +51,22 @@ public class AE2LookTest {
         assertEquals(AE2Theme.SMALL_SCROLLER_WIDTH, small.getThickness(), "an AE2 panel gives the small AE2 handle");
         large.look(AE2Look.plain());
         assertEquals(vanilla, large.getThickness(), "a plain panel takes the vanilla width back");
+    }
+
+    @Test
+    public void themeScrollbar() {
+        JsonObject scrollbar = AE2ThemeDefinitions.panelTheme(AE2Variant.DARK)
+            .getJson()
+            .getAsJsonObject(IThemeApi.SCROLLBAR.getFullName());
+        WidgetTheme parsed = new WidgetTheme(WidgetTheme.darkTextNoShadow(4, 4, null), scrollbar, new JsonObject());
+        assertEquals(
+            AE2Theme.SMALL_SCROLLER_WIDTH,
+            parsed.getDefaultWidth(),
+            "MUI2 reads a vertical AE2 scroll bar as wide as the small AE2 handle");
+        assertEquals(
+            AE2Theme.SMALL_SCROLLER_WIDTH,
+            parsed.getDefaultHeight(),
+            "MUI2 reads a horizontal AE2 scroll bar as tall as the small AE2 handle");
     }
 
     @Test
