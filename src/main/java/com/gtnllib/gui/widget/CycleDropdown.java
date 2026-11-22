@@ -28,12 +28,12 @@ import com.cleanroommc.modularui.widgets.menu.DropdownWidget;
 import com.cleanroommc.modularui.widgets.menu.Menu;
 import com.cleanroommc.modularui.widgets.menu.MenuPanel;
 import com.gtnllib.gui.theme.AE2Theme;
+import com.gtnllib.gui.theme.MUI2Fixes;
 import com.gtnllib.gui.theme.ae2.AE2ButtonDrawable;
 import com.gtnllib.gui.theme.ae2.AE2ButtonDrawable.State;
 import com.gtnllib.gui.theme.ae2.AE2ButtonPainter;
 import com.gtnllib.gui.theme.ae2.AE2Look;
 import com.gtnllib.gui.theme.ae2.AE2PanelPainter;
-import com.gtnllib.gui.theme.ae2.AE2Variant;
 import com.gtnllib.gui.theme.ae2.ButtonText;
 
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
@@ -66,7 +66,7 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>>
 
     /** Height of an {@link #iconOption} row and of its icon in pixels. */
     public static final int OPTION_HEIGHT = 16;
-    private static final int MENU_EDGE = 1, VALUE_INSET = 3, CARET_SPACE = AE2Theme.CARET_WIDTH + 4;
+    private static final int VALUE_INSET = 3, CARET_SPACE = AE2Theme.CARET_WIDTH + 4;
     private final List<T> choices = new ObjectArrayList<>();
     private final IDrawable disabledLook = AE2ButtonPainter.button(this, () -> false, () -> false);
     private final List<TextWidget<?>> labels = new ObjectArrayList<>();
@@ -112,9 +112,7 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>>
         super.openMenu(soft);
         Menu<?> menu = getMenu();
         if (!menu.isValid() || !(menu.getPanel() instanceof MenuPanel panel) || panel == getPanel()) return;
-        AE2Variant variant = AE2Look.of(this)
-            .variant();
-        panel.themeOverride(variant == null ? AE2Theme.CONTEXT_MENU_ID : variant.menuId);
+        MUI2Fixes.menuPanelTheme(panel, AE2Look.of(this));
     }
 
     // MUI2 keeps the menu of a removed dropdown open, or open until its closing animation ends, and a click meanwhile
@@ -289,13 +287,9 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>>
         Menu<?> menu = super.createMenu();
         if (menuWidth > getArea().width) menu.width(menuWidth)
             .right(0);
-        // MUI2 menus draw their options over the panel border, so keep the options inside it.
-        if (AE2Look.of(this)
-            .isAE2())
-            menu.padding(AE2Theme.PANEL_EDGE, AE2Theme.PANEL_EDGE, AE2Theme.PANEL_EDGE, AE2Theme.PANEL_BOTTOM_EDGE);
-        else menu.padding(MENU_EDGE);
+        MUI2Fixes.menuPadding(menu, AE2Look.of(this));
         for (IWidget child : menu.getChildren())
-            if (child instanceof ListWidget<?, ?>list) list.showScrollShadows(false);
+            if (child instanceof ListWidget<?, ?>list) MUI2Fixes.noScrollShadows(list);
         return menu;
     }
 }

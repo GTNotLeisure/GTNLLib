@@ -11,13 +11,18 @@ import org.jetbrains.annotations.Nullable;
 import com.cleanroommc.modularui.api.IThemeApi;
 import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.api.widget.IWidget;
+import com.cleanroommc.modularui.screen.ModularScreen;
 import com.cleanroommc.modularui.screen.viewport.GuiContext;
 import com.cleanroommc.modularui.theme.ReloadThemeEvent;
 import com.cleanroommc.modularui.theme.ThemeBuilder;
+import com.cleanroommc.modularui.widget.AbstractScrollWidget;
 import com.cleanroommc.modularui.widget.Widget;
+import com.cleanroommc.modularui.widgets.ListWidget;
 import com.cleanroommc.modularui.widgets.SliderWidget;
+import com.cleanroommc.modularui.widgets.menu.AbstractMenuButton;
+import com.cleanroommc.modularui.widgets.menu.Menu;
+import com.cleanroommc.modularui.widgets.textfield.BaseTextFieldWidget;
 import com.gtnllib.GTNLLib;
-import com.gtnllib.gui.theme.ae2.AE2ButtonDrawable;
 import com.gtnllib.gui.theme.ae2.AE2ButtonDrawable.State;
 import com.gtnllib.gui.theme.ae2.AE2ButtonPainter;
 import com.gtnllib.gui.theme.ae2.AE2CheckboxPainter;
@@ -32,6 +37,7 @@ import com.gtnllib.gui.theme.ae2.AE2UpgradePainter;
 import com.gtnllib.gui.theme.ae2.AE2Variant;
 import com.gtnllib.gui.theme.ae2.ButtonText;
 import com.gtnllib.gui.theme.ae2.IconSource;
+import com.gtnllib.gui.widget.CycleDropdown;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.relauncher.Side;
@@ -43,9 +49,11 @@ import cpw.mods.fml.relauncher.SideOnly;
  * registration.
  * <p>
  * Select a panel theme through {@link ScreenTheme}. Panel backgrounds, fields, slots, switches and button styles are
- * supplied by the registered theme. {@code CycleDropdown} menus pick their menu theme themselves; use
- * {@link #useMenuTheme(String, String, String, String...)} for other named child menus, such as MUI2's context menus,
- * and {@link #sliderHandles(IWidget, String)} to style slider handles.
+ * supplied by the registered theme. What a theme cannot reach in MUI2's own widgets is added in one call once the
+ * screen is built, {@link #polish(ModularScreen)}: scroll areas without MUI2's edge shadows and with the skin's track
+ * color, AE2 slider handles, and menus in the skin's menu theme. {@link #menu(ListWidget, String)} builds a context
+ * menu's contents. {@code CycleDropdown} and {@code GTNLListWidget} need neither. The MUI2 workarounds themselves are
+ * in {@link MUI2Fixes}.
  * <p>
  * Drawing lives in the {@code ae2} package. Widgets ask {@link AE2Look#of(IWidget)} for the look of the panel they are
  * in, and the look answers everything that exists in every look. The painters draw AE2's parts, one class per part:
@@ -245,28 +253,108 @@ public class AE2Theme {
      * @param menus       child panel names within the screen
      */
     public static void useMenuTheme(@Nullable String screenTheme, String owner, String screen, String... menus) {
-        AE2Variant variant = variant(screenTheme);
-        String menuTheme = variant == null ? CONTEXT_MENU_ID : variant.menuId;
-        for (String menu : menus) IThemeApi.get()
-            .registerThemeForScreen(owner + ":" + screen + ":" + menu, menuTheme);
+        AE2Look look = AE2Look.ofTheme(screenTheme);
+        for (String menu : menus) MUI2Fixes.registerMenuTheme(owner, screen, menu, look);
     }
 
     /**
      * Applies an AE2 handle texture to sliders in a widget tree.
      * <p>
-     * Only children already present in the tree are visited. An unrecognized theme identifier leaves handles unchanged.
+     * Only children already present in the tree are visited. A theme that is not an AE2 skin leaves handles unchanged.
      *
      * @param root    root widget to visit, including its descendants
      * @param themeId panel or menu theme identifier, possibly {@code null}
+     * @deprecated use {@link #polish(ModularScreen)}, which also gives sliders AE2's handle
      */
+    @Deprecated
     public static void sliderHandles(IWidget root, @Nullable String themeId) {
-        AE2Variant variant = variant(themeId);
-        if (variant != null) sliderHandles(root, new AE2ButtonDrawable(State.NORMAL, variant.folder));
+        AE2Variant variant = AE2Look.ofTheme(themeId)
+            .variant();
+        if (variant != null) sliderHandles(root, variant);
     }
 
-    private static void sliderHandles(IWidget widget, IDrawable handle) {
-        if (widget instanceof SliderWidget slider) slider.sliderTexture(handle);
-        for (IWidget child : widget.getChildren()) sliderHandles(child, handle);
+    private static void sliderHandles(IWidget widget, AE2Variant variant) {
+        if (widget instanceof SliderWidget slider) MUI2Fixes.sliderHandle(slider, variant);
+        for (IWidget child : widget.getChildren()) sliderHandles(child, variant);
+    }
+
+    /**
+     * Gives the MUI2 widgets of a screen what its AE2 theme cannot give them, when the screen's theme is an AE2 skin or
+     * a theme based on one: scroll areas other than text fields lose MUI2's edge shadows and get the skin's track
+     * color, sliders get AE2's handle, and menu buttons such as MUI2's {@code ContextMenuButton} open their menus in
+     * the skin's menu theme. Under any other theme it only sends those menus back to MUI2's context-menu theme, since
+     * MUI2 keeps the menu theme of a screen name from one opening to the next.
+     * <p>
+     * Call it once the screen's theme is set with {@code ModularScreen.useTheme} and its main panel is built. A theme
+     * set through {@code UISettings.useTheme} for a GUI the server opens is applied only after {@code createScreen}, so
+     * calling it there sees the default theme. Name each menu button once, when it is created, and give the menus of a
+     * screen different names: the menu theme is kept by that name.
+     * <p>
+     * Widgets added later, panels opened later and menus built when they open are not reached: give a later panel
+     * {@link #polish(IWidget, AE2Look, String, String)}, build a context menu's contents with
+     * {@link #menu(ListWidget, String)}, and use {@code CycleDropdown} and {@code GTNLListWidget}, which look after
+     * themselves. Shadows a scroll area should keep are turned on again after this call. A screen that changes its
+     * theme is built again and polished again, as a skin's handles and track colors are not taken back.
+     *
+     * @param screen screen whose theme is set and whose main panel is built
+     */
+    @SideOnly(Side.CLIENT)
+    public static void polish(ModularScreen screen) {
+        polish(screen.getMainPanel(), AE2Look.of(screen.getCurrentTheme()), screen.getOwner(), screen.getName());
+    }
+
+    /**
+     * Does what {@link #polish(ModularScreen)} does for one widget tree, such as a panel the screen opens later.
+     *
+     * @param root   root widget to visit, including its descendants
+     * @param look   look of the screen
+     * @param owner  identifier of the mod that owns the screen
+     * @param screen screen name, which is the name of its main panel
+     */
+    public static void polish(IWidget root, AE2Look look, String owner, String screen) {
+        polishOne(root, look, owner, screen);
+        for (IWidget child : root.getChildren()) polish(child, look, owner, screen);
+    }
+
+    // Text fields are scroll widgets too. Dropdowns of GTNLLib pick their menu theme themselves, and a registered theme
+    // would win over theirs.
+    private static void polishOne(IWidget widget, AE2Look look, String owner, String screen) {
+        String menu = widget.getName();
+        if (widget instanceof AbstractMenuButton<?> && !(widget instanceof CycleDropdown<?>) && menu != null)
+            MUI2Fixes.registerMenuTheme(owner, screen, menu, look);
+        AE2Variant variant = look.variant();
+        if (variant == null) return;
+        if (widget instanceof SliderWidget slider) MUI2Fixes.sliderHandle(slider, variant);
+        if (widget instanceof AbstractScrollWidget<?, ?>scroll && !(widget instanceof BaseTextFieldWidget<?>)) {
+            MUI2Fixes.noScrollShadows(scroll);
+            MUI2Fixes.scrollTrack(scroll, variant.colors.line());
+        }
+    }
+
+    /**
+     * Builds the menu of a MUI2 {@code ContextMenuButton} ({@code menu(...)}) around a list of options, laid out like a
+     * {@code CycleDropdown}'s menu: as wide as the button, as high as the list, and kept inside the menu panel's
+     * border.
+     * The list is set to the menu's full width; under an AE2 skin it also loses MUI2's edge shadows and gets the skin's
+     * track color. Options that are {@code ButtonWidget}s light up under the pointer in the menu theme; the menu itself
+     * follows the screen's skin after {@link #polish(ModularScreen)}.
+     *
+     * @param options list of options; limit its height with {@code maxSize}
+     * @param themeId identifier of the screen's theme, or {@code null} for the default theme
+     * @return the menu, ready for {@code menu(...)}
+     */
+    public static Menu<?> menu(ListWidget<?, ?> options, @Nullable String themeId) {
+        AE2Look look = AE2Look.ofTheme(themeId);
+        AE2Variant variant = look.variant();
+        if (variant != null) {
+            MUI2Fixes.noScrollShadows(options);
+            MUI2Fixes.scrollTrack(options, variant.colors.line());
+        }
+        Menu<?> menu = new Menu<>().widthRel(1f)
+            .coverChildrenHeight()
+            .child(options.widthRel(1f));
+        MUI2Fixes.menuPadding(menu, look);
+        return menu;
     }
 
     /**

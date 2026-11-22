@@ -109,8 +109,23 @@ public class AE2Look {
     }
 
     /**
+     * Resolves the look of a registered theme by its identifier, as {@link #of(ITheme)} does; an unknown identifier
+     * gives the default theme's look, as MUI2 does. Use it to tell whether a theme is an AE2 skin; colors and sizes to
+     * draw with come from {@link #of(IWidget)}, since a screen without a theme uses MUI2's vanilla themes rather than
+     * the default theme.
+     *
+     * @param themeId theme identifier, or {@code null} for the default theme
+     * @return the theme's look
+     */
+    public static AE2Look ofTheme(@Nullable String themeId) {
+        IThemeApi themes = IThemeApi.get();
+        return of(themeId == null ? themes.getDefaultTheme() : themes.getTheme(themeId));
+    }
+
+    /**
      * Resolves the look a theme gives: the skin named in its {@link #KEY} entry, else the AE2 skin registered under its
-     * identifier, else the plain look in that theme's text and button styles.
+     * identifier, else the plain look in that theme's text and button styles. This is the one test of whether a theme
+     * is an AE2 skin: a theme based on an AE2 theme inherits the entry and is one too.
      *
      * @param theme theme to read, possibly {@code null}
      * @return the theme's look

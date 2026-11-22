@@ -7,6 +7,7 @@ import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.theme.WidgetThemeEntry;
 import com.cleanroommc.modularui.widget.scroll.ScrollData;
 import com.cleanroommc.modularui.widgets.ListWidget;
+import com.gtnllib.gui.theme.MUI2Fixes;
 import com.gtnllib.gui.theme.ae2.AE2Look;
 
 import cpw.mods.fml.relauncher.Side;
@@ -41,7 +42,7 @@ public class GTNLListWidget<I extends IWidget, W extends ListWidget<I, W>> exten
     public GTNLListWidget(int initialScrollY) {
         super();
         this.initialScrollY = initialScrollY;
-        showScrollShadows(false);
+        MUI2Fixes.noScrollShadows(this);
     }
 
     @Override

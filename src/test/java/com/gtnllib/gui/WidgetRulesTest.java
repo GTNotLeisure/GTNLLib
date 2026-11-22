@@ -81,8 +81,17 @@ public class WidgetRulesTest {
     private static final Pattern AVAILABLE_SETTER = Pattern.compile("public \\S+ available\\(BooleanSupplier"),
         WHEEL_SETTER = Pattern.compile("public \\S+ wheel\\(boolean"),
         AE2_CHECK = Pattern.compile("(?<!boolean )\\bisAE2\\(|::isAE2\\b"),
-        VARIANT_READ = Pattern.compile("\\.variant\\(\\)");
-    private static final int AE2_CHECKS = 14, VARIANT_READS = 5;
+        VARIANT_READ = Pattern.compile("\\.variant\\(\\)"),
+        MUI2_FIX = Pattern
+            .compile("\\.(showScrollShadows|setScrollBarBackgroundColor|registerThemeForScreen|sliderTexture)\\("),
+        MENU_ID = Pattern.compile("\\.menuId\\b"), CONTEXT_MENU = Pattern.compile("\\bCONTEXT_MENU_ID\\b");
+    // Menu theme identifiers belong to the skins and their registration; only MUI2Fixes hands them to menus.
+    private static final Set<String> MENU_ID_FILES = names(
+        "MUI2Fixes",
+        "AE2Variant",
+        "AE2Theme",
+        "AE2ThemeDefinitions"), CONTEXT_MENU_FILES = names("MUI2Fixes", "AE2Theme");
+    private static final int AE2_CHECKS = 14, VARIANT_READS = 4;
 
     @Test
     public void mui2First() throws IOException {
@@ -160,6 +169,33 @@ public class WidgetRulesTest {
                 WHEEL_SETTER.matcher(text)
                     .find(),
                 name + " writes its own wheel setter: implement IWheelStep");
+        }
+    }
+
+    @Test
+    public void fixesInOnePlace() throws IOException {
+        try (Stream<Path> files = Files.walk(SOURCES)) {
+            for (Path file : files.filter(
+                path -> path.toString()
+                    .endsWith(".java"))
+                .collect(Collectors.toList())) {
+                String name = simpleName(file), text = read(file);
+                if (name.equals("MUI2Fixes")) continue;
+                Matcher matcher = MUI2_FIX.matcher(text);
+                assertFalse(
+                    matcher.find(),
+                    name + " works around MUI2 itself ("
+                        + (matcher.find(0) ? matcher.group() : "")
+                        + "): call the method of MUI2Fixes instead");
+                if (!MENU_ID_FILES.contains(name)) assertFalse(
+                    MENU_ID.matcher(text)
+                        .find(),
+                    name + " picks a skin's menu theme itself: let MUI2Fixes give menus their theme");
+                if (!CONTEXT_MENU_FILES.contains(name)) assertFalse(
+                    CONTEXT_MENU.matcher(text)
+                        .find(),
+                    name + " picks MUI2's context-menu theme itself: let MUI2Fixes give menus their theme");
+            }
         }
     }
 

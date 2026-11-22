@@ -8,10 +8,12 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -20,9 +22,18 @@ import org.junit.jupiter.api.Test;
 
 import com.cleanroommc.modularui.api.ITheme;
 import com.cleanroommc.modularui.api.IThemeApi;
+import com.cleanroommc.modularui.api.widget.IWidget;
+import com.cleanroommc.modularui.theme.ThemeAPI;
 import com.cleanroommc.modularui.theme.WidgetTheme;
+import com.cleanroommc.modularui.theme.WidgetThemeEntry;
+import com.cleanroommc.modularui.widget.ParentWidget;
+import com.cleanroommc.modularui.widgets.ListWidget;
+import com.cleanroommc.modularui.widgets.SliderWidget;
+import com.cleanroommc.modularui.widgets.menu.ContextMenuButton;
+import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import com.google.gson.JsonObject;
 import com.gtnllib.gui.theme.AE2Theme;
+import com.gtnllib.gui.theme.ae2.AE2ButtonDrawable;
 import com.gtnllib.gui.theme.ae2.AE2Colors;
 import com.gtnllib.gui.theme.ae2.AE2Look;
 import com.gtnllib.gui.theme.ae2.AE2Look.Marker;
@@ -30,6 +41,7 @@ import com.gtnllib.gui.theme.ae2.AE2ThemeDefinitions;
 import com.gtnllib.gui.theme.ae2.AE2Variant;
 import com.gtnllib.gui.theme.ae2.PlainLook;
 import com.gtnllib.gui.widget.AE2Button;
+import com.gtnllib.gui.widget.CycleDropdown;
 import com.gtnllib.gui.widget.HandleScrollData;
 import com.gtnllib.gui.widget.IconRowList;
 
@@ -123,7 +135,73 @@ public class AE2LookTest {
         assertEquals(IconRowList.GOOD, plain.good(), "the plain good color is the one rows name");
     }
 
+    @Test
+    public void derivedThemes() {
+        for (AE2Variant variant : AE2Variant.values()) {
+            assertSame(AE2Look.of(variant), AE2Look.of(theme(variant.id)), "an AE2 theme is its own skin: " + variant);
+            assertSame(
+                AE2Look.of(variant),
+                AE2Look.of(theme("othermod:based_on_" + variant.folder, variant)),
+                "a theme based on an AE2 theme inherits its skin entry and is that skin: " + variant);
+        }
+        for (String id : new String[] { "vanilla", "vanilla_dark", "othermod:machine" }) assertFalse(
+            AE2Look.of(theme(id))
+                .isAE2(),
+            "a theme that is neither AE2's nor based on it is plain: " + id);
+    }
+
+    @Test
+    public void polishTree() throws ReflectiveOperationException {
+        ListWidget<IWidget, ?> list = new ListWidget<>();
+        TextFieldWidget field = new TextFieldWidget();
+        SliderWidget slider = new SliderWidget();
+        ParentWidget<?> root = new ParentWidget<>().child(list)
+            .child(field)
+            .child(slider)
+            .child(new ContextMenuButton<>("polish_menu"))
+            .child(new CycleDropdown<>("polish_dropdown", String.class));
+        int track = list.getScrollArea()
+            .getScrollBarBackgroundColor();
+        AE2Theme.polish(root, AE2Look.plain(), "gtnllib", "polish_test");
+        assertTrue(list.isShowScrollShadows(), "a plain look leaves MUI2's widgets as they are");
+        assertEquals(
+            track,
+            list.getScrollArea()
+                .getScrollBarBackgroundColor(),
+            "a plain look keeps MUI2's track color");
+        AE2Theme.polish(root, AE2Look.of(AE2Variant.DARK), "gtnllib", "polish_test");
+        assertFalse(list.isShowScrollShadows(), "an AE2 skin turns off a list's edge shadows");
+        assertEquals(
+            AE2Variant.DARK.colors.line(),
+            list.getScrollArea()
+                .getScrollBarBackgroundColor(),
+            "an AE2 skin gives a list its track color");
+        assertEquals(
+            track,
+            field.getScrollArea()
+                .getScrollBarBackgroundColor(),
+            "a text field, also a scroll widget, is left alone");
+        assertTrue(slider.getHandleDrawable() instanceof AE2ButtonDrawable, "a slider gets AE2's handle");
+        Field registered = ThemeAPI.class.getDeclaredField("screenThemes");
+        registered.setAccessible(true);
+        Map<?, ?> screens = (Map<?, ?>) registered.get(ThemeAPI.INSTANCE);
+        String menu = "gtnllib:polish_test:polish_menu";
+        assertEquals(AE2Variant.DARK.menuId, screens.get(menu), "a menu button's menu opens in the skin's menu theme");
+        assertNull(screens.get("gtnllib:polish_test:polish_dropdown"), "a CycleDropdown picks its menu theme itself");
+        AE2Theme.polish(root, AE2Look.plain(), "gtnllib", "polish_test");
+        assertEquals(
+            AE2Theme.CONTEXT_MENU_ID,
+            screens.get(menu),
+            "a screen opened again in a plain theme sends the menu back to MUI2's context menu");
+    }
+
     private static ITheme theme(String id) {
+        return theme(id, null);
+    }
+
+    private static ITheme theme(String id, AE2Variant marked) {
+        WidgetThemeEntry<Marker> entry = marked == null ? null
+            : new WidgetThemeEntry<>(AE2Look.KEY, new Marker(marked.folder));
         return (ITheme) Proxy.newProxyInstance(
             ITheme.class.getClassLoader(),
             new Class<?>[] { ITheme.class },
@@ -131,6 +209,7 @@ public class AE2LookTest {
             case "getId", "toString" -> id;
             case "hashCode" -> System.identityHashCode(proxy);
             case "equals" -> proxy == args[0];
+            case "getWidgetTheme" -> args[0] == AE2Look.KEY ? entry : null;
             default -> null;
             });
     }

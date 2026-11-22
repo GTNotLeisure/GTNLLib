@@ -28,7 +28,6 @@ import com.cleanroommc.modularui.value.DoubleValue;
 import com.cleanroommc.modularui.value.IntValue;
 import com.cleanroommc.modularui.value.LongValue;
 import com.cleanroommc.modularui.value.StringValue;
-import com.cleanroommc.modularui.widget.AbstractScrollWidget;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widget.ScrollWidget;
 import com.cleanroommc.modularui.widget.Widget;
@@ -52,14 +51,12 @@ import com.cleanroommc.modularui.widgets.ToggleButton;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.menu.ContextMenuButton;
 import com.cleanroommc.modularui.widgets.menu.DropdownWidget;
-import com.cleanroommc.modularui.widgets.menu.Menu;
 import com.cleanroommc.modularui.widgets.textfield.TextEditorWidget;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import com.gtnllib.GTNLLib;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.ae2.AE2Icon;
 import com.gtnllib.gui.theme.ae2.AE2SettingIcon;
-import com.gtnllib.gui.theme.ae2.AE2Variant;
 import com.gtnllib.gui.widget.AE2Button;
 import com.gtnllib.gui.widget.AECheckbox;
 import com.gtnllib.gui.widget.CloseButton;
@@ -89,8 +86,10 @@ import com.gtnllib.gui.widget.VerticalButtonBar;
  * A client-only screen with every AE2-styled widget of GTNLLib, all working, opened by {@code /gtnl_widgets}. The
  * buttons on top reopen it in each AE2 skin or the plain look, keeping the widgets' values; the dialog button opens a
  * panel in another theme. A check box hides one toolbar button and all upgrade slots, so the toolbar shortens and the
- * empty upgrade panel no longer asks NEI to keep clear. Two pages show MUI2's own widgets under the theme, with the
- * few lines an AE2 screen adds for menus, scroll areas and slider handles; the last page compares MUI2 and GTNLLib
+ * empty upgrade panel no longer asks NEI to keep clear. Two pages show MUI2's own widgets under the theme, polished by
+ * the one {@code AE2Theme.polish} call an AE2 screen adds, its context menu built by {@code AE2Theme.menu}, and the
+ * dropdown's menu laid out as MUI2 lays it out, which only a subclass such as {@code CycleDropdown} changes; the last
+ * page compares MUI2 and GTNLLib
  * buttons at several heights and the three ways to change a number with the mouse wheel. Client only.
  */
 public class WidgetGallery {
@@ -122,7 +121,9 @@ public class WidgetGallery {
 
     private static void open(State state, @Nullable String themeId) {
         ModularScreen screen = new ModularScreen(GTNLLib.MODID, new WidgetGallery(state, themeId).panel());
-        GhostItemSlot.open(themeId == null ? screen : screen.useTheme(themeId));
+        if (themeId != null) screen.useTheme(themeId);
+        AE2Theme.polish(screen);
+        GhostItemSlot.open(screen);
     }
 
     private ModularPanel panel() {
@@ -159,7 +160,6 @@ public class WidgetGallery {
             .tab(() -> AE2Icon.MORE, () -> tr("page.native_more"))
             .tab(() -> AE2Icon.FILTER, () -> tr("page.compare"));
         IPanelHandler nativeDialog = IPanelHandler.simple(panel, (parent, player) -> nativeDialog(), true);
-        AE2Theme.useMenuTheme(themeId, GTNLLib.MODID, PANEL_NAME, NATIVE_DROPDOWN, NATIVE_MENU);
         return panel.child(tabs.page(0, buttonsPage()))
             .child(tabs.page(1, inputsPage()))
             .child(tabs.page(2, listsPage()))
@@ -361,7 +361,6 @@ public class WidgetGallery {
         }
         ListWidget<IWidget, ?> list = new ListWidget<>().pos(196, 48)
             .size(76, 88);
-        nativeScroll(list);
         for (int i = 0; i < 8; i++) {
             String name = "ListWidget " + (i + 1);
             list.child(
@@ -432,7 +431,6 @@ public class WidgetGallery {
                 paged.pos(70, 105)
                     .size(120, 12))
             .child(list);
-        AE2Theme.sliderHandles(page, themeId);
         return page;
     }
 
@@ -441,7 +439,6 @@ public class WidgetGallery {
         vertical.setScrollSize(8 * 12);
         ScrollWidget<?> scroll = new ScrollWidget<>(vertical).pos(144, 0)
             .size(64, 60);
-        nativeScroll(scroll);
         for (int i = 0; i < 8; i++) scroll.child(
             IKey.str("ScrollWidget " + (i + 1))
                 .asWidget()
@@ -471,11 +468,9 @@ public class WidgetGallery {
         }
         CategoryList.Root categories = new CategoryList.Root().pos(144, 66)
             .size(128, 70);
-        nativeScroll(categories);
         SortableListWidget<String> sortable = new SortableListWidget<String>().children(names, items::get)
             .pos(212, 0)
             .size(60, 60);
-        nativeScroll(sortable);
         for (int i = 0; i < 2; i++) {
             Category category = new Category();
             category.widthRel(1f)
@@ -591,15 +586,12 @@ public class WidgetGallery {
                     .available(() -> state.usable)
                     .pos(184, 104)
                     .size(90, 16));
-        AE2Theme.sliderHandles(page, themeId);
         return page;
     }
 
     private ContextMenuButton<?> nativeContextMenu() {
         ContextMenuButton<?> button = new ContextMenuButton<>(NATIVE_MENU);
-        ListWidget<IWidget, ?> options = new ListWidget<>().widthRel(1f)
-            .maxSize(70);
-        nativeScroll(options);
+        ListWidget<IWidget, ?> options = new ListWidget<>().maxSize(70);
         for (String tier : TIERS) options.child(
             new ButtonWidget<>().overlay(IKey.str(tier))
                 .onMousePressed(mouse -> {
@@ -609,14 +601,8 @@ public class WidgetGallery {
                 })
                 .widthRel(1f)
                 .height(12));
-        Menu<?> menu = new Menu<>().widthRel(1f)
-            .coverChildrenHeight()
-            .child(options);
-        // MUI2 menus put their list on the panel border.
-        if (AE2Theme.variant(themeId) != null)
-            menu.padding(AE2Theme.PANEL_EDGE, AE2Theme.PANEL_EDGE, AE2Theme.PANEL_EDGE, AE2Theme.PANEL_BOTTOM_EDGE);
         return button.overlay(IKey.str("ContextMenuButton"))
-            .menu(menu);
+            .menu(AE2Theme.menu(options, themeId));
     }
 
     private static TextWidget<?> expandableTitle(String text, int width) {
@@ -624,13 +610,6 @@ public class WidgetGallery {
             .asWidget()
             .padding(4, 0, AE2Theme.PANEL_EDGE, AE2Theme.PANEL_BOTTOM_EDGE)
             .size(width, 18);
-    }
-
-    private void nativeScroll(AbstractScrollWidget<?, ?> scroll) {
-        scroll.showScrollShadows(false);
-        AE2Variant variant = AE2Theme.variant(themeId);
-        if (variant != null) scroll.getScrollArea()
-            .setScrollBarBackgroundColor(variant.colors.line());
     }
 
     private ModularPanel nativeDialog() {

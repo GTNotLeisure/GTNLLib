@@ -17,6 +17,7 @@ import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widget.WidgetTree;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
+import com.cleanroommc.modularui.widgets.ListWidget;
 import com.cleanroommc.modularui.widgets.SliderWidget;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.gtnewhorizon.gtnhlib.config.Config;
@@ -148,6 +149,13 @@ public class ServerWidgetScenario implements Runnable {
         new ProgressBar().value(new DoubleValue(0.4));
         AE2Theme.sliderHandles(new ParentWidget<>().child(new SliderWidget()), AE2Theme.LIGHT_ID);
         AE2Theme.useMenuTheme(AE2Theme.DARK_ID, "gtnllib", "server_scenario", "menu");
+        AE2Theme.polish(
+            new ParentWidget<>().child(new ListWidget<>())
+                .child(new SliderWidget()),
+            AE2Look.of(AE2Variant.DARK),
+            "gtnllib",
+            "server_scenario");
+        AE2Theme.menu(new ListWidget<>(), AE2Theme.DARK_ID);
         AE2Legacy.legacyStates(AE2Look.of(light));
         AE2Legacy.legacyTerminal(AE2Look.plain());
         WheelStyle.builder()
