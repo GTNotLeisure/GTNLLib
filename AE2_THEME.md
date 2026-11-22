@@ -10,6 +10,54 @@ The plain look's colors and drawing rules are all in `PlainLook`: Minecraft's su
 
 ModularUI 2 builds a GUI that the server opens (a machine, a held item) on both sides. `AE2Theme`, the drawing classes of the `ae2` package and every widget below load on both sides, so they can be used in such GUIs; they draw only on the client. `ServerSideLoadingTest` builds them in a class loader that behaves like a dedicated server. Theme registration (`AE2Theme.register`) is client-only and is done by GTNLLib.
 
+## Which Widget To Use
+
+A MUI2 theme holds backgrounds, colors and a default size per kind of widget and state, and little else. It cannot give a widget a disabled look, a label that sinks with the button face, a picture put together from several sprites, or a mouse wheel that changes a value. So an AE2-style screen takes its widgets from three layers, and keeps away from a few MUI2 widgets AE2 has nothing like.
+
+**1. MUI2's own widgets, styled by the theme alone.** Use them as they are; the AE2 themes give them AE2's textures and colors.
+
+| Widget | Notes |
+| --- | --- |
+| `TextFieldWidget`, `TextEditorWidget` | AE2's text field. For numbers use `NumberEntryWidget` (layer 3): MUI2's number mode only takes the wheel after a click into the field. |
+| `ItemSlot`, `FluidSlot`, `ItemDisplayWidget`, `FluidDisplayWidget` | AE2's slot frames. |
+| `Dialog`, panels | AE2's panel. |
+| `TextWidget`, `ScrollingTextWidget`, `RichTextWidget` | The theme's text color. |
+| `ButtonWidget.panelCloseButton()` | AE2's button face with MUI2's cross. `CloseButton` (layer 3) draws AE2's cross in the middle of the face. |
+| `ButtonWidget`, `ToggleButton`, `CycleButtonWidget`, `PageButton` | AE2's button face and text colors, but no disabled look, and the label does not sink. Where that matters use layer 3. |
+
+**2. MUI2's own widgets plus one call.** Some of their looks are fixed in MUI2's code, out of a theme's reach. Call `AE2Theme.polish(screen)` once the screen's theme is set and its main panel is built; under other themes it leaves them as MUI2 draws them (see [Scroll Areas, Sliders And Menus](#scroll-areas-sliders-and-menus)).
+
+| Widget | What `polish` adds |
+| --- | --- |
+| `ListWidget`, `ScrollWidget` | No darkened edges, the skin's track color. The handle still stretches with the content; for AE2's fixed 15-pixel handle use `GTNLListWidget` with `HandleScrollData`. |
+| `SliderWidget` | A handle drawn as an AE2 button. For steps, milestones, a value tag or the wheel use `StepSlider`. |
+| `ContextMenuButton` | Its menu opens in the skin's menu theme. Build the menu's contents with `AE2Theme.menu(options, themeId)`, which keeps them inside the menu's border; see the example under [Scroll Areas, Sliders And Menus](#scroll-areas-sliders-and-menus). |
+
+`ProgressWidget` needs neither: it draws the texture you give it. For AE2's progress bar use `ProgressBar`.
+
+**3. GTNLLib's widgets.** Wherever an AE2 detail matters, use these instead of the MUI2 widget they replace. `AE2Button`, `IconButton`, `TabButton`, `CycleDropdown`, `GTNLListWidget` and `ProgressBar` extend that MUI2 widget, and `SettingToggleButton` extends the cycle button's base class `AbstractCycleButtonWidget`, so MUI2's methods still work on them; the others are built from MUI2 widgets or, where MUI2's widget could not be extended, say why in their class documentation.
+
+| Instead of | Use | Because |
+| --- | --- | --- |
+| `ButtonWidget` | `AE2Button`, `IconButton`, `TabButton` | Disabled look, a label that sinks and scrolls like AE2's, toolbar and tab frames. |
+| `ToggleButton` | `AECheckbox` (check box, radio group), `SlideSwitch` | AE2's check box sprites and hover rule, disabled look. |
+| `CycleButtonWidget` | `SettingToggleButton` | AE2's setting button: one icon and description per value, disabled look. |
+| `PageButton` with `PagedWidget` | `PageTabs` | AE2's page tabs joined to the panel. |
+| `DropdownWidget` | `CycleDropdown` | A menu whose options stay inside its border and that opens in the skin's menu theme, a label that sinks, the wheel after `wheel(true)`. MUI2 builds its dropdown's menu only when it opens, so nothing outside the widget can pad it. |
+| `TextFieldWidget` for numbers | `NumberEntryWidget`; `ValueStepper` for named values | AE2's amount entry with step buttons, the wheel over its text field after `wheel(true)`, disabled look. |
+| `SliderWidget` | `StepSlider` | Steps, milestones, the wheel after `wheel(true)`, disabled look. |
+| `ListWidget` | `GTNLListWidget` with `HandleScrollData`; `IconRowList` and `ListRow` for rows | AE2's groove and fixed handle, AE2's list rows. |
+| `ProgressWidget` | `ProgressBar` | AE2's inscriber progress bar. |
+| `ButtonWidget.panelCloseButton()` | `CloseButton` | AE2's cross in the middle of the face. |
+| — | `Scrollbar`, `GhostItemSlot`, `FillBar` | MUI2's nearest widget does another job: its scroll bars belong to a scroll area, its item slots need a synced slot, its progress bar draws a texture. |
+| — | `VerticalButtonBar`, `UpgradesPanel`, `Divider`, `Breadcrumb`, `FadingNotice` | Parts MUI2 has no widget for. |
+
+Two rows are rules, not choices: in an AE2 screen a dropdown is always a `CycleDropdown`, and a number input is always a `NumberEntryWidget`.
+
+**Not in AE2 screens.** AE2 has nothing like `SortableListWidget`, `CategoryList`, `Expandable` or `ColorPickerDialog`, so there is no AE2 look to give them. The rows of a `SortableListWidget` and the `ColorPickerDialog` set MUI2's own textures when they are created. A `CategoryList` draws MUI2's arrows unless `setExpandedOverlay` and `setCollapsedOverlay` replace them, and MUI2 2.3.94 has no public way to add entries to one. An `Expandable` draws nothing of its own. Use them in other screens.
+
+`/gtnl_widgets` shows all three layers at work: pages 4 and 5 hold MUI2's own widgets after `polish`, page 6 compares MUI2's button and number input with GTNLLib's.
+
 ## Quick Start
 
 1. **Apply the theme to the screen** with `useTheme`: `AE2Theme.LIGHT_ID`, `DARK_ID` or `DARK_PURPLE_ID`, or the identifier a `ScreenTheme` setting stores (`ScreenTheme.themeId`). Every GTNLLib widget in the screen then takes that look; nothing is passed to the widgets.
@@ -24,13 +72,17 @@ ModularUI 2 builds a GUI that the server opens (a machine, a held item) on both 
    public ModularPanel buildUI(PosGuiData data, PanelSyncManager sync, UISettings settings) { ... }
 
    public ModularScreen createScreen(PosGuiData data, ModularPanel panel) {
-       return new ModularScreen(MODID, panel).useTheme(AE2Theme.DARK_ID);
+       ModularScreen screen = new ModularScreen(MODID, panel).useTheme(AE2Theme.DARK_ID);
+       AE2Theme.polish(screen); // only for MUI2's own lists, sliders and menu buttons in the panel
+       return screen;
    }
    ```
 
+   `AE2Theme.polish(screen)` is only needed when the panel holds MUI2's own lists, sliders or menu buttons (layer 2 above); call it after `useTheme`.
+
    Do not use `IThemeApi.registerThemeForScreen` for this: MUI2 lets a registered screen theme win over every panel's own theme, so a dialog that sets a theme of its own would lose it.
 
-2. **A dialog with a theme of its own** calls `themeOverride(id)` on its panel. Widgets inside it follow the dialog's theme, not the screen's, and dropdowns in it open their menus in the matching menu theme by themselves.
+2. **A dialog with a theme of its own** calls `themeOverride(id)` on its panel. Widgets inside it follow the dialog's theme, not the screen's, and `CycleDropdown`s in it open their menus in the matching menu theme by themselves.
 
 3. **Sync values in a GUI the server opens.** Widgets that take a MUI2 value (`SettingToggleButton.value`, `AECheckbox`, `ProgressBar.value`, `NumberEntryWidget.value(ILongValue)`) take a sync value directly. **Register it with the panel's sync manager first**: a widget does not do it for you, and an unregistered value only changes on the client, with no warning. Widgets that take a supplier and an action (`VerticalButtonBar.toggle`, list rows, `PageTabs`, `ValueStepper`) read the sync value's getter and write through its setter, which sends the change to the server. Widgets check bounds on the client only, so a server-side setter clamps the value again.
 
@@ -101,7 +153,8 @@ The toolbar and the upgrade panel are added after the panel's other children, so
 
 | Type | Responsibility |
 | --- | --- |
-| [AE2Theme](src/main/java/com/gtnllib/gui/theme/AE2Theme.java) | Theme identifiers, AE2's widget dimensions, the skin texture folders, theme registration and lookup. Its drawing methods are deprecated forwarders to the classes below. |
+| [AE2Theme](src/main/java/com/gtnllib/gui/theme/AE2Theme.java) | Theme identifiers, AE2's widget dimensions, the skin texture folders, theme registration and lookup. `polish` and `menu` fit MUI2's own widgets to an AE2 screen (see Which Widget To Use). Its drawing methods are deprecated forwarders to the classes below. |
+| [MUI2Fixes](src/main/java/com/gtnllib/gui/theme/MUI2Fixes.java) | Every workaround for a part of MUI2 a theme cannot reach: scroll shadows and track color, menu themes, menu padding, slider handles. The one class to check after a MUI2 upgrade. |
 | [AE2Variant](src/main/java/com/gtnllib/gui/theme/ae2/AE2Variant.java) | The three AE2 skins (light, dark, purple dark) as data: their palette (`AE2Colors`, built by name with `AE2Colors.builder()`), selection colors and textures. The purple dark skin ships only the textures it recolours (`AE2Theme.PURPLE_TEXTURES`) and takes the rest from the dark skin. |
 | [AE2ThemeDefinitions](src/main/java/com/gtnllib/gui/theme/ae2/AE2ThemeDefinitions.java) | The MUI2 panel and menu theme of each skin (`panelTheme(variant)`, `menuTheme(variant)`). Client only; `AE2Theme.register` uses it, and other code selects a theme by its identifier. |
 | [AE2Icon](src/main/java/com/gtnllib/gui/theme/ae2/AE2Icon.java) | The built-in toolbar icons, drawn from the AE2 skin's sheet or MUI2's icons outside AE2 themes; the three MUI2 has no equivalent for (`FLIP_VERTICAL`, `MOVE_TO_UP`, `MOVE_TO_DOWN`) use the light skin's sprite there, which is white like MUI2's. |
@@ -166,13 +219,42 @@ AE2 attaches the upgrade panel to the right of a screen's panel, `UPGRADE_OVERLA
 
 `VerticalButtonBar`, `PageTabs` and `UpgradesPanel` stand outside their panel and ask NEI to keep clear of them, so they belong in ordinary screens: MUI2 has no NEI settings for overlay screens and throws when such a widget opens in one.
 
-MUI2's `ListWidget` and `ScrollWidget` darken their top and bottom edges while there is more to scroll, and paint their scroll-bar track in a fixed color; AE2's lists do neither. `GTNLListWidget` and the menus of `CycleDropdown` look after themselves. For MUI2's own widgets in an AE2-style screen, call `AE2Theme.polish(screen)` once the screen's theme is set and its main panel is built: under an AE2 skin, or a theme based on one, scroll areas lose the shadows and get the skin's track color, sliders get AE2's handle, and menu buttons such as `ContextMenuButton` open their menus in the skin's menu theme; under other themes it only sends those menus back to MUI2's context-menu theme, as MUI2 keeps a screen's menu themes from one opening to the next. Set the theme with `ModularScreen.useTheme` first: a theme set through `UISettings.useTheme` for a GUI the server opens is applied after `createScreen`, too late for `polish`. Name each menu button once, when it is created, and give a screen's menus different names. It reaches only what is in the main panel at that moment; a panel opened later takes `AE2Theme.polish(panel, look, owner, screen)`. It turns off the shadows of every scroll area but text fields; turn back on after it any a list should keep. A screen that changes its theme is built again and polished again. Build a context menu's contents with `AE2Theme.menu(options, themeId)`, which keeps them inside the menu's border. MUI2's `DropdownWidget` builds its menu only when it opens, so nothing outside the widget can pad it: in AE2 screens use `CycleDropdown`. The workarounds themselves live in `MUI2Fixes`, the one place to check after a MUI2 upgrade.
+A background set with `background(...)` on a MUI2 `ItemSlot` disappears while the slot holds an item (`ItemSlot.getCurrentBackground` in MUI2 2.3.94). The theme's slot frame is drawn separately and stays, so leave slot frames to the theme or draw them in the panel background.
+
+### Scroll Areas, Sliders And Menus
+
+MUI2's `ListWidget` and `ScrollWidget` darken their top and bottom edges while there is more to scroll, and paint their scroll-bar track in a fixed color; AE2's lists do neither. `GTNLListWidget` and the menus of `CycleDropdown` look after themselves. For MUI2's own widgets in an AE2-style screen, call `AE2Theme.polish(screen)` once the screen's theme is set and its main panel is built.
+
+- Under an AE2 skin, or a theme based on one, scroll areas other than text fields lose the shadows and get the skin's track color, sliders get an AE2 button as their handle, and menu buttons such as `ContextMenuButton` open their menus in the skin's menu theme.
+- Under any other theme it only sends those menus back to MUI2's context-menu theme, because MUI2 keeps a screen's menu themes from one opening to the next.
+- Set the theme with `ModularScreen.useTheme` first. A theme set through `UISettings.useTheme` for a GUI the server opens is applied after `createScreen`, too late for `polish`.
+- It reaches only what is in the main panel at that moment. A panel opened later takes `AE2Theme.polish(panel, AE2Look.of(screen.getCurrentTheme()), screen.getOwner(), screen.getName())`.
+- A menu button gets its name in its constructor. Do not rename it, and give the menus of one screen different names: the menu theme is kept by that name.
+- A list that should keep its shadows calls `showScrollShadows(true)` after `polish`.
+- A screen that changes its theme is built again and polished again.
+
+Build a context menu's contents with `AE2Theme.menu(options, themeId)`, which keeps them inside the menu's border. The options are `ButtonWidget`s in a `ListWidget`; the menu theme lights the option under the pointer:
+
+```java
+ContextMenuButton<?> button = new ContextMenuButton<>("sorter_menu"); // the name polish maps the menu theme by
+ListWidget<IWidget, ?> options = new ListWidget<>().maxSize(70);
+options.child(new ButtonWidget<>().overlay(IKey.str("Clear"))
+    .onMousePressed(mouse -> {
+        clear();
+        button.closeMenu(false);
+        return true;
+    })
+    .widthRel(1f)
+    .height(12));
+panel.child(button.overlay(IKey.str("More"))
+    .menu(AE2Theme.menu(options, themeId))); // themeId: the theme the screen uses
+```
+
+MUI2's `DropdownWidget` builds its menu only when it opens, so nothing outside the widget can pad it: in AE2 screens use `CycleDropdown`. The workarounds themselves live in `MUI2Fixes`, the one place to check after a MUI2 upgrade.
 
 AE2's scroll bars also take the mouse wheel anywhere on the screen. MUI2 offers the wheel to screen-level listeners before any widget and lets none of them keep it, so GTNLLib does not do this by default; a screen that wants it calls `Scrollbar.scroll(direction)` from its panel's `onMouseScroll` when `super.onMouseScroll` returns false.
 
 The small scroll bar (`HandleScrollData(true)`) draws the groove AE2 uses for its small scroll bar in the processing pattern panel: a one-pixel line-colored outline around a raised fill. Scroll-bar handles never stretch in AE2; MUI2 scroll widgets that do not use `HandleScrollData` stretch the theme's small handle to their own length.
-
-A background set with `background(...)` on a MUI2 `ItemSlot` disappears while the slot holds an item (`ItemSlot.getCurrentBackground` in MUI2 2.3.94). The theme's slot frame is drawn separately and stays, so leave slot frames to the theme or draw them in the panel background.
 
 ## Widget Catalog
 
@@ -295,6 +377,35 @@ The entry follows the theme it is drawn with, validation feedback included: inva
 
 The layout follows the size: from 62 pixels high it shows the AE2 step buttons stretched to the width, and lower entries are one row of `<`, the text field and `>`, such as `.size(64, 16)`. The arrows step by 1, or 10 with Shift, and so does the mouse wheel over the field after `wheel(true)`. The wheel steps only while the pointer is over the text field, even after the player has clicked into it, as in AE2. Right-clicking the field applies `resetValue(long)` (default 0) clamped to the bounds.
 
+## Adding To GTNLLib
+
+A new feature goes to the first place that fits, in this order:
+
+1. **Put it together from what exists.** A GTNLLib or MUI2 widget with the right settings is often enough: AE2's priority entry is a `NumberEntryWidget` with bounds.
+2. **A behaviour goes into its piece.** Being unavailable is `IAvailable` with `Availability`, the mouse wheel is `IWheelStep` with `WheelStep`, a held press that repeats is `PressRepeat`. A widget only says what one wheel notch or one repeat does; the rules (the wheel is off by default, acts only over the widget and never while it is unavailable; an unavailable widget swallows presses) stay in the piece, so every widget gets a change to them at once.
+3. **An AE2 detail of the look goes into a painter or `AE2Look`.** A widget asks `AE2Look.of(this)` to draw a part, or takes a drawable from a painter (`AE2ButtonPainter.button`, `label`, `iconButton`, `AE2CheckboxPainter.checkbox`), rather than deciding "AE2 or not" itself.
+4. **A texture or a color goes into `AE2Variant`,** or into the theme data of the widget that draws it (its inner `Theme` class, registered under an identifier starting with `gtnllib`, with the AE2 values filled in by `AE2ThemeDefinitions.panelTheme`).
+5. **Only then a new widget,** which extends the MUI2 widget it resembles. A widget built on MUI2's `Widget` or `ParentWidget` either fills a gap MUI2 leaves, or says in its class documentation why it does not extend the MUI2 widget it resembles: a MUI2 widget that fixes its own type (`SliderWidget`, `PageButton`, `ProgressWidget`, `ToggleButton`, `CycleButtonWidget`, `TextFieldWidget`) stops a subclass's chained calls returning the subclass, so such a widget is better kept inside the new one, as `NumberEntryWidget` keeps a `TextFieldWidget`; and a widget that would replace both the drawing and the input handling keeps nothing of its parent.
+
+A workaround for a part of MUI2 a theme cannot reach goes into `MUI2Fixes`, so a MUI2 upgrade has one class to check. A widget that can be used in a GUI the server opens is built in `ServerWidgetScenario`.
+
+`WidgetRulesTest` checks what a test can check of these rules on every build: widgets built on MUI2's bare widgets are listed as gap fillers or as exceptions with a reason; "is it AE2" checks and widgets' reads of the AE2 skin only ever get fewer; presses are swallowed only by `Availability`, held presses timed only by `PressRepeat`, and value widgets take the wheel only through `WheelStep`; MUI2 workarounds are only in `MUI2Fixes`; every widget but the client-only `GhostItemSlot` is built in `ServerWidgetScenario`; and every widget the wheel can change leaves it off by default.
+
+## Public API And Deprecation
+
+These are GTNLLib's public API, kept stable between releases:
+
+- the widgets of `gui.widget` and what they take (`HandleScrollData`, `IconSource`, `AE2Icon`, `AE2SettingIcon`), `ScreenTheme`, and the behaviour pieces `IAvailable`, `Availability`, `IWheelStep`, `WheelStep` and `PressRepeat`;
+- every method of `AE2Look`;
+- the painters' methods that return a drawable for a widget, such as `AE2ButtonPainter.button`, `label` and `iconButton` and `AE2CheckboxPainter.checkbox`, and `AE2CheckboxPainter.checkboxWidth`, which measures one;
+- `AE2Theme`'s theme identifiers, size constants, `polish`, `menu` and `useMenuTheme`, and `MUI2Fixes`.
+
+A widget's AE2 options have the same names everywhere: `available`, `selected` and `wheel`.
+
+The painters' methods that draw directly, `AE2Variant`'s texture fields and `PlainLook` can be used for drawing of your own, but they may change in any release.
+
+A public name that was in a release keeps working for one more release when it is renamed or moved: the old name forwards to the new one, is marked deprecated and is listed below, and the release after removes it. A name that was never released may change at once. The rule holds from the first release after 1.1.8; the types in the first table below moved before it was set.
+
 ## Moved And Renamed After 1.1.8
 
 These types moved without a forwarder, so code built against 1.1.8 has to be rebuilt; update the imports:
@@ -308,7 +419,7 @@ These types moved without a forwarder, so code built against 1.1.8 has to be reb
 | `widget.AE2ButtonDrawable` | `theme.ae2.AE2ButtonDrawable` |
 | `widget.SkinDrawable`, `CardDrawable`, `FrameDrawable`, `LayoutTheme` | the same names in `theme` |
 
-These names still work and are deprecated: `AE2Theme.SCROLLBAR_WIDTH` (now `SMALL_SCROLLER_WIDTH`), `AE2Theme.UPGRADE_ROWS` (now `UPGRADE_SLOTS_PER_COLUMN`), `AE2Theme.SWITCH_WIDTH`, `SWITCH_HEIGHT`, `SWITCH_LABEL_X` and `SWITCH_LABEL_Y` (now `CHECKBOX_WIDTH`, `CHECKBOX_HEIGHT`, `CHECKBOX_LABEL_X` and `CHECKBOX_LABEL_Y`), `SlideSwitch.liveWhen` (now `glowWhen`), the `HandleScrollData` constructors that take an `AE2Variant`, and the drawing methods of `AE2Theme`, which forward to the `ae2` package. `AE2Theme.listRow` and `AE2Theme.buttonText(context, ...)` keep following the theme of the whole screen; their replacements follow the panel. These deprecated names stay for one release: the first release with the new names keeps them, and the release after it removes them.
+These names still work and are deprecated: `AE2Theme.SCROLLBAR_WIDTH` (now `SMALL_SCROLLER_WIDTH`), `AE2Theme.UPGRADE_ROWS` (now `UPGRADE_SLOTS_PER_COLUMN`), `AE2Theme.SWITCH_WIDTH`, `SWITCH_HEIGHT`, `SWITCH_LABEL_X` and `SWITCH_LABEL_Y` (now `CHECKBOX_WIDTH`, `CHECKBOX_HEIGHT`, `CHECKBOX_LABEL_X` and `CHECKBOX_LABEL_Y`), `SlideSwitch.liveWhen` (now `glowWhen`), `SlideSwitch.availableWhen` and `StepSlider.activeWhen` (now `available`), `AE2Theme.sliderHandles` (now `AE2Theme.polish`), the `HandleScrollData` constructors that take an `AE2Variant`, and the drawing methods of `AE2Theme`, which forward to the `ae2` package. `AE2Theme.listRow` and `AE2Theme.buttonText(context, ...)` keep following the theme of the whole screen; their replacements follow the panel. These deprecated names stay for one release: the first release with the new names keeps them, and the release after it removes them.
 
 The drawing classes of the `ae2` package were never released under their first names and were renamed before their first release, so that a widget and its painter no longer differ by one letter: `AE2Buttons`, `AE2Checkboxes`, `AE2Scrollbars`, `AE2Panels` and `AE2Upgrades` became `AE2ButtonPainter`, `AE2CheckboxPainter`, `AE2ScrollbarPainter`, `AE2PanelPainter` and `AE2UpgradePainter`. With that, everything that says which look to draw takes an `AE2Look` instead of a nullable `AE2Variant`, a theme or the screen's context:
 
