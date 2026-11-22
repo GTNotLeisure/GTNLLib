@@ -5,6 +5,7 @@ import java.util.function.IntSupplier;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.lwjgl.input.Mouse;
 
 import com.cleanroommc.modularui.api.UpOrDown;
 import com.cleanroommc.modularui.api.widget.Interactable;
@@ -225,7 +226,20 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable {
     @Override
     public void onUpdate() {
         super.onUpdate();
+        if (!isValid() || !areAncestorsEnabled()) {
+            grab = -1;
+            paging.stop();
+            return;
+        }
+        if (grab >= 0 && !Mouse.isButtonDown(0)) grab = -1;
         if (paging.due()) page();
+    }
+
+    @Override
+    public void dispose() {
+        grab = -1;
+        paging.stop();
+        super.dispose();
     }
 
     private void page() {

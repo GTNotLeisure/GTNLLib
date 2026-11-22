@@ -387,7 +387,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
     public void onUpdate() {
         super.onUpdate();
         // MUI2 updates hidden widgets too; a hidden list has nothing to rebuild.
-        if (!isEnabled()) return;
+        if (!isValid() || !areAncestorsEnabled()) return;
         rows.clear();
         nested.clear();
         identities.clear();

@@ -20,15 +20,6 @@ import com.gtnllib.gui.theme.AE2Theme;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 
-/**
- * AE2's text button background in one state of one skin, drawn row by row from the skin's 200-by-20 button textures: an
- * outline, a face and a shadow under it. A hovered or disabled button sinks: its shadow gets thinner and the face moves
- * down by the same amount. At AE2's 20 pixels of height it matches AE2 row for row; other heights stretch the face and
- * follow the shadow rule of {@link #shadow(State, int)}.
- * <p>
- * The AE2 themes use it as MUI2's button background and save it to theme JSON under {@link #TYPE}. Code that draws a
- * button in the look of its panel calls {@link AE2Look#drawButton} instead.
- */
 public class AE2ButtonDrawable implements IDrawable, IJsonSerializable {
 
     /**

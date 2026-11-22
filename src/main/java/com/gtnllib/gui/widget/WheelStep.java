@@ -28,7 +28,7 @@ public class WheelStep {
     }
 
     /**
-     * Answers a wheel notch by the rule above.
+     * Applies one wheel step while wheel input is enabled and an available, visible widget is under the pointer.
      *
      * @param widget    widget the wheel turned over, or the focused widget MUI2 offers the wheel to first
      * @param available whether the widget can be used right now
@@ -38,6 +38,9 @@ public class WheelStep {
      * @return whether the wheel was used, which stops MUI2 offering it to other widgets
      */
     public boolean scroll(IWidget widget, boolean available, UpOrDown direction, IntPredicate notch) {
-        return on && available && widget.isBelowMouse() && notch.test(direction.modifier);
+        return on && available
+            && widget.isBelowMouse()
+            && widget.areAncestorsEnabled()
+            && notch.test(direction.modifier);
     }
 }

@@ -23,14 +23,6 @@ import com.gtnllib.gui.widget.SlideSwitch;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/**
- * The MUI2 theme definitions of the AE2 skins: what each skin's panel theme and context-menu theme give MUI2's own
- * widgets and GTNLLib's theme-data widgets. {@link AE2Theme#register()} registers them; other code selects a theme by
- * its identifier and has no need to build one.
- * <p>
- * Client only, like {@link PaletteThemes} which it builds on: the class does not exist on a dedicated server, so a call
- * from there fails at once instead of going unnoticed.
- */
 @SideOnly(Side.CLIENT)
 public class AE2ThemeDefinitions {
 

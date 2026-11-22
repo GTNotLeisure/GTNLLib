@@ -2,9 +2,11 @@ package com.gtnllib.gui.widget;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.cleanroommc.modularui.animation.Animator;
 import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.theme.WidgetTheme;
+import com.cleanroommc.modularui.utils.Interpolation;
 import com.cleanroommc.modularui.widget.scroll.ScrollArea;
 import com.cleanroommc.modularui.widget.scroll.ScrollData;
 import com.cleanroommc.modularui.widget.scroll.VerticalScrollData;
@@ -16,9 +18,12 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
 
     private final boolean small;
     private final PressRepeat paging = new PressRepeat();
+    private final Animator animator = new Animator().duration(500)
+        .curve(Interpolation.QUAD_OUT);
     private AE2Look look;
     private int rowHeight;
     private int dragMouse, dragScroll;
+    private int animatingFrom, animatingTo;
     private boolean pages;
 
     /**
@@ -94,7 +99,10 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
      */
     public HandleScrollData rows(int rowHeight) {
         this.rowHeight = Math.max(0, rowHeight);
-        if (rowHeight > 0) setScrollSpeed(rowHeight);
+        if (rowHeight > 0) {
+            animator.stop(false);
+            setScrollSpeed(rowHeight);
+        }
         return this;
     }
 
@@ -145,6 +153,7 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
         int track = mainAxisPos - trackTop(area);
         paging.stop();
         if (!isScrollBarActive(area) || !super.onMouseClicked(area, track, crossAxisPos, button)) return false;
+        animator.stop(false);
         int length = getScrollBarLength(area), visible = getFullVisibleSize(area);
         int start = getScrollBarStart(area, length, visible);
         boolean beside = track < start || track > start + length;
@@ -178,6 +187,16 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
         paging.stop();
     }
 
+    /**
+     * Stops dragging, paging and animation while keeping the current scroll position.
+     */
+    public void stopInteraction() {
+        animator.stop(false);
+        paging.stop();
+        dragging = false;
+        clickOffset = 0;
+    }
+
     private void page(ScrollArea area) {
         int step = Math.max(1, getScrollSpeed());
         int max = Math.max(0, getScrollSize() - getFullVisibleSize(area)),
@@ -188,8 +207,8 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
     /**
      * Converts the pointer position to the progress consumed by {@link ScrollArea#drag(int, int)}.
      * <p>
-     * During a drag, the pointer's movement since the press is added to the offset recorded at the press, so a pointer
-     * that has not moved keeps the content in place regardless of the content length.
+     * Pointer movement is relative to the offset recorded at the press. Use {@link #dragTo(ScrollArea, int)} to keep
+     * integer precision instead of MUI2's float conversion.
      *
      * @param area         owning scroll area
      * @param mainAxisPos  mouse Y coordinate relative to the scroll area
@@ -248,8 +267,37 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
 
     @Override
     public void animateTo(ScrollArea area, int x) {
-        if (rowHeight > 0) scrollTo(area, x);
-        else super.animateTo(area, x);
+        animator.stop(false);
+        if (rowHeight > 0) {
+            scrollTo(area, x);
+            return;
+        }
+        animatingFrom = getScroll();
+        animatingTo = Math.max(0, Math.min(getScrollSize() - getFullVisibleSize(area), x));
+        // Animate progress, not pixel bounds, so large integer offsets keep their precision.
+        animator.bounds(0, 1)
+            .onUpdate(progress -> {
+                int offset = (int) Math.round(animatingFrom + ((double) animatingTo - animatingFrom) * progress);
+                return scrollTo(area, offset);
+            })
+            .onFinish(() -> scrollTo(area, animatingTo));
+        animator.reset();
+        animator.animate();
+    }
+
+    @Override
+    public boolean isAnimating() {
+        return animator.isAnimating();
+    }
+
+    @Override
+    public int getAnimatingTo() {
+        return animatingTo;
+    }
+
+    @Override
+    public int getAnimationDirection() {
+        return !isAnimating() ? 0 : animatingTo >= animatingFrom ? 1 : -1;
     }
 
     @Override

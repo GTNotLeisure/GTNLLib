@@ -60,7 +60,16 @@ public class GTNLListWidget<I extends IWidget, W extends ListWidget<I, W>> exten
     @Override
     public void onUpdate() {
         super.onUpdate();
-        if (getScrollData() instanceof HandleScrollData handle) handle.repeatPaging(getScrollArea());
+        if (getScrollData() instanceof HandleScrollData handle) {
+            if (isValid() && areAncestorsEnabled()) handle.repeatPaging(getScrollArea());
+            else handle.stopInteraction();
+        }
+    }
+
+    @Override
+    public void dispose() {
+        if (getScrollData() instanceof HandleScrollData handle) handle.stopInteraction();
+        super.dispose();
     }
 
     // MUI2 treats every mouse button on the scroll bar as a left press; AE2 scroll bars react to the left one only.

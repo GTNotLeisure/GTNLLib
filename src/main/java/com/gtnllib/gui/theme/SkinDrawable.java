@@ -36,13 +36,13 @@ public class SkinDrawable implements IDrawable, IJsonSerializable {
     private int width = 1, height = 1, left, top, right, bottom, glowColor;
     private boolean tiled;
     private List<Piece> geometry;
-    private int geometryWidth, geometryHeight;
+    private int geometryX, geometryY, geometryWidth, geometryHeight;
 
     public SkinDrawable texture(ResourceLocation texture, int width, int height) {
         this.texture = texture;
         this.width = width;
         this.height = height;
-        geometry = null;
+        invalidateGeometry();
         return this;
     }
 
@@ -51,13 +51,13 @@ public class SkinDrawable implements IDrawable, IJsonSerializable {
         this.top = top;
         this.right = right;
         this.bottom = bottom;
-        geometry = null;
+        invalidateGeometry();
         return this;
     }
 
     public SkinDrawable tiled(boolean tiled) {
         this.tiled = tiled;
-        geometry = null;
+        invalidateGeometry();
         return this;
     }
 
@@ -80,8 +80,9 @@ public class SkinDrawable implements IDrawable, IJsonSerializable {
     }
 
     public static int[] fit(int size, int start, int end) {
-        if (start + end <= size) return new int[] { start, end };
-        int fitted = start + end > 0 ? size * start / (start + end) : 0;
+        long total = (long) start + end;
+        if (total <= size) return new int[] { start, end };
+        int fitted = total > 0 ? (int) ((long) size * start / total) : 0;
         return new int[] { fitted, size - fitted };
     }
 
@@ -109,6 +110,13 @@ public class SkinDrawable implements IDrawable, IJsonSerializable {
                     tiled && (column == 1 || row == 1) ? sh : 0));
         }
         return pieces;
+    }
+
+    /**
+     * Invalidates cached pieces after a subclass changes state used by its geometry.
+     */
+    protected void invalidateGeometry() {
+        geometry = null;
     }
 
     public static SkinDrawable read(JsonObject json, String key, SkinDrawable fallback) {
@@ -150,19 +158,24 @@ public class SkinDrawable implements IDrawable, IJsonSerializable {
      */
     public void draw(int x, int y, int width, int height, int glowColor, int tint) {
         if (texture == null || width <= 0 || height <= 0) return;
-        if (geometry == null || geometryWidth != width || geometryHeight != height) {
-            geometry = pieces(0, 0, width, height);
+        if (geometry == null || geometryX != x
+            || geometryY != y
+            || geometryWidth != width
+            || geometryHeight != height) {
+            geometry = pieces(x, y, width, height);
+            geometryX = x;
+            geometryY = y;
             geometryWidth = width;
             geometryHeight = height;
         }
-        layer(texture, tint, geometry, x, y);
-        if (glow != null && glowColor != 0) layer(glow, glowColor, geometry, x, y);
+        layer(texture, tint, geometry);
+        if (glow != null && glowColor != 0) layer(glow, glowColor, geometry);
         GlStateManager.color(1, 1, 1, 1);
         GlStateManager.disableBlend();
         GlStateManager.enableAlpha();
     }
 
-    private static void layer(ResourceLocation location, int color, List<Piece> pieces, int x, int y) {
+    private static void layer(ResourceLocation location, int color, List<Piece> pieces) {
         Platform.setupDrawTex(true);
         Minecraft.getMinecraft().renderEngine.bindTexture(location);
         Color.setGlColor(color);
@@ -170,8 +183,8 @@ public class SkinDrawable implements IDrawable, IJsonSerializable {
             for (Piece piece : pieces) {
                 if (piece.tileWidth() > 0) GuiDraw.drawTiledTexture(
                     buffer,
-                    x + piece.x(),
-                    y + piece.y(),
+                    piece.x(),
+                    piece.y(),
                     piece.w(),
                     piece.h(),
                     piece.u0(),
@@ -183,10 +196,10 @@ public class SkinDrawable implements IDrawable, IJsonSerializable {
                     0);
                 else GuiDraw.drawTexture(
                     buffer,
-                    x + piece.x(),
-                    y + piece.y(),
-                    x + piece.x() + piece.w(),
-                    y + piece.y() + piece.h(),
+                    piece.x(),
+                    piece.y(),
+                    piece.x() + piece.w(),
+                    piece.y() + piece.h(),
                     piece.u0(),
                     piece.v0(),
                     piece.u1(),
@@ -198,7 +211,7 @@ public class SkinDrawable implements IDrawable, IJsonSerializable {
 
     @Override
     public void loadFromJson(JsonObject json) {
-        geometry = null;
+        invalidateGeometry();
         String location = JsonHelper.getString(json, null, TEXTURE);
         if (location != null) texture = new ResourceLocation(location);
         String glowLocation = JsonHelper.getString(json, null, GLOW);

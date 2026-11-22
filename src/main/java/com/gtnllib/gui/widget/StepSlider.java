@@ -100,26 +100,29 @@ public class StepSlider extends Widget<StepSlider>
     }
 
     /**
-     * Sets the MUI2 value the slider reads and writes; an integer value receives rounded numbers.
+     * Sets the MUI2 value the slider reads and writes; integer values receive rounded numbers clamped to the int range.
      *
      * @param value value holder, possibly a synced one
      */
     public StepSlider value(IDoubleValue<?> value) {
-        if (value instanceof IIntValue<?>integer)
-            return value(value::getDoubleValue, number -> integer.setIntValue((int) Math.round(number)));
+        if (value instanceof IIntValue<?>integer) return value(
+            value::getDoubleValue,
+            number -> integer
+                .setIntValue((int) Math.max(Integer.MIN_VALUE, Math.min(Integer.MAX_VALUE, Math.round(number)))));
         return value(value::getDoubleValue, value::setDoubleValue);
     }
 
     /**
      * Sets the range and how many steps divide it.
      *
-     * @param min   value of the first step
-     * @param max   value of the last step, greater than {@code min}
+     * @param min   finite value of the first step
+     * @param max   finite value of the last step, greater than {@code min}
      * @param steps number of steps between them, at least one
-     * @throws IllegalArgumentException if {@code max} is not greater than {@code min} or {@code steps} is below one
+     * @throws IllegalArgumentException if either bound is not finite, the range is empty, or {@code steps} is below one
      */
     public StepSlider range(double min, double max, int steps) {
-        if (!(max > min) || steps < 1) throw new IllegalArgumentException("Bad slider range " + min + ".." + max);
+        if (!Double.isFinite(min) || !Double.isFinite(max) || max <= min || steps < 1)
+            throw new IllegalArgumentException("Bad slider range " + min + ".." + max);
         this.min = min;
         this.max = max;
         this.steps = steps;
@@ -228,7 +231,13 @@ public class StepSlider extends Widget<StepSlider>
      * @return step index from zero to the number of steps
      */
     public int step() {
-        long step = Math.round((getter.getAsDouble() - min) / (max - min) * steps);
+        double current = getter.getAsDouble();
+        if (current <= min) return 0;
+        if (current >= max) return steps;
+        double span = max - min;
+        double fraction = Double.isFinite(span) ? (current - min) / span
+            : (current / 2 - min / 2) / (max / 2 - min / 2);
+        long step = Math.round(fraction * steps);
         return (int) Math.max(0, Math.min(steps, step));
     }
 
@@ -239,7 +248,10 @@ public class StepSlider extends Widget<StepSlider>
      * @return the value at that step
      */
     public double valueAt(int step) {
-        return min + (max - min) * Math.max(0, Math.min(steps, step)) / steps;
+        if (step <= 0) return min;
+        if (step >= steps) return max;
+        double fraction = step / (double) steps, span = max - min;
+        return Double.isFinite(span) ? min + span * fraction : min * (1 - fraction) + max * fraction;
     }
 
     /**
@@ -295,8 +307,10 @@ public class StepSlider extends Widget<StepSlider>
 
     private boolean select(long target) {
         int step = (int) Math.max(0, Math.min(steps, target));
-        if (Math.abs(valueAt(step) - getter.getAsDouble()) < (max - min) / steps * 1.0E-3) return false;
-        setter.accept(valueAt(step));
+        double next = valueAt(step), current = getter.getAsDouble();
+        double tolerance = (max * 1.0E-3 - min * 1.0E-3) / steps;
+        if (next == current || Math.abs(next - current) < tolerance) return false;
+        setter.accept(next);
         long now = Minecraft.getSystemTime();
         if (now - lastSound < SOUND_GAP_MILLIS) return true;
         lastSound = now;
@@ -321,6 +335,18 @@ public class StepSlider extends Widget<StepSlider>
     }
 
     @Override
+    public void onUpdate() {
+        super.onUpdate();
+        if (dragging && (!isAvailable() || !isValid() || !areAncestorsEnabled())) release();
+    }
+
+    @Override
+    public void dispose() {
+        if (dragging) release();
+        super.dispose();
+    }
+
+    @Override
     public @NotNull Result onMousePressed(int mouseButton) {
         return availability.press(() -> {
             if (mouseButton != 0) return Result.IGNORE;
@@ -333,7 +359,7 @@ public class StepSlider extends Widget<StepSlider>
     @Override
     public void onMouseDrag(int mouseButton, long timeSinceClick) {
         if (mouseButton != 0 || !dragging) return;
-        if (!isAvailable()) {
+        if (!isAvailable() || !areAncestorsEnabled()) {
             release();
             return;
         }

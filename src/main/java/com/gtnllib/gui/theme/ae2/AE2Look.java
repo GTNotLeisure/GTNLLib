@@ -468,7 +468,7 @@ public class AE2Look {
             skin = JsonHelper.getString(json, parent.skin, SKIN);
             variant = AE2Look.skin(skin);
             if (variant == null && !skin.isEmpty())
-                LOG.warn("Theme data names unknown AE2 skin \"{}\"; its widgets get the plain look", skin);
+                LOG.warn("Unknown AE2 skin \"{}\"; falling back to the theme identifier", skin);
         }
 
         /**

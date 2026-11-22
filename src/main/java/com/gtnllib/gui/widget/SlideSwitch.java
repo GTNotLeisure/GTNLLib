@@ -30,15 +30,6 @@ import com.gtnllib.gui.theme.SkinDrawable;
 import com.gtnllib.gui.theme.ae2.AE2CheckboxPainter;
 import com.gtnllib.utils.TextRenderUtils;
 
-/**
- * An on/off switch with a label, drawn from theme data ({@link Theme}): a track and a knob in the theme's colors or
- * skins, or, when the theme supplies sprites as the AE2 themes do, AE2's check box sprites with the label wrapped and
- * placed as in AE2's check boxes. The caller owns the value and flips it in the click handler. While it is not
- * {@link #available(BooleanSupplier) available} it is drawn faded, shows no hover and swallows clicks.
- * <p>
- * It does not extend MUI2's {@code ToggleButton}: that class fixes its own type, so chained calls on a subclass would
- * stop returning the subclass, and it keeps the value itself, while this switch leaves the value to the caller.
- */
 public class SlideSwitch extends ButtonWidget<SlideSwitch> implements IAvailable<SlideSwitch> {
 
     private static final int LABEL_Y = 1, LABEL_END = 2;
