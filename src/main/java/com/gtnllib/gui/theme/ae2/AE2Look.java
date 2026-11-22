@@ -101,7 +101,6 @@ public class AE2Look {
      * Resolves the look of the whole screen being drawn. Only for drawing code that has no widget at hand: a panel can
      * use a theme other than its screen's, which {@link #of(IWidget)} follows and this does not.
      *
-     * @param context current drawing context
      * @return the screen's look, or the plain look outside modular screens
      */
     public static AE2Look of(GuiContext context) {
@@ -354,12 +353,11 @@ public class AE2Look {
      * Draws a button background: AE2's button under an AE2 skin, the theme's MUI2 button in the plain look. Client
      * only.
      *
-     * @param context current drawing context
-     * @param state   visual button state
-     * @param x       left edge
-     * @param y       top edge
-     * @param width   width in pixels
-     * @param height  height in pixels
+     * @param state  visual button state
+     * @param x      left edge
+     * @param y      top edge
+     * @param width  width in pixels
+     * @param height height in pixels
      */
     public void drawButton(GuiContext context, State state, int x, int y, int width, int height) {
         if (variant != null) AE2ButtonDrawable.draw(variant.folder, state, x, y, width, height);
@@ -520,7 +518,6 @@ public class AE2Look {
              * Names the skin.
              *
              * @param folder skin folder name, such as {@code ae2_dark}
-             * @return this builder
              */
             public Builder skin(String folder) {
                 add(SKIN, folder);

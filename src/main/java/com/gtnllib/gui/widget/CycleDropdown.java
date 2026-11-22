@@ -209,7 +209,6 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>>
      * nothing, so it is safe to call every update; a changed list rebuilds the menu.
      *
      * @param choices values to offer; the list is copied
-     * @return this dropdown
      */
     public CycleDropdown<T> choices(List<T> choices) {
         if (this.choices.equals(choices)) return this;
@@ -238,7 +237,6 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>>
      * edge, so a dropdown at the right of a panel does not push the menu past it.
      *
      * @param width menu width in pixels; zero keeps the dropdown's own width
-     * @return this dropdown
      */
     public CycleDropdown<T> menuWidth(int width) {
         menuWidth = width;

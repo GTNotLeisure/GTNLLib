@@ -21,7 +21,6 @@ public class AE2Draw {
     /**
      * Draws text and resets the OpenGL color to opaque white.
      *
-     * @param text   display text
      * @param x      text left edge
      * @param y      text top edge
      * @param color  ARGB text color
@@ -37,7 +36,6 @@ public class AE2Draw {
      * Draws an icon tinted with a color, such as a green check or a red warning. The light sprite is used under every
      * theme so the tint keeps its brightness.
      *
-     * @param icon  icon to draw
      * @param x     left edge
      * @param y     top edge
      * @param color RGB tint; the alpha byte is ignored
@@ -67,11 +65,10 @@ public class AE2Draw {
      * Draws a texture with blending on, in the current color. MUI2 draws its own icons and check box without blending,
      * which drops the alpha of a faded color; this keeps it.
      *
-     * @param texture texture to draw
-     * @param x       left edge
-     * @param y       top edge
-     * @param width   width in pixels
-     * @param height  height in pixels
+     * @param x      left edge
+     * @param y      top edge
+     * @param width  width in pixels
+     * @param height height in pixels
      */
     public static void drawBlended(UITexture texture, int x, int y, int width, int height) {
         GuiDraw.drawTexture(

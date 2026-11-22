@@ -142,7 +142,6 @@ public class PlainLook {
      * Draws a label: in the theme's own text color and shadow while available, in MUI2's disabled grey without a shadow
      * otherwise.
      *
-     * @param text      text to draw
      * @param x         left edge
      * @param y         top edge
      * @param available whether the control the label belongs to can be used
@@ -178,12 +177,11 @@ public class PlainLook {
      * Draws the theme's MUI2 button background. A disabled button, and a theme without a button background, use
      * Minecraft's button.
      *
-     * @param context current drawing context
-     * @param state   button state
-     * @param x       left edge
-     * @param y       top edge
-     * @param width   width in pixels
-     * @param height  height in pixels
+     * @param state  button state
+     * @param x      left edge
+     * @param y      top edge
+     * @param width  width in pixels
+     * @param height height in pixels
      */
     public void drawButton(GuiContext context, State state, int x, int y, int width, int height) {
         GlStateManager.color(1, 1, 1, 1);

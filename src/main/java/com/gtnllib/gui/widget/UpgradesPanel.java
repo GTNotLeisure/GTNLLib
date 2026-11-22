@@ -58,7 +58,6 @@ public class UpgradesPanel extends ParentWidget<UpgradesPanel> implements INotif
      * The slot is sized 18 by 18 pixels.
      *
      * @param slot slot widget, not added anywhere else
-     * @return this panel
      */
     public UpgradesPanel slot(Widget<?> slot) {
         slots.add(slot);
@@ -105,7 +104,6 @@ public class UpgradesPanel extends ParentWidget<UpgradesPanel> implements INotif
      * {@link AE2Theme#UPGRADE_SLOTS_PER_COLUMN}. Use 1 for a single row.
      *
      * @param perColumn slots per column, at least one
-     * @return this panel
      */
     public UpgradesPanel perColumn(int perColumn) {
         this.perColumn = Math.max(1, perColumn);

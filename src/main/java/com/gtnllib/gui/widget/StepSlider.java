@@ -101,7 +101,6 @@ public class StepSlider extends Widget<StepSlider>
      *
      * @param getter supplier of the current value, read every frame
      * @param setter receives the value of every step the player selects
-     * @return this slider
      */
     public StepSlider value(DoubleSupplier getter, DoubleConsumer setter) {
         this.getter = getter;
@@ -113,7 +112,6 @@ public class StepSlider extends Widget<StepSlider>
      * Sets the MUI2 value the slider reads and writes; an integer value receives rounded numbers.
      *
      * @param value value holder, possibly a synced one
-     * @return this slider
      */
     public StepSlider value(IDoubleValue<?> value) {
         if (value instanceof IIntValue<?>integer)
@@ -127,7 +125,6 @@ public class StepSlider extends Widget<StepSlider>
      * @param min   value of the first step
      * @param max   value of the last step, greater than {@code min}
      * @param steps number of steps between them, at least one
-     * @return this slider
      * @throws IllegalArgumentException if {@code max} is not greater than {@code min} or {@code steps} is below one
      */
     public StepSlider range(double min, double max, int steps) {
@@ -142,7 +139,6 @@ public class StepSlider extends Widget<StepSlider>
      * Sets how often a step is a milestone, which is drawn in the milestone tick color and is what Shift snaps to.
      *
      * @param every steps between milestones; zero for none
-     * @return this slider
      */
     public StepSlider milestones(int every) {
         this.milestoneEvery = Math.max(0, every);
@@ -154,7 +150,6 @@ public class StepSlider extends Widget<StepSlider>
      * digits, capital letters, the space and a few signs only.
      *
      * @param format turns a value into the tag text
-     * @return this slider
      */
     public StepSlider format(DoubleFunction<String> format) {
         this.format = format;
@@ -171,13 +166,7 @@ public class StepSlider extends Widget<StepSlider>
         return wheelStep;
     }
 
-    /**
-     * Same as {@link #available(BooleanSupplier)}.
-     *
-     * @param active supplier read every frame and on every input
-     * @return this slider
-     * @deprecated use {@link #available(BooleanSupplier)}, the name every GTNLLib widget uses
-     */
+    /** @deprecated use {@link #available(BooleanSupplier)}, the name every GTNLLib widget uses */
     @Deprecated
     public StepSlider activeWhen(BooleanSupplier active) {
         return available(active);
@@ -188,7 +177,6 @@ public class StepSlider extends Widget<StepSlider>
      * final value to the server.
      *
      * @param onRelease action to run
-     * @return this slider
      */
     public StepSlider onRelease(Runnable onRelease) {
         this.onRelease = onRelease;
@@ -199,7 +187,6 @@ public class StepSlider extends Widget<StepSlider>
      * Sets whether the slider runs bottom to top instead of left to right.
      *
      * @param vertical true for a vertical slider
-     * @return this slider
      */
     public StepSlider vertical(boolean vertical) {
         this.vertical = vertical;
@@ -213,7 +200,6 @@ public class StepSlider extends Widget<StepSlider>
      * @param fill       ARGB color of the filled part
      * @param cursor     ARGB color of the value tag
      * @param cursorText ARGB color of the text on the value tag
-     * @return this slider
      */
     public StepSlider colors(int track, int fill, int cursor, int cursorText) {
         this.colors = new int[] { track, fill, cursor, cursorText };
@@ -224,7 +210,6 @@ public class StepSlider extends Widget<StepSlider>
      * Sets a fixed width for the value tag, so it does not change size with its text.
      *
      * @param width tag width in pixels; zero fits the tag to its text
-     * @return this slider
      */
     public StepSlider tagWidth(int width) {
         this.tagWidth = Math.max(0, width);
@@ -236,7 +221,6 @@ public class StepSlider extends Widget<StepSlider>
      *
      * @param tick      ARGB color of ordinary ticks
      * @param milestone ARGB color of milestone ticks
-     * @return this slider
      */
     public StepSlider tickColors(int tick, int milestone) {
         this.tickColors = new int[] { tick, milestone };
@@ -540,7 +524,6 @@ public class StepSlider extends Widget<StepSlider>
     /**
      * Measures a text in the small built-in font of the value tag.
      *
-     * @param text text to measure
      * @return width in pixels
      */
     public static int compactWidth(String text) {

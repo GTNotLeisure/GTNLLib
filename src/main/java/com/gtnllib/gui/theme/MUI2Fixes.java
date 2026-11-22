@@ -87,7 +87,6 @@ public class MUI2Fixes {
      * Keeps a menu's contents inside its panel's border: under an AE2 skin, whose panel border has a shadow below, two
      * pixels at the top and sides and four at the bottom; {@link #MENU_EDGE} otherwise.
      *
-     * @param menu menu to pad
      * @param look look the menu is drawn in
      */
     public static void menuPadding(Menu<?> menu, AE2Look look) {
@@ -99,7 +98,6 @@ public class MUI2Fixes {
     /**
      * Draws a slider's handle as an AE2 button of a skin instead of MUI2's own handle.
      *
-     * @param slider  slider to change
      * @param variant AE2 skin
      */
     public static void sliderHandle(SliderWidget slider, AE2Variant variant) {

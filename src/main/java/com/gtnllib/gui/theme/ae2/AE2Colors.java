@@ -61,7 +61,6 @@ public record AE2Colors(int text, int muted, int secondary, int buttonText, int 
 
         /**
          * @param text primary text color
-         * @return this builder
          */
         public Builder text(int text) {
             this.text = text;
@@ -70,7 +69,6 @@ public record AE2Colors(int text, int muted, int secondary, int buttonText, int 
 
         /**
          * @param muted muted text color
-         * @return this builder
          */
         public Builder muted(int muted) {
             this.muted = muted;
@@ -79,7 +77,6 @@ public record AE2Colors(int text, int muted, int secondary, int buttonText, int 
 
         /**
          * @param secondary secondary text color
-         * @return this builder
          */
         public Builder secondary(int secondary) {
             this.secondary = secondary;
@@ -88,7 +85,6 @@ public record AE2Colors(int text, int muted, int secondary, int buttonText, int 
 
         /**
          * @param buttonText normal button text color
-         * @return this builder
          */
         public Builder buttonText(int buttonText) {
             this.buttonText = buttonText;
@@ -97,7 +93,6 @@ public record AE2Colors(int text, int muted, int secondary, int buttonText, int 
 
         /**
          * @param hoverText highlighted button text color
-         * @return this builder
          */
         public Builder hoverText(int hoverText) {
             this.hoverText = hoverText;
@@ -106,7 +101,6 @@ public record AE2Colors(int text, int muted, int secondary, int buttonText, int 
 
         /**
          * @param disabledText disabled button text color
-         * @return this builder
          */
         public Builder disabledText(int disabledText) {
             this.disabledText = disabledText;
@@ -115,7 +109,6 @@ public record AE2Colors(int text, int muted, int secondary, int buttonText, int 
 
         /**
          * @param fieldText text-field content color
-         * @return this builder
          */
         public Builder fieldText(int fieldText) {
             this.fieldText = fieldText;
@@ -124,7 +117,6 @@ public record AE2Colors(int text, int muted, int secondary, int buttonText, int 
 
         /**
          * @param placeholder text-field hint color
-         * @return this builder
          */
         public Builder placeholder(int placeholder) {
             this.placeholder = placeholder;
@@ -133,7 +125,6 @@ public record AE2Colors(int text, int muted, int secondary, int buttonText, int 
 
         /**
          * @param line separator and grid-line color
-         * @return this builder
          */
         public Builder line(int line) {
             this.line = line;
@@ -142,7 +133,6 @@ public record AE2Colors(int text, int muted, int secondary, int buttonText, int 
 
         /**
          * @param edge panel edge color
-         * @return this builder
          */
         public Builder edge(int edge) {
             this.edge = edge;
@@ -151,7 +141,6 @@ public record AE2Colors(int text, int muted, int secondary, int buttonText, int 
 
         /**
          * @param panel panel fill color
-         * @return this builder
          */
         public Builder panel(int panel) {
             this.panel = panel;
@@ -160,7 +149,6 @@ public record AE2Colors(int text, int muted, int secondary, int buttonText, int 
 
         /**
          * @param well inset fill color
-         * @return this builder
          */
         public Builder well(int well) {
             this.well = well;
@@ -169,7 +157,6 @@ public record AE2Colors(int text, int muted, int secondary, int buttonText, int 
 
         /**
          * @param outline outline color
-         * @return this builder
          */
         public Builder outline(int outline) {
             this.outline = outline;
@@ -178,7 +165,6 @@ public record AE2Colors(int text, int muted, int secondary, int buttonText, int 
 
         /**
          * @param raised raised surface color
-         * @return this builder
          */
         public Builder raised(int raised) {
             this.raised = raised;
@@ -187,7 +173,6 @@ public record AE2Colors(int text, int muted, int secondary, int buttonText, int 
 
         /**
          * @param good positive status color
-         * @return this builder
          */
         public Builder good(int good) {
             this.good = good;
@@ -196,7 +181,6 @@ public record AE2Colors(int text, int muted, int secondary, int buttonText, int 
 
         /**
          * @param bad negative status color
-         * @return this builder
          */
         public Builder bad(int bad) {
             this.bad = bad;
@@ -205,7 +189,6 @@ public record AE2Colors(int text, int muted, int secondary, int buttonText, int 
 
         /**
          * @param info informational status color
-         * @return this builder
          */
         public Builder info(int info) {
             this.info = info;
@@ -214,7 +197,6 @@ public record AE2Colors(int text, int muted, int secondary, int buttonText, int 
 
         /**
          * @param warning warning status color
-         * @return this builder
          */
         public Builder warning(int warning) {
             this.warning = warning;
@@ -223,7 +205,6 @@ public record AE2Colors(int text, int muted, int secondary, int buttonText, int 
 
         /**
          * @param error input validation error color
-         * @return this builder
          */
         public Builder error(int error) {
             this.error = error;

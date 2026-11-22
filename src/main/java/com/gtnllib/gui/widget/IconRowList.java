@@ -312,8 +312,6 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
 
     /**
      * Scrolls, once the list has been laid out, so that the first selected row sits in the middle of the view.
-     *
-     * @return this list
      */
     public IconRowList revealSelected() {
         revealSelected = true;
@@ -325,7 +323,6 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
      * stay centred in the row. Make the list's inner height a multiple of it, or a strip stays empty at the bottom.
      *
      * @param rowHeight row height in pixels, at least 16 so a 16-pixel item icon fits
-     * @return this list
      */
     public IconRowList rowHeight(int rowHeight) {
         this.rowHeight = Math.max(MIN_ROW, rowHeight);
@@ -337,7 +334,6 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
      * Sets the width of the number fields of number rows; the standard is {@link #NUMBER_WIDTH}.
      *
      * @param numberWidth field width in pixels, at least 32 so the arrows and a few digits fit
-     * @return this list
      */
     public IconRowList numberWidth(int numberWidth) {
         this.numberWidth = Math.max(MIN_NUMBER_WIDTH, numberWidth);
@@ -350,7 +346,6 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
      * {@link NumberEntryWidget#wheel(boolean)} does. Off by default, so the wheel scrolls the list there too.
      *
      * @param numberWheel true to let the wheel step number fields
-     * @return this list
      */
     public IconRowList numberWheel(boolean numberWheel) {
         this.numberWheel = numberWheel;

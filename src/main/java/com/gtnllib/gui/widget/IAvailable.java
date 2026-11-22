@@ -23,7 +23,6 @@ public interface IAvailable<W extends IAvailable<W>> {
      * Sets when the widget can be used; it looks disabled otherwise.
      *
      * @param available supplier read every frame and on every input
-     * @return this widget
      */
     @SuppressWarnings("unchecked")
     default W available(BooleanSupplier available) {

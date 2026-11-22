@@ -21,7 +21,6 @@ public interface IWheelStep<W extends IWheelStep<W>> {
      * around it, such as a scrolling list.
      *
      * @param wheel true to let the wheel change the value
-     * @return this widget
      */
     @SuppressWarnings("unchecked")
     default W wheel(boolean wheel) {

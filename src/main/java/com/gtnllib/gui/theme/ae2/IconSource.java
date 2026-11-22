@@ -19,7 +19,6 @@ public interface IconSource {
     /**
      * Draws the icon at 16 by 16 pixels. Client only.
      *
-     * @param context drawing context
      * @param theme   widget theme the control is drawn with
      * @param look    look of the panel the control is in
      * @param x       left edge
@@ -33,7 +32,6 @@ public interface IconSource {
      * theme. A {@link UITexture} fades when the control is unavailable, like the built-in icons; other drawables are
      * drawn unchanged.
      *
-     * @param drawable drawable to show
      * @return the icon
      */
     static IconSource of(IDrawable drawable) {

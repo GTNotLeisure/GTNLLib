@@ -54,7 +54,6 @@ public class SettingToggleButton extends AbstractCycleButtonWidget<SettingToggle
      * Sets the value the button shows and changes.
      *
      * @param value an integer, enum or boolean value, or a synced one
-     * @return this button
      */
     @Override
     public SettingToggleButton value(IIntValue<?> value) {
@@ -65,7 +64,6 @@ public class SettingToggleButton extends AbstractCycleButtonWidget<SettingToggle
      * Sets how many values a plain integer value cycles through, from 0 to {@code count - 1}.
      *
      * @param count number of values, at least one
-     * @return this button
      */
     @Override
     public SettingToggleButton stateCount(int count) {
@@ -76,7 +74,6 @@ public class SettingToggleButton extends AbstractCycleButtonWidget<SettingToggle
      * Sets the first tooltip line of every value, such as the name of the setting.
      *
      * @param title setting name
-     * @return this button
      */
     public SettingToggleButton title(IKey title) {
         this.title = title;
@@ -89,7 +86,6 @@ public class SettingToggleButton extends AbstractCycleButtonWidget<SettingToggle
      * @param state       value index, from zero
      * @param icon        icon shown while the value is current
      * @param description tooltip lines below the title while the value is current
-     * @return this button
      */
     public SettingToggleButton state(int state, IconSource icon, IKey... description) {
         if (state >= icons.length) icons = Arrays.copyOf(icons, state + 1);
@@ -107,7 +103,6 @@ public class SettingToggleButton extends AbstractCycleButtonWidget<SettingToggle
      * @param icon        icon shown while the value is current
      * @param description tooltip lines below the title while the value is current
      * @param <E>         enum type of the button's value
-     * @return this button
      */
     public <E extends Enum<E>> SettingToggleButton state(E state, IconSource icon, IKey... description) {
         return state(state.ordinal(), icon, description);
@@ -119,7 +114,6 @@ public class SettingToggleButton extends AbstractCycleButtonWidget<SettingToggle
      * @param state       {@code true} for on
      * @param icon        icon shown while the value is current
      * @param description tooltip lines below the title while the value is current
-     * @return this button
      */
     public SettingToggleButton state(boolean state, IconSource icon, IKey... description) {
         return state(state ? 1 : 0, icon, description);

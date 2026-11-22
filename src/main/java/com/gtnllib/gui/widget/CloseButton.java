@@ -57,7 +57,6 @@ public class CloseButton extends ButtonWidget<CloseButton> {
      * Sets what a left click does instead of closing the panel.
      *
      * @param action action to run
-     * @return this button
      */
     public CloseButton action(Runnable action) {
         this.action = action;
@@ -69,7 +68,6 @@ public class CloseButton extends ButtonWidget<CloseButton> {
      *
      * @param padding panel padding in pixels
      * @param style   layout theme giving the small spacing
-     * @return this button
      */
     public CloseButton corner(int padding, LayoutTheme style) {
         int inset = inset(padding, style);

@@ -52,7 +52,6 @@ public class SlideSwitch extends ButtonWidget<SlideSwitch> implements IAvailable
      * Sets the value the switch shows.
      *
      * @param on supplier of the on state, read every frame
-     * @return this switch
      */
     public SlideSwitch value(BooleanSupplier on) {
         this.on = on;
@@ -64,7 +63,6 @@ public class SlideSwitch extends ButtonWidget<SlideSwitch> implements IAvailable
      * is switched on but not running. It does not change whether the switch can be used.
      *
      * @param glow supplier read every frame
-     * @return this switch
      */
     public SlideSwitch glowWhen(BooleanSupplier glow) {
         this.glow = glow;
@@ -72,10 +70,6 @@ public class SlideSwitch extends ButtonWidget<SlideSwitch> implements IAvailable
     }
 
     /**
-     * Same as {@link #glowWhen(BooleanSupplier)}.
-     *
-     * @param glow supplier read every frame
-     * @return this switch
      * @deprecated use {@link #glowWhen(BooleanSupplier)}; this name reads like "can be used", which
      *             {@link #available(BooleanSupplier)} sets
      */
@@ -89,13 +83,7 @@ public class SlideSwitch extends ButtonWidget<SlideSwitch> implements IAvailable
         return availability;
     }
 
-    /**
-     * Same as {@link #available(BooleanSupplier)}.
-     *
-     * @param available supplier read every frame and on every click
-     * @return this switch
-     * @deprecated use {@link #available(BooleanSupplier)}, the name every GTNLLib widget uses
-     */
+    /** @deprecated use {@link #available(BooleanSupplier)}, the name every GTNLLib widget uses */
     @Deprecated
     public SlideSwitch availableWhen(BooleanSupplier available) {
         return available(available);
@@ -110,7 +98,6 @@ public class SlideSwitch extends ButtonWidget<SlideSwitch> implements IAvailable
      * Sets the label drawn right of the switch.
      *
      * @param label label text, read every frame
-     * @return this switch
      */
     public SlideSwitch label(IKey label) {
         this.label = label;

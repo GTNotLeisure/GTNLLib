@@ -54,24 +54,13 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
         this(null, small);
     }
 
-    /**
-     * Creates scroll data with a large handle that starts with a given AE2 skin.
-     *
-     * @param variant skin used until the list hands over its panel's look, or {@code null} for the plain look
-     * @deprecated use {@link #HandleScrollData()}; the handle follows the panel's theme
-     */
+    /** @deprecated use {@link #HandleScrollData()}; the handle follows the panel's theme */
     @Deprecated
     public HandleScrollData(@Nullable AE2Variant variant) {
         this(variant, false);
     }
 
-    /**
-     * Creates scroll data with the requested handle style that starts with a given AE2 skin.
-     *
-     * @param variant skin used until the list hands over its panel's look, or {@code null} for the plain look
-     * @param small   whether to use the 7-pixel-wide AE2 handle instead of the 12-pixel-wide one
-     * @deprecated use {@link #HandleScrollData(boolean)}; the handle follows the panel's theme
-     */
+    /** @deprecated use {@link #HandleScrollData(boolean)}; the handle follows the panel's theme */
     @Deprecated
     public HandleScrollData(@Nullable AE2Variant variant, boolean small) {
         super(

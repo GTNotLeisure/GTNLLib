@@ -164,7 +164,6 @@ public class WheelStyle {
          * Applies an AE2 skin's disc, line, text and highlight colors, without a text shadow.
          *
          * @param variant AE2 skin to take the colors from
-         * @return this builder
          */
         public Builder skin(AE2Variant variant) {
             return discColor(AE2_DISC_ALPHA | variant.colors.panel() & 0xFFFFFF).lineColor(variant.colors.line())

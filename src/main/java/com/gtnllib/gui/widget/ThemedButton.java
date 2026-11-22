@@ -30,7 +30,6 @@ public class ThemedButton<W extends ThemedButton<W>> extends ButtonWidget<W> imp
      * Sets when the button shows the theme's selected look, such as the button of the current choice.
      *
      * @param selected supplier read every frame
-     * @return this button
      */
     public W selected(BooleanSupplier selected) {
         this.selected = selected;
@@ -42,7 +41,6 @@ public class ThemedButton<W extends ThemedButton<W>> extends ButtonWidget<W> imp
      * afterwards replaces it.
      *
      * @param action run on a left click
-     * @return this button
      */
     public W action(Runnable action) {
         return onMousePressed(button -> {

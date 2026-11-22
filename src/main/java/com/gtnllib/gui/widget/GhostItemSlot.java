@@ -71,7 +71,6 @@ public class GhostItemSlot extends Widget<GhostItemSlot>
      * {@code onClear}, or reads {@link #item()} when it saves.
      *
      * @param clearable whether a right-click empties the slot
-     * @return this slot
      */
     public GhostItemSlot clearable(boolean clearable) {
         this.clearable = clearable;
@@ -82,7 +81,6 @@ public class GhostItemSlot extends Widget<GhostItemSlot>
      * Sets what runs after a right-click emptied the slot.
      *
      * @param onClear action run once per emptying
-     * @return this slot
      */
     public GhostItemSlot onClear(Runnable onClear) {
         this.onClear = onClear;

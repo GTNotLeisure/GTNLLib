@@ -33,7 +33,6 @@ public class ProgressBar extends ProgressWidget {
      * Sets the direction the bar fills in.
      *
      * @param direction {@code UP}, {@code DOWN}, {@code LEFT} or {@code RIGHT}
-     * @return this bar
      * @throws IllegalArgumentException for {@code CIRCULAR_CW}, which needs a texture split into quarters
      */
     @Override

@@ -149,7 +149,6 @@ public class NumberEntryWidget extends ParentWidget<NumberEntryWidget>
      * Sets the value chosen by right-clicking the text field. It is clamped to the bounds when applied.
      *
      * @param reset value to apply; the default is zero
-     * @return this widget
      */
     public NumberEntryWidget resetValue(long reset) {
         this.reset = reset;
@@ -202,7 +201,6 @@ public class NumberEntryWidget extends ParentWidget<NumberEntryWidget>
      *
      * @param min minimum accepted value
      * @param max maximum accepted value; values below {@code min} are replaced with {@code min}
-     * @return this widget
      */
     public NumberEntryWidget bounds(long min, long max) {
         this.min = min;
@@ -215,7 +213,6 @@ public class NumberEntryWidget extends ParentWidget<NumberEntryWidget>
      * Replaces the text with a decimal integer and revalidates it without notifying the listener.
      *
      * @param value value to display; values outside the bounds remain visible as invalid input
-     * @return this widget
      */
     public NumberEntryWidget value(long value) {
         setText(Long.toString(value));
@@ -231,7 +228,6 @@ public class NumberEntryWidget extends ParentWidget<NumberEntryWidget>
      * calls to {@link #value(long)} and {@link #bounds(long, long)} do not invoke it.
      *
      * @param listener non-null callback receiving the accepted value on the client thread
-     * @return this widget
      */
     public NumberEntryWidget onChange(LongConsumer listener) {
         this.listener = listener;
@@ -244,7 +240,6 @@ public class NumberEntryWidget extends ParentWidget<NumberEntryWidget>
      * {@link #onChange(LongConsumer)}.
      *
      * @param source supplier of the current value, read on the client thread every update
-     * @return this widget
      */
     public NumberEntryWidget follow(LongSupplier source) {
         value(source.getAsLong());
@@ -265,7 +260,6 @@ public class NumberEntryWidget extends ParentWidget<NumberEntryWidget>
      * the client only, so the server's setter should clamp the value again.
      *
      * @param value value to show and to write
-     * @return this widget
      */
     public NumberEntryWidget value(ILongValue<?> value) {
         onChange(value::setLongValue);
@@ -276,7 +270,6 @@ public class NumberEntryWidget extends ParentWidget<NumberEntryWidget>
      * Sets where the text sits inside the field, such as {@link Alignment#Center} for a centred number.
      *
      * @param alignment placement of the text inside the field; MUI2's default is {@link Alignment#CenterLeft}
-     * @return this widget
      */
     public NumberEntryWidget textAlignment(Alignment alignment) {
         field.setTextAlignment(alignment);

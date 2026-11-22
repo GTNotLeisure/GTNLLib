@@ -82,7 +82,6 @@ public class ListRow extends ParentWidget<ListRow> implements Interactable, IAva
      * @param control control widget; its size is set here
      * @param width   control width in pixels
      * @param height  control height in pixels, at most the row's height
-     * @return this row
      */
     public ListRow control(Widget<?> control, int width, int height) {
         this.control = control;
@@ -100,7 +99,6 @@ public class ListRow extends ParentWidget<ListRow> implements Interactable, IAva
      *
      * @param on   supplier of the checked state, read every frame
      * @param flip run on a left click
-     * @return this row
      */
     public ListRow checkbox(BooleanSupplier on, Runnable flip) {
         checked = on;
@@ -115,7 +113,6 @@ public class ListRow extends ParentWidget<ListRow> implements Interactable, IAva
      * Makes the row clickable; it then highlights under the mouse.
      *
      * @param click receives the pressed mouse button (0 left, 1 right) and returns whether it handled it
-     * @return this row
      */
     public ListRow onClick(IntPredicate click) {
         this.click = click;

@@ -69,7 +69,6 @@ public class VerticalButtonBar extends ParentWidget<VerticalButtonBar> implement
      * @param icon    supplier of the icon, read every frame so a toggle can show its state
      * @param tooltip supplier of the tooltip line, read every frame
      * @param action  run on a left click
-     * @return this bar
      */
     public VerticalButtonBar button(Supplier<? extends IconSource> icon, Supplier<String> tooltip, Runnable action) {
         return button(icon, lines -> lines.addLine(tooltip.get()), mouse -> {
@@ -85,7 +84,6 @@ public class VerticalButtonBar extends ParentWidget<VerticalButtonBar> implement
      * @param icon    supplier of the icon, read every frame
      * @param tooltip fills the tooltip, again every frame
      * @param click   receives the pressed mouse button (0 left, 1 right) and returns whether it handled it
-     * @return this bar
      */
     public VerticalButtonBar button(Supplier<? extends IconSource> icon, Consumer<RichTooltip> tooltip,
         IntPredicate click) {
@@ -99,7 +97,6 @@ public class VerticalButtonBar extends ParentWidget<VerticalButtonBar> implement
      * @param tooltip supplier of the tooltip line, read every frame
      * @param on      supplier of the on state, read every frame
      * @param flip    run on a left click
-     * @return this bar
      */
     public VerticalButtonBar toggle(Supplier<? extends IconSource> icon, Supplier<String> tooltip, BooleanSupplier on,
         Runnable flip) {
@@ -115,7 +112,6 @@ public class VerticalButtonBar extends ParentWidget<VerticalButtonBar> implement
      * clicks. Use it for a {@link SettingToggleButton} or a button you built yourself.
      *
      * @param widget widget to add, not added anywhere else
-     * @return this bar
      */
     public VerticalButtonBar add(Widget<?> widget) {
         last = widget;
@@ -130,7 +126,6 @@ public class VerticalButtonBar extends ParentWidget<VerticalButtonBar> implement
      * clicks.
      *
      * @param available supplier read every frame and on every click
-     * @return this bar
      * @throws IllegalStateException if no button was added yet, or the widget added last has no available state of its
      *                               own ({@link IAvailable})
      */
@@ -149,7 +144,6 @@ public class VerticalButtonBar extends ParentWidget<VerticalButtonBar> implement
      *
      * @param width  button width in pixels, at least AE2's 18
      * @param height button height in pixels, at least AE2's 20
-     * @return this bar
      */
     public VerticalButtonBar buttonSize(int width, int height) {
         buttonWidth = Math.max(AE2Theme.ICON_BUTTON_WIDTH, width);

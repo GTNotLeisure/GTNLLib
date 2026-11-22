@@ -105,8 +105,6 @@ public class AE2Theme {
         PROGRESS_WIDTH = 6, PROGRESS_HEIGHT = 18, BUTTON_BAR_MARGIN = 2, BUTTON_BAR_SPACING = 6, UPGRADE_PADDING = 5,
         UPGRADE_SLOTS_PER_COLUMN = 8, VALIDATION_ICON_SIZE = 8, PANEL_EDGE = 2, PANEL_BOTTOM_EDGE = 4;
     /**
-     * Size and label offsets of AE2's check box under their older names.
-     *
      * @deprecated use {@link #CHECKBOX_WIDTH}, {@link #CHECKBOX_HEIGHT}, {@link #CHECKBOX_LABEL_X} and
      *             {@link #CHECKBOX_LABEL_Y}; the on/off box is called a check box everywhere, after AE2's
      *             {@code AECheckbox}
@@ -114,18 +112,10 @@ public class AE2Theme {
     @Deprecated
     public static final int SWITCH_WIDTH = CHECKBOX_WIDTH, SWITCH_HEIGHT = CHECKBOX_HEIGHT,
         SWITCH_LABEL_X = CHECKBOX_LABEL_X, SWITCH_LABEL_Y = CHECKBOX_LABEL_Y;
-    /**
-     * Width of the small scroll-bar handle.
-     *
-     * @deprecated use {@link #SMALL_SCROLLER_WIDTH}; this name reads like the width of a whole scroll bar
-     */
+    /** @deprecated use {@link #SMALL_SCROLLER_WIDTH}; this name reads like the width of a whole scroll bar */
     @Deprecated
     public static final int SCROLLBAR_WIDTH = SMALL_SCROLLER_WIDTH;
-    /**
-     * Upgrade slots in a full column.
-     *
-     * @deprecated use {@link #UPGRADE_SLOTS_PER_COLUMN}; the slots run down a column, not across a row
-     */
+    /** @deprecated use {@link #UPGRADE_SLOTS_PER_COLUMN}; the slots run down a column, not across a row */
     @Deprecated
     public static final int UPGRADE_ROWS = UPGRADE_SLOTS_PER_COLUMN;
     /**
@@ -236,7 +226,6 @@ public class AE2Theme {
      * Resolves the variant currently used by a modular GUI context, as {@link AE2Look#of(GuiContext)} does. A panel can
      * use a theme other than its screen's; {@link AE2Look#of(IWidget)} resolves the panel's.
      *
-     * @param context current drawing context
      * @return the active variant, or {@code null} for another theme or a non-modular context
      */
     public static @Nullable AE2Variant active(GuiContext context) {
@@ -257,15 +246,7 @@ public class AE2Theme {
         for (String menu : menus) MUI2Fixes.registerMenuTheme(owner, screen, menu, look);
     }
 
-    /**
-     * Applies an AE2 handle texture to sliders in a widget tree.
-     * <p>
-     * Only children already present in the tree are visited. A theme that is not an AE2 skin leaves handles unchanged.
-     *
-     * @param root    root widget to visit, including its descendants
-     * @param themeId panel or menu theme identifier, possibly {@code null}
-     * @deprecated use {@link #polish(ModularScreen)}, which also gives sliders AE2's handle
-     */
+    /** @deprecated use {@link #polish(ModularScreen)}, which also gives sliders AE2's handle */
     @Deprecated
     public static void sliderHandles(IWidget root, @Nullable String themeId) {
         AE2Variant variant = AE2Look.ofTheme(themeId)
@@ -357,54 +338,26 @@ public class AE2Theme {
         return menu;
     }
 
-    /**
-     * Same as {@link AE2Legacy#legacyStates}.
-     *
-     * @param variant recolored variant, or {@code null} for the resource supplied by AE2
-     * @return state sheet resource location
-     * @deprecated use {@link AE2Legacy#legacyStates}
-     */
+    /** @deprecated use {@link AE2Legacy#legacyStates} */
     @Deprecated
     public static ResourceLocation legacyStates(@Nullable AE2Variant variant) {
         return AE2Legacy.legacyStates(AE2Look.of(variant));
     }
 
-    /**
-     * Same as {@link AE2Legacy#legacyTerminal}.
-     *
-     * @param variant recolored variant, or {@code null} for the resource supplied by AE2
-     * @return terminal sheet resource location
-     * @deprecated use {@link AE2Legacy#legacyTerminal}
-     */
+    /** @deprecated use {@link AE2Legacy#legacyTerminal} */
     @Deprecated
     public static ResourceLocation legacyTerminal(@Nullable AE2Variant variant) {
         return AE2Legacy.legacyTerminal(AE2Look.of(variant));
     }
 
-    /**
-     * Same as {@link AE2Look#scrollbarWidth}.
-     *
-     * @param variant AE2 variant, or {@code null} for the vanilla creative-inventory style
-     * @return 12 pixels for AE2 or 14 pixels for vanilla
-     * @deprecated use {@link AE2Look#scrollbarWidth} of the panel's look
-     */
+    /** @deprecated use {@link AE2Look#scrollbarWidth} of the panel's look */
     @Deprecated
     public static int scrollbarWidth(@Nullable AE2Variant variant) {
         return AE2Look.of(variant)
             .scrollbarWidth();
     }
 
-    /**
-     * Same as {@link AE2Look#drawScrollbar}.
-     *
-     * @param variant AE2 variant, or {@code null} for the vanilla creative-inventory style
-     * @param x       left edge of the track
-     * @param y       top edge of the track, including its one-pixel border
-     * @param height  total track height, at least {@code SCROLLER_HEIGHT + 2}
-     * @param handleY handle offset from the inner track top, from zero to {@code height - SCROLLER_HEIGHT - 2}
-     * @param enabled whether to draw the enabled handle
-     * @deprecated use {@link AE2Look#drawScrollbar} of the panel's look
-     */
+    /** @deprecated use {@link AE2Look#drawScrollbar} of the panel's look */
     @Deprecated
     public static void drawScrollbar(@Nullable AE2Variant variant, int x, int y, int height, int handleY,
         boolean enabled) {
@@ -412,275 +365,123 @@ public class AE2Theme {
             .drawScrollbar(x, y, height, handleY, enabled);
     }
 
-    /**
-     * Same as {@link AE2ScrollbarPainter#drawSmallScrollbar}.
-     *
-     * @param variant non-null AE2 variant
-     * @param x       left edge of the handle; the groove starts one pixel to its right
-     * @param y       top edge of the groove, including its one-pixel border
-     * @param height  total groove height, at least {@code SCROLLER_HEIGHT + 2}
-     * @param handleY handle offset from the inner groove top, from zero to {@code height - SCROLLER_HEIGHT - 2}
-     * @param enabled whether to draw the enabled handle
-     * @deprecated use {@link AE2ScrollbarPainter#drawSmallScrollbar}
-     */
+    /** @deprecated use {@link AE2ScrollbarPainter#drawSmallScrollbar} */
     @Deprecated
     public static void drawSmallScrollbar(AE2Variant variant, int x, int y, int height, int handleY, boolean enabled) {
         AE2ScrollbarPainter.drawSmallScrollbar(variant, x, y, height, handleY, enabled);
     }
 
-    /**
-     * Same as {@link AE2PanelPainter#drawButtonBar}.
-     *
-     * @param variant non-null AE2 variant
-     * @param x       left edge of the background
-     * @param y       top edge of the background
-     * @param width   background width, including button margins
-     * @param height  background height, including button margins and spacing
-     * @deprecated use {@link AE2PanelPainter#drawButtonBar}
-     */
+    /** @deprecated use {@link AE2PanelPainter#drawButtonBar} */
     @Deprecated
     public static void drawButtonBar(AE2Variant variant, int x, int y, int width, int height) {
         AE2PanelPainter.drawButtonBar(variant, x, y, width, height);
     }
 
-    /**
-     * Same as {@link AE2UpgradePainter#upgradePanelWidth}.
-     *
-     * @param slots nonnegative slot count; zero still reserves one column
-     * @return panel width in pixels, 23 for one column
-     * @deprecated use {@link AE2UpgradePainter#upgradePanelWidth}
-     */
+    /** @deprecated use {@link AE2UpgradePainter#upgradePanelWidth} */
     @Deprecated
     public static int upgradePanelWidth(int slots) {
         return AE2UpgradePainter.upgradePanelWidth(slots);
     }
 
-    /**
-     * Same as {@link AE2UpgradePainter#upgradePanelHeight}.
-     *
-     * @param slots nonnegative slot count; zero still reserves one row
-     * @return panel height in pixels
-     * @deprecated use {@link AE2UpgradePainter#upgradePanelHeight}
-     */
+    /** @deprecated use {@link AE2UpgradePainter#upgradePanelHeight} */
     @Deprecated
     public static int upgradePanelHeight(int slots) {
         return AE2UpgradePainter.upgradePanelHeight(slots);
     }
 
-    /**
-     * Same as {@link AE2UpgradePainter#drawUpgradePanel}.
-     *
-     * @param variant non-null AE2 variant
-     * @param x       panel left edge
-     * @param y       panel top edge
-     * @param slots   nonnegative number of slots to draw
-     * @deprecated use {@link AE2UpgradePainter#drawUpgradePanel}
-     */
+    /** @deprecated use {@link AE2UpgradePainter#drawUpgradePanel} */
     @Deprecated
     public static void drawUpgradePanel(AE2Variant variant, int x, int y, int slots) {
         AE2UpgradePainter.drawUpgradePanel(variant, x, y, slots);
     }
 
-    /**
-     * Same as {@link AE2PanelPainter#tableSize}.
-     *
-     * @param cells    positive number of cells along the axis
-     * @param cellSize positive inner size of each cell in pixels
-     * @return total dimension in pixels
-     * @deprecated use {@link AE2PanelPainter#tableSize}
-     */
+    /** @deprecated use {@link AE2PanelPainter#tableSize} */
     @Deprecated
     public static int tableSize(int cells, int cellSize) {
         return AE2PanelPainter.tableSize(cells, cellSize);
     }
 
-    /**
-     * Same as {@link AE2PanelPainter#drawTable}.
-     *
-     * @param variant    non-null AE2 variant
-     * @param x          table left edge
-     * @param y          table top edge
-     * @param columns    positive column count
-     * @param rows       positive row count
-     * @param cellWidth  positive inner cell width
-     * @param cellHeight positive inner cell height
-     * @deprecated use {@link AE2PanelPainter#drawTable}
-     */
+    /** @deprecated use {@link AE2PanelPainter#drawTable} */
     @Deprecated
     public static void drawTable(AE2Variant variant, int x, int y, int columns, int rows, int cellWidth,
         int cellHeight) {
         AE2PanelPainter.drawTable(variant, x, y, columns, rows, cellWidth, cellHeight);
     }
 
-    /**
-     * Creates a selectable list-row background in the look of the whole screen.
-     *
-     * @param selected selection supplier; a hover supplier can be used for hover highlighting
-     * @return the row background drawable
-     * @deprecated use {@link AE2PanelPainter#listRow}, which follows the theme of the row's own panel
-     */
+    /** @deprecated use {@link AE2PanelPainter#listRow}, which follows the theme of the row's own panel */
     @Deprecated
     public static IDrawable listRow(BooleanSupplier selected) {
         return (context, x, y, width, height, theme) -> AE2PanelPainter
             .drawListRow(AE2Look.of(context), selected.getAsBoolean(), x, y, width, height);
     }
 
-    /**
-     * Same as {@link AE2CheckboxPainter#radio}.
-     *
-     * @param widget    widget supplying hover state
-     * @param selected  supplier of the selected state
-     * @param label     supplier of non-null display text
-     * @param available supplier of the visual enabled state
-     * @return the indicator and label drawable
-     * @deprecated use {@link AE2CheckboxPainter#radio}
-     */
+    /** @deprecated use {@link AE2CheckboxPainter#radio} */
     @Deprecated
     public static IDrawable radio(Widget<?> widget, BooleanSupplier selected, Supplier<String> label,
         BooleanSupplier available) {
         return AE2CheckboxPainter.radio(widget, selected, label, available);
     }
 
-    /**
-     * Same as {@link AE2CheckboxPainter#radioWidth}.
-     *
-     * @param label display text
-     * @return required width in pixels
-     * @deprecated use {@link AE2CheckboxPainter#radioWidth}
-     */
+    /** @deprecated use {@link AE2CheckboxPainter#radioWidth} */
     @Deprecated
     public static int radioWidth(String label) {
         return AE2CheckboxPainter.radioWidth(label);
     }
 
-    /**
-     * Same as {@link AE2Legacy#drawLegacyState}.
-     *
-     * @param variant recolored variant, or {@code null} for the sheet supplied by AE2
-     * @param index   zero-based cell index, from zero through 255
-     * @param x       destination left edge
-     * @param y       destination top edge
-     * @param size    destination width and height in pixels
-     * @deprecated use {@link AE2Legacy#drawLegacyState}
-     */
+    /** @deprecated use {@link AE2Legacy#drawLegacyState} */
     @Deprecated
     public static void drawLegacyState(@Nullable AE2Variant variant, int index, float x, float y, float size) {
         AE2Legacy.drawLegacyState(AE2Look.of(variant), index, x, y, size);
     }
 
-    /**
-     * Same as {@link AE2ButtonPainter#button}.
-     *
-     * @param widget    widget supplying hover state
-     * @param available supplier of the visual enabled state; input handling remains the caller's responsibility
-     * @param selected  supplier of the selected state, which uses the highlighted background
-     * @return background drawable suitable for both normal and hover backgrounds
-     * @deprecated use {@link AE2ButtonPainter#button}
-     */
+    /** @deprecated use {@link AE2ButtonPainter#button} */
     @Deprecated
     public static IDrawable button(Widget<?> widget, BooleanSupplier available, BooleanSupplier selected) {
         return AE2ButtonPainter.button(widget, available, selected);
     }
 
-    /**
-     * Resolves the text style for a button in the look of the whole screen.
-     *
-     * @param context current drawing context
-     * @param state   visual button state
-     * @param height  button height in pixels
-     * @return text color, vertical offset and shadow setting
-     * @deprecated use {@link AE2Look#buttonText} of the look of the button's own panel
-     */
+    /** @deprecated use {@link AE2Look#buttonText} of the look of the button's own panel */
     @Deprecated
     public static ButtonText buttonText(GuiContext context, State state, int height) {
         return AE2Look.of(context)
             .buttonText(state, height);
     }
 
-    /**
-     * Same as {@link AE2ButtonPainter#label}.
-     *
-     * @param widget    widget supplying hover state
-     * @param text      supplier of non-null display text
-     * @param available supplier of the visual enabled state
-     * @param selected  supplier of the selected state
-     * @return label drawable suitable for a button overlay
-     * @deprecated use {@link AE2ButtonPainter#label}
-     */
+    /** @deprecated use {@link AE2ButtonPainter#label} */
     @Deprecated
     public static IDrawable label(Widget<?> widget, Supplier<String> text, BooleanSupplier available,
         BooleanSupplier selected) {
         return AE2ButtonPainter.label(widget, text, available, selected);
     }
 
-    /**
-     * Same as {@link AE2ButtonPainter#iconButton}.
-     *
-     * @param widget    widget supplying hover state
-     * @param icon      supplier of the displayed icon
-     * @param available supplier of the visual enabled state
-     * @return combined background and icon drawable; the standard size is 18 by 20 pixels
-     * @deprecated use {@link AE2ButtonPainter#iconButton}
-     */
+    /** @deprecated use {@link AE2ButtonPainter#iconButton} */
     @Deprecated
     public static IDrawable iconButton(Widget<?> widget, Supplier<? extends IconSource> icon,
         BooleanSupplier available) {
         return AE2ButtonPainter.iconButton(widget, icon, available);
     }
 
-    /**
-     * Same as {@link AE2ButtonPainter#tabButton}.
-     *
-     * @param widget    widget supplying hover state
-     * @param icon      supplier of the displayed icon
-     * @param available supplier of the visual enabled state
-     * @return combined tab background and icon drawable
-     * @deprecated use {@link AE2ButtonPainter#tabButton}
-     */
+    /** @deprecated use {@link AE2ButtonPainter#tabButton} */
     @Deprecated
     public static IDrawable tabButton(Widget<?> widget, Supplier<? extends IconSource> icon,
         BooleanSupplier available) {
         return AE2ButtonPainter.tabButton(widget, icon, available);
     }
 
-    /**
-     * Same as {@link AE2CheckboxPainter#checkbox}.
-     *
-     * @param widget    widget supplying hover state
-     * @param on        supplier of the switch value
-     * @param label     supplier of non-null display text
-     * @param available supplier of the visual enabled state
-     * @return combined switch and label drawable
-     * @deprecated use {@link AE2CheckboxPainter#checkbox}
-     */
+    /** @deprecated use {@link AE2CheckboxPainter#checkbox} */
     @Deprecated
     public static IDrawable toggleSwitch(Widget<?> widget, BooleanSupplier on, Supplier<String> label,
         BooleanSupplier available) {
         return AE2CheckboxPainter.checkbox(widget, on, label, available);
     }
 
-    /**
-     * Same as {@link AE2CheckboxPainter#checkboxWidth}.
-     *
-     * @param label display text
-     * @return required width in pixels
-     * @deprecated use {@link AE2CheckboxPainter#checkboxWidth}
-     */
+    /** @deprecated use {@link AE2CheckboxPainter#checkboxWidth} */
     @Deprecated
     public static int switchWidth(String label) {
         return AE2CheckboxPainter.checkboxWidth(label);
     }
 
-    /**
-     * Same as {@link AE2Draw#text}.
-     *
-     * @param text   display text
-     * @param x      text left edge
-     * @param y      text top edge
-     * @param color  ARGB text color
-     * @param shadow whether to draw a drop shadow
-     * @deprecated use {@link AE2Draw#text}
-     */
+    /** @deprecated use {@link AE2Draw#text} */
     @Deprecated
     public static void text(String text, int x, int y, int color, boolean shadow) {
         AE2Draw.text(text, x, y, color, shadow);
