@@ -16,7 +16,6 @@ import com.gtnllib.text.TextEffects;
 
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 
-/** Shared visible layout for drawing, wrapping, and trimming marked strings. */
 public class EffectTextLayout {
 
     public static Layout create(FontRenderer font, String text) {
@@ -79,7 +78,9 @@ public class EffectTextLayout {
         return cursor.continuation();
     }
 
-    /** Returns a source index rather than the length of re-encoded visible text. */
+    /**
+     * Returns a source index rather than the length of re-encoded visible text.
+     */
     public static int sizeToWidth(FontRenderer font, String text, int width) {
         Layout layout = EffectTextRenderer.INSTANCE.layout(font, text);
         float used = 0;

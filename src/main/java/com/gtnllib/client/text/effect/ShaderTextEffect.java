@@ -15,7 +15,6 @@ import com.gtnllib.client.text.TextRenderContext;
 
 import it.unimi.dsi.fastutil.ints.IntList;
 
-/** A shader and its default palette form an independently registerable effect. */
 public class ShaderTextEffect implements TextEffect {
 
     private static final int MAX_PALETTE_COLORS = 8;
@@ -118,10 +117,14 @@ public class ShaderTextEffect implements TextEffect {
         packedColors = overrides;
     }
 
-    /** Supplies effect-specific uniforms after the shared draw parameters have been bound. */
+    /**
+     * Supplies effect-specific uniforms after the shared draw parameters have been bound.
+     */
     protected void configureUniforms(TextShader shader, TextRenderContext context) {}
 
-    /** Binds effect-specific textures after uniforms and before the mask quad is drawn. */
+    /**
+     * Binds effect-specific textures after uniforms and before the mask quad is drawn.
+     */
     protected void configureTextures(TextShader shader, TextRenderContext context) {}
 
     @Override

@@ -33,28 +33,44 @@ public class TextEffects {
     public static final TextEffectStyle GHOST_ECHO = preset("ghost_echo");
     public static final TextEffectStyle PAPER_FOLD = preset("paper_fold");
     public static final TextEffectStyle FROST_CRYSTAL = preset("frost_crystal");
-    /** A glowing tube sign: the whole sign dips every few seconds and random glyphs sputter; see {@code withFault}. */
+    /**
+     * A glowing tube sign: the whole sign dips every few seconds and random glyphs sputter; see {@code withFault}.
+     */
     public static final TextEffectStyle NEON_FLICKER = preset(TextEffectFormat.NEON_FLICKER);
     /**
      * Text written in shifting runes; a wave reads it to plain text and back. Options: {@code hold}, {@code hide},
      * {@code sweep} (seconds), {@code flip} (rune changes per second), {@code shards} and {@code flick} (percent).
      */
     public static final TextEffectStyle ARCANE_CIPHER = preset(TextEffectFormat.ARCANE_CIPHER);
-    /** An unseen black hole crosses the line and back every eight seconds, bending the text around it. */
+    /**
+     * An unseen black hole crosses the line and back every eight seconds, bending the text around it.
+     */
     public static final TextEffectStyle GRAVITY_LENS = preset(TextEffectFormat.GRAVITY_LENS);
-    /** Glowing molten metal: beads swell under the strokes, snap off with sparks and cool to a crust as they fall. */
+    /**
+     * Glowing molten metal: beads swell under the strokes, snap off with sparks and cool to a crust as they fall.
+     */
     public static final TextEffectStyle MELTING = preset(TextEffectFormat.MELTING);
-    /** Every six seconds stars light up on the strokes and lines join them into a new constellation. */
+    /**
+     * Every six seconds stars light up on the strokes and lines join them into a new constellation.
+     */
     public static final TextEffectStyle CONSTELLATION = preset(TextEffectFormat.CONSTELLATION);
-    /** Pitted dark strokes with writhing tendrils, crossed by flux waves and torn by rifts; four colors. */
+    /**
+     * Pitted dark strokes with writhing tendrils, crossed by flux waves and torn by rifts; four colors.
+     */
     public static final TextEffectStyle CORRUPTION = preset(TextEffectFormat.CORRUPTION);
-    /** Plain text typed one glyph at a time; other effects type the same way through {@code withTyping}. */
+    /**
+     * Plain text typed one glyph at a time; other effects type the same way through {@code withTyping}.
+     */
     public static final TextEffectStyle TYPEWRITER = preset(TextEffectFormat.TYPEWRITER)
         .withTyping(TextEffectFormat.DEFAULT_TYPING_RATE);
-    /** Plain text whose numbers count up when they appear; any effect rolls the same way through {@code withRoll}. */
+    /**
+     * Plain text whose numbers count up when they appear; any effect rolls the same way through {@code withRoll}.
+     */
     public static final TextEffectStyle ROLL = preset(TextEffectFormat.ROLL)
         .withRoll(TextEffectFormat.DEFAULT_ROLL_SECONDS);
-    /** Plain text that trembles; any effect trembles the same way through {@code withShake}. */
+    /**
+     * Plain text that trembles; any effect trembles the same way through {@code withShake}.
+     */
     public static final TextEffectStyle SHAKE = preset(TextEffectFormat.SHAKE)
         .withShake(TextEffectFormat.DEFAULT_SHAKE);
 

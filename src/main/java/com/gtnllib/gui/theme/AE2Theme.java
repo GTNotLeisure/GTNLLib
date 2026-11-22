@@ -1,118 +1,160 @@
 package com.gtnllib.gui.theme;
 
+import java.util.Set;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.cleanroommc.modularui.api.ITheme;
 import com.cleanroommc.modularui.api.IThemeApi;
 import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.api.widget.IWidget;
-import com.cleanroommc.modularui.drawable.GuiDraw;
-import com.cleanroommc.modularui.drawable.GuiTextures;
-import com.cleanroommc.modularui.drawable.Rectangle;
-import com.cleanroommc.modularui.drawable.UITexture;
+import com.cleanroommc.modularui.screen.ModularScreen;
 import com.cleanroommc.modularui.screen.viewport.GuiContext;
-import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.theme.ReloadThemeEvent;
-import com.cleanroommc.modularui.theme.SelectableTheme;
-import com.cleanroommc.modularui.theme.ThemeAPI;
 import com.cleanroommc.modularui.theme.ThemeBuilder;
-import com.cleanroommc.modularui.theme.WidgetTheme;
-import com.cleanroommc.modularui.theme.WidgetThemeEntry;
-import com.cleanroommc.modularui.utils.Color;
-import com.cleanroommc.modularui.utils.GlStateManager;
-import com.cleanroommc.modularui.utils.JsonBuilder;
-import com.cleanroommc.modularui.utils.Platform;
+import com.cleanroommc.modularui.widget.AbstractScrollWidget;
 import com.cleanroommc.modularui.widget.Widget;
+import com.cleanroommc.modularui.widgets.ListWidget;
 import com.cleanroommc.modularui.widgets.SliderWidget;
+import com.cleanroommc.modularui.widgets.menu.AbstractMenuButton;
+import com.cleanroommc.modularui.widgets.menu.Menu;
+import com.cleanroommc.modularui.widgets.textfield.BaseTextFieldWidget;
 import com.gtnllib.GTNLLib;
-import com.gtnllib.gui.theme.ThemeSkin.Part;
-import com.gtnllib.gui.wheel.WheelStyle;
-import com.gtnllib.gui.widget.AE2ButtonDrawable;
-import com.gtnllib.gui.widget.AE2ButtonDrawable.State;
-import com.gtnllib.gui.widget.HandleScrollData;
-import com.gtnllib.gui.widget.LayoutTheme;
-import com.gtnllib.gui.widget.SkinDrawable;
-import com.gtnllib.gui.widget.SlideSwitch;
+import com.gtnllib.gui.theme.ae2.AE2ButtonDrawable.State;
+import com.gtnllib.gui.theme.ae2.AE2ButtonPainter;
+import com.gtnllib.gui.theme.ae2.AE2CheckboxPainter;
+import com.gtnllib.gui.theme.ae2.AE2Draw;
+import com.gtnllib.gui.theme.ae2.AE2Legacy;
+import com.gtnllib.gui.theme.ae2.AE2Look;
+import com.gtnllib.gui.theme.ae2.AE2PanelPainter;
+import com.gtnllib.gui.theme.ae2.AE2ScrollbarPainter;
+import com.gtnllib.gui.theme.ae2.AE2ThemeDefinitions;
+import com.gtnllib.gui.theme.ae2.AE2UpgradePainter;
+import com.gtnllib.gui.theme.ae2.AE2Variant;
+import com.gtnllib.gui.theme.ae2.ButtonText;
+import com.gtnllib.gui.theme.ae2.IconSource;
+import com.gtnllib.gui.widget.CycleDropdown;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/**
- * Client-side AE2 light and dark themes, widget drawables and drawing helpers for ModularUI 2.
- * <p>
- * Select a panel theme through {@link ScreenTheme}. Panel backgrounds, fields, slots, switches and button styles
- * are supplied by the registered theme. Use {@link #useMenuTheme(String, String, String, String...)} to map child
- * menus and {@link #sliderHandles(IWidget, String)} to style slider handles.
- * <p>
- * Drawable factories resolve the active theme when drawn and use the current MUI2 theme outside AE2 panels. Direct
- * drawing methods use the supplied {@link Variant}; only parameters marked nullable support a fallback. Drawing
- * coordinates and dimensions are GUI pixels relative to the current widget.
- *
- * @see Variant
- * @see HandleScrollData
- */
-@SideOnly(Side.CLIENT)
 public class AE2Theme {
 
-    /** Light panel theme identifier. */
+    /**
+     * Light panel theme identifier.
+     */
     public static final String LIGHT_ID = "gtnllib:ae2_light";
-    /** Light context-menu theme identifier. */
+    /**
+     * Light context-menu theme identifier.
+     */
     public static final String LIGHT_MENU_ID = "gtnllib:ae2_light_menu";
-    /** Dark panel theme identifier. */
+    /**
+     * Dark panel theme identifier.
+     */
     public static final String DARK_ID = "gtnllib:ae2_dark";
-    /** Dark context-menu theme identifier. */
+    /**
+     * Dark context-menu theme identifier.
+     */
     public static final String DARK_MENU_ID = "gtnllib:ae2_dark_menu";
-    /** Dark panel theme identifier with purple selection highlights. */
+    /**
+     * Dark panel theme identifier with purple selection highlights.
+     */
     public static final String DARK_PURPLE_ID = "gtnllib:ae2_dark_purple";
-    /** Dark context-menu theme identifier with purple selection highlights. */
+    /**
+     * Dark context-menu theme identifier with purple selection highlights.
+     */
     public static final String DARK_PURPLE_MENU_ID = "gtnllib:ae2_dark_purple_menu";
-    /** MUI2 context-menu theme used outside AE2 panels. */
+    /**
+     * MUI2 context-menu theme used outside AE2 panels.
+     */
     public static final String CONTEXT_MENU_ID = "modularui.context_menu";
-    /** ARGB light-blue selection fill, top edge and shadow of the light and dark variants. */
+    /**
+     * ARGB light-blue selection fill, top edge and shadow of the light and dark variants.
+     */
     public static final int HIGHLIGHT = 0xFF9CD3FF, HIGHLIGHT_TOP = 0xFFDAFFFF, HIGHLIGHT_SHADOW = 0xFF708CBA,
         FIELD_SELECTION = 0xFF0000FF;
-    /** ARGB fluix-purple selection fill, top edge and shadow of the purple dark variant. */
+    /**
+     * ARGB fluix-purple selection fill, top edge and shadow of the purple dark variant.
+     */
     public static final int PURPLE_HIGHLIGHT = 0xFF644595, PURPLE_HIGHLIGHT_TOP = 0xFFE2A3E3,
         PURPLE_HIGHLIGHT_SHADOW = 0xFF212040;
     /**
-     * Widget dimensions, label offsets, border widths and layout spacing in GUI pixels; {@code UPGRADE_ROWS} is a
-     * count.
+     * ARGB text color of a text field that cannot be edited, as Minecraft draws uneditable fields.
+     */
+    public static final int FIELD_DISABLED_TEXT = 0xFF707070;
+    /**
+     * Widget dimensions, label offsets, border widths and layout spacing in GUI pixels. {@code SMALL_SCROLLER_WIDTH}
+     * and {@code BIG_SCROLLER_WIDTH} are AE2's two scroll-bar handles; {@code LIST_ROW_HEIGHT} is the height of AE2's
+     * row sprite, not of GTNLLib's list rows ({@code IconRowList.ROW}); {@code UPGRADE_SLOTS_PER_COLUMN} is a count.
+     * The {@code CHECKBOX} sizes are those of AE2's check box, a 22-by-12 on/off sprite, and of its label.
      */
     public static final int BUTTON_HEIGHT = 20, TEXT_FIELD_HEIGHT = 12, ICON_SIZE = 16, ICON_BUTTON_WIDTH = 18,
-        ICON_BUTTON_HEIGHT = 20, TAB_BUTTON_SIZE = 20, SWITCH_WIDTH = 22, SWITCH_HEIGHT = 12, SWITCH_LABEL_X = 26,
-        SWITCH_LABEL_Y = 2, SCROLLBAR_WIDTH = 7, INSET_TOP = 3, INSET_EDGE = 1, BIG_SCROLLER_WIDTH = 12,
-        SCROLLER_HEIGHT = 15, RADIO_SIZE = 14, RADIO_LABEL_X = 16, RADIO_LABEL_Y = 3, LIST_ROW_HEIGHT = 22,
+        ICON_BUTTON_HEIGHT = 20, TAB_BUTTON_SIZE = 20, CHECKBOX_WIDTH = 22, CHECKBOX_HEIGHT = 12, CHECKBOX_LABEL_X = 26,
+        CHECKBOX_LABEL_Y = 4, SMALL_SCROLLER_WIDTH = 7, INSET_TOP = 3, INSET_EDGE = 1, BIG_SCROLLER_WIDTH = 12,
+        SCROLLER_HEIGHT = 15, RADIO_SIZE = 14, RADIO_LABEL_X = 16, RADIO_LABEL_Y = 4, LIST_ROW_HEIGHT = 22,
         PROGRESS_WIDTH = 6, PROGRESS_HEIGHT = 18, BUTTON_BAR_MARGIN = 2, BUTTON_BAR_SPACING = 6, UPGRADE_PADDING = 5,
-        UPGRADE_ROWS = 8, VALIDATION_ICON_SIZE = 8, PANEL_EDGE = 2, PANEL_BOTTOM_EDGE = 4;
+        UPGRADE_SLOTS_PER_COLUMN = 8, VALIDATION_ICON_SIZE = 8, PANEL_EDGE = 2, PANEL_BOTTOM_EDGE = 4;
+    /**
+     * @deprecated use {@link #CHECKBOX_WIDTH}, {@link #CHECKBOX_HEIGHT}, {@link #CHECKBOX_LABEL_X} and
+     *             {@link #CHECKBOX_LABEL_Y}; the on/off box is called a check box everywhere, after AE2's
+     *             {@code AECheckbox}
+     */
+    @Deprecated
+    public static final int SWITCH_WIDTH = CHECKBOX_WIDTH, SWITCH_HEIGHT = CHECKBOX_HEIGHT,
+        SWITCH_LABEL_X = CHECKBOX_LABEL_X, SWITCH_LABEL_Y = CHECKBOX_LABEL_Y;
+    /**
+     * @deprecated use {@link #SMALL_SCROLLER_WIDTH}; this name reads like the width of a whole scroll bar
+     */
+    @Deprecated
+    public static final int SCROLLBAR_WIDTH = SMALL_SCROLLER_WIDTH;
+    /**
+     * @deprecated use {@link #UPGRADE_SLOTS_PER_COLUMN}; the slots run down a column, not across a row
+     */
+    @Deprecated
+    public static final int UPGRADE_ROWS = UPGRADE_SLOTS_PER_COLUMN;
+    /**
+     * AE2 page tabs: size, distance between tab tops (neighbours share an outline row) and how far a tab starts inside
+     * the panel's right edge, which its left columns cover so the selected tab joins the panel.
+     */
+    public static final int PAGE_TAB_SIZE = 22, PAGE_TAB_PITCH = 21, PAGE_TAB_INSET = 3;
+    /**
+     * How far an upgrade panel starts inside the right edge of the panel it belongs to, as AE2 places it.
+     */
+    public static final int UPGRADE_OVERLAP = 2;
+    /**
+     * Size of the dropdown triangle drawn by {@link AE2PanelPainter#drawCaret}.
+     */
+    public static final int CARET_WIDTH = 5, CARET_HEIGHT = 3;
+    /**
+     * Size of AE2's square sprite sheets, the 18-pixel item slot, the space kept left and right of a button label and
+     * the height of one line of label text, in GUI pixels.
+     */
+    public static final int SHEET = 256, SLOT_SIZE = 18, LABEL_PADDING = 2, LABEL_HEIGHT = 8;
+    /**
+     * ARGB text color of disabled buttons and unavailable text outside the AE2 themes, MUI2's disabled grey.
+     */
+    public static final int DISABLED_TEXT = 0xFFA0A0A0;
+    /**
+     * Alpha of sprites and icons drawn for something that cannot be used.
+     */
+    public static final float INACTIVE_ALPHA = 0.5F;
+    /**
+     * Folder names of the three AE2 skins below {@code textures/gui/skin/}.
+     */
+    public static final String LIGHT_FOLDER = "ae2_light", DARK_FOLDER = "ae2_dark", PURPLE_FOLDER = "ae2_dark_purple";
+    /**
+     * Textures the purple dark skin recolours; it takes the others from {@link #DARK_FOLDER}.
+     */
+    public static final Set<String> PURPLE_TEXTURES = Set
+        .of("button_highlighted", "checkbox", "legacy_states", "list_row", "slider_fill", "slider_tag", "states");
     private static final String ROOT = "textures/gui/skin/";
-    private static final ResourceLocation AE2_LEGACY_STATES = new ResourceLocation(
-        "appliedenergistics2",
-        "textures/guis/states.png"),
-        AE2_LEGACY_TERMINAL = new ResourceLocation("appliedenergistics2", "textures/guis/terminal.png"),
-        CREATIVE_TABS = new ResourceLocation("textures/gui/container/creative_inventory/tabs.png");
-    private static final int PANEL_SIZE = 256, INSET_WIDTH = 8, INSET_HEIGHT = 9, SLOT_SIZE = 18, FIELD_WIDTH = 128,
-        SHEET = 256, SWITCH_SHEET = 64, TAB_HOVER_SIZE = 22, LABEL_PADDING = 2, LABEL_HEIGHT = 8, TRACK_WIDTH = 8,
-        TRACK_HEIGHT = 6, FILL_SIZE = 4, TAG_WIDTH = 6, TAG_HEIGHT = 9, DIVIDER_WIDTH = 4, DIVIDER_HEIGHT = 2,
-        LEGACY_CELLS = 16, DISABLED_TEXT = 0xFFA0A0A0, VANILLA_TEXT = 0xFF404040, WHEEL_DISC_ALPHA = 0xE6000000,
-        GROOVE_X = 3, GROOVE_WIDTH = 6, SMALL_GROOVE_X = 1, SMALL_GROOVE_WIDTH = 5, LIST_ROW_WIDTH = 67,
-        BUTTON_BAR_WIDTH = 21, BUTTON_BAR_HEIGHT = 26, RADIO_X = 28, INVALID_Y = 128, UPGRADE_SHADOW = 2,
-        VANILLA_SCROLLER_U = 232, VANILLA_SCROLLER_DISABLED_U = 244, VANILLA_TRACK = 0xFF8B8B8B,
-        VANILLA_TRACK_SHADOW = 0xFF373737, VANILLA_TRACK_LIGHT = 0xFFFFFFFF;
-    private static final UITexture VANILLA_SCROLLER = vanillaScroller(VANILLA_SCROLLER_U),
-        VANILLA_SCROLLER_DISABLED = vanillaScroller(VANILLA_SCROLLER_DISABLED_U);
-    // IDrawable.EMPTY is saved as JSON null, which the theme loader reads as unset and replaces with the parent
-    // theme's framed button; a transparent rectangle keeps menu options flat.
-    private static final IDrawable FLAT_OPTION = new Rectangle().color(0);
-    private static final float INACTIVE_ALPHA = 0.5F;
-    /** Shared sizing and spacing used by both AE2 variants. */
+    /**
+     * Shared sizing and spacing used by all three AE2 skins.
+     */
     public static final ThemeStyle STYLE = new ThemeStyle(
         ThemeStyle.DEFAULT.cornerLength(),
         ThemeStyle.DEFAULT.cornerThickness(),
@@ -128,15 +170,16 @@ public class AE2Theme {
         1F);
 
     /**
-     * Registers fresh definitions for both panel themes and their menu themes.
+     * Registers fresh definitions for the three panel themes and their menu themes.
      * <p>
      * GTNLLib installs the themes during client initialization and invokes this method on theme reload. Consumers
      * select a theme identifier without registering these definitions themselves.
      */
+    @SideOnly(Side.CLIENT)
     public static void register() {
-        for (Variant variant : Variant.values()) {
-            replace(variant.id, variant.theme());
-            replace(variant.menuId, variant.menu());
+        for (AE2Variant variant : AE2Variant.values()) {
+            replace(variant.id, AE2ThemeDefinitions.panelTheme(variant));
+            replace(variant.menuId, AE2ThemeDefinitions.menuTheme(variant));
         }
     }
 
@@ -150,14 +193,16 @@ public class AE2Theme {
     }
 
     /**
-     * Resolves a texture below GTNLLib's GUI skin directory.
+     * Resolves a texture below GTNLLib's GUI skin directory. The purple dark skin ships only the
+     * {@link #PURPLE_TEXTURES} it recolours and takes every other texture from the dark skin's folder.
      *
      * @param folder skin folder, such as {@code ae2_light}
      * @param name   texture filename without the {@code .png} extension
      * @return texture resource location
      */
     public static ResourceLocation texture(String folder, String name) {
-        return new ResourceLocation(GTNLLib.MODID, ROOT + folder + "/" + name + ".png");
+        String source = PURPLE_FOLDER.equals(folder) && !PURPLE_TEXTURES.contains(name) ? DARK_FOLDER : folder;
+        return new ResourceLocation(GTNLLib.MODID, ROOT + source + "/" + name + ".png");
     }
 
     /**
@@ -166,10 +211,17 @@ public class AE2Theme {
      * @param themeId theme identifier, or {@code null} for the default theme
      * @return the matching variant, or {@code null} for an unrecognized identifier
      */
-    public static @Nullable Variant variant(@Nullable String themeId) {
-        for (Variant variant : Variant.values())
+    public static @Nullable AE2Variant variant(@Nullable String themeId) {
+        for (AE2Variant variant : Variants.ALL)
             if (variant.id.equals(themeId) || variant.menuId.equals(themeId)) return variant;
         return null;
+    }
+
+    // Widgets in plain panels look this up every frame; a holder keeps the array from being copied each time and is
+    // only read once the skins exist, since the skins themselves load this class.
+    private static class Variants {
+
+        private static final AE2Variant[] ALL = AE2Variant.values();
     }
 
     /**
@@ -183,14 +235,14 @@ public class AE2Theme {
     }
 
     /**
-     * Resolves the variant currently used by a modular GUI context.
+     * Resolves the variant currently used by a modular GUI context, as {@link AE2Look#of(GuiContext)} does. A panel can
+     * use a theme other than its screen's; {@link AE2Look#of(IWidget)} resolves the panel's.
      *
-     * @param context current drawing context
      * @return the active variant, or {@code null} for another theme or a non-modular context
      */
-    public static @Nullable Variant active(GuiContext context) {
-        ITheme theme = screenTheme(context);
-        return theme == null ? null : variant(theme.getId());
+    public static @Nullable AE2Variant active(GuiContext context) {
+        return AE2Look.of(context)
+            .variant();
     }
 
     /**
@@ -202,1064 +254,300 @@ public class AE2Theme {
      * @param menus       child panel names within the screen
      */
     public static void useMenuTheme(@Nullable String screenTheme, String owner, String screen, String... menus) {
-        Variant variant = variant(screenTheme);
-        String menuTheme = variant == null ? CONTEXT_MENU_ID : variant.menuId;
-        for (String menu : menus) IThemeApi.get()
-            .registerThemeForScreen(owner + ":" + screen + ":" + menu, menuTheme);
+        AE2Look look = AE2Look.ofTheme(screenTheme);
+        for (String menu : menus) MUI2Fixes.registerMenuTheme(owner, screen, menu, look);
     }
 
     /**
-     * Resolves the legacy AE2 rv3 state sprite sheet.
-     *
-     * @param variant recolored variant, or {@code null} for the resource supplied by AE2
-     * @return state sheet resource location
+     * @deprecated use {@link #polish(ModularScreen)}, which also gives sliders AE2's handle
      */
-    public static ResourceLocation legacyStates(@Nullable Variant variant) {
-        return variant == null ? AE2_LEGACY_STATES : variant.legacyStates;
+    @Deprecated
+    public static void sliderHandles(IWidget root, @Nullable String themeId) {
+        AE2Variant variant = AE2Look.ofTheme(themeId)
+            .variant();
+        if (variant != null) sliderHandles(root, variant);
+    }
+
+    private static void sliderHandles(IWidget widget, AE2Variant variant) {
+        if (widget instanceof SliderWidget slider) MUI2Fixes.sliderHandle(slider, variant);
+        for (IWidget child : widget.getChildren()) sliderHandles(child, variant);
     }
 
     /**
-     * Resolves the legacy AE2 rv3 terminal sprite sheet.
+     * Gives the MUI2 widgets of a screen what its AE2 theme cannot give them, when the screen's theme is an AE2 skin or
+     * a theme based on one: scroll areas other than text fields lose MUI2's edge shadows and get the skin's track
+     * color, sliders get AE2's handle, and menu buttons such as MUI2's {@code ContextMenuButton} open their menus in
+     * the skin's menu theme. Under any other theme it only sends those menus back to MUI2's context-menu theme, since
+     * MUI2 keeps the menu theme of a screen name from one opening to the next.
+     * <p>
+     * Call it once the screen's theme is set with {@code ModularScreen.useTheme} and its main panel is built. A theme
+     * set through {@code UISettings.useTheme} for a GUI the server opens is applied only after {@code createScreen}, so
+     * calling it there sees the default theme. Name each menu button once, when it is created, and give the menus of a
+     * screen different names: the menu theme is kept by that name.
+     * <p>
+     * Widgets added later, panels opened later and menus built when they open are not reached: give a later panel
+     * {@link #polish(IWidget, AE2Look, String, String)}, build a context menu's contents with
+     * {@link #menu(ListWidget, String)}, and use {@code CycleDropdown} and {@code GTNLListWidget}, which look after
+     * themselves. Shadows a scroll area should keep are turned on again after this call. A screen that changes its
+     * theme is built again and polished again, as a skin's handles and track colors are not taken back.
      *
-     * @param variant recolored variant, or {@code null} for the resource supplied by AE2
-     * @return terminal sheet resource location
+     * @param screen screen whose theme is set and whose main panel is built
      */
-    public static ResourceLocation legacyTerminal(@Nullable Variant variant) {
-        return variant == null ? AE2_LEGACY_TERMINAL : variant.legacyTerminal;
+    @SideOnly(Side.CLIENT)
+    public static void polish(ModularScreen screen) {
+        polish(screen.getMainPanel(), AE2Look.of(screen.getCurrentTheme()), screen.getOwner(), screen.getName());
     }
 
     /**
-     * Returns the width occupied by a large scroll bar, including its track border.
+     * Does what {@link #polish(ModularScreen)} does for one widget tree, such as a panel the screen opens later.
      *
-     * @param variant AE2 variant, or {@code null} for the vanilla creative-inventory style
-     * @return 12 pixels for AE2 or 14 pixels for vanilla
+     * @param root   root widget to visit, including its descendants
+     * @param look   look of the screen
+     * @param owner  identifier of the mod that owns the screen
+     * @param screen screen name, which is the name of its main panel
      */
-    public static int scrollbarWidth(@Nullable Variant variant) {
-        return variant == null ? BIG_SCROLLER_WIDTH + 2 : BIG_SCROLLER_WIDTH;
+    public static void polish(IWidget root, AE2Look look, String owner, String screen) {
+        polishOne(root, look, owner, screen);
+        for (IWidget child : root.getChildren()) polish(child, look, owner, screen);
     }
 
-    /**
-     * Draws a large scroll-bar track and a fixed 12-by-15-pixel handle.
-     *
-     * @param variant AE2 variant, or {@code null} for the vanilla creative-inventory style
-     * @param x       left edge of the track
-     * @param y       top edge of the track, including its one-pixel border
-     * @param height  total track height, at least {@code SCROLLER_HEIGHT + 2}
-     * @param handleY handle offset from the inner track top, from zero to {@code height - SCROLLER_HEIGHT - 2}
-     * @param enabled whether to draw the enabled handle
-     */
-    public static void drawScrollbar(@Nullable Variant variant, int x, int y, int height, int handleY,
-        boolean enabled) {
-        GlStateManager.color(1, 1, 1, 1);
-        int handleTop = y + 1 + handleY;
-        if (variant == null) {
-            int width = scrollbarWidth(null);
-            GuiDraw.drawRect(x, y, width, height, VANILLA_TRACK);
-            GuiDraw.drawRect(x, y, width - 1, 1, VANILLA_TRACK_SHADOW);
-            GuiDraw.drawRect(x, y, 1, height - 1, VANILLA_TRACK_SHADOW);
-            GuiDraw.drawRect(x + width - 1, y + 1, 1, height - 1, VANILLA_TRACK_LIGHT);
-            GuiDraw.drawRect(x + 1, y + height - 1, width - 1, 1, VANILLA_TRACK_LIGHT);
-            GlStateManager.color(1, 1, 1, 1);
-            (enabled ? VANILLA_SCROLLER : VANILLA_SCROLLER_DISABLED)
-                .draw(x + 1, handleTop, BIG_SCROLLER_WIDTH, SCROLLER_HEIGHT);
-            return;
+    // Text fields are scroll widgets too. Dropdowns of GTNLLib pick their menu theme themselves, and a registered theme
+    // would win over theirs.
+    private static void polishOne(IWidget widget, AE2Look look, String owner, String screen) {
+        String menu = widget.getName();
+        if (widget instanceof AbstractMenuButton<?> && !(widget instanceof CycleDropdown<?>) && menu != null)
+            MUI2Fixes.registerMenuTheme(owner, screen, menu, look);
+        AE2Variant variant = look.variant();
+        if (variant == null) return;
+        if (widget instanceof SliderWidget slider) MUI2Fixes.sliderHandle(slider, variant);
+        if (widget instanceof AbstractScrollWidget<?, ?>scroll && !(widget instanceof BaseTextFieldWidget<?>)) {
+            MUI2Fixes.noScrollShadows(scroll);
+            MUI2Fixes.scrollTrack(scroll, variant.colors.line());
         }
-        variant.inset.draw(x + GROOVE_X, y, GROOVE_WIDTH, height);
-        (enabled ? variant.bigScroller : variant.bigScrollerDisabled)
-            .draw(x, handleTop, BIG_SCROLLER_WIDTH, SCROLLER_HEIGHT);
     }
 
     /**
-     * Draws a five-pixel groove and a fixed 7-by-15-pixel AE2 handle.
+     * Builds the menu of a MUI2 {@code ContextMenuButton} ({@code menu(...)}) around a list of options, laid out like a
+     * {@code CycleDropdown}'s menu: as wide as the button, as high as the list, and kept inside the menu panel's
+     * border.
+     * The list is set to the menu's full width; under an AE2 skin it also loses MUI2's edge shadows and gets the skin's
+     * track color. Options that are {@code ButtonWidget}s light up under the pointer in the menu theme; the menu itself
+     * follows the screen's skin after {@link #polish(ModularScreen)}.
      *
-     * @param variant non-null AE2 variant
-     * @param x       left edge of the handle; the groove starts one pixel to its right
-     * @param y       top edge of the groove, including its one-pixel border
-     * @param height  total groove height, at least {@code SCROLLER_HEIGHT + 2}
-     * @param handleY handle offset from the inner groove top, from zero to {@code height - SCROLLER_HEIGHT - 2}
-     * @param enabled whether to draw the enabled handle
+     * @param options list of options; limit its height with {@code maxSize}
+     * @param themeId identifier of the screen's theme, or {@code null} for the default theme
+     * @return the menu, ready for {@code menu(...)}
      */
-    public static void drawSmallScrollbar(Variant variant, int x, int y, int height, int handleY, boolean enabled) {
-        GlStateManager.color(1, 1, 1, 1);
-        variant.inset.draw(x + SMALL_GROOVE_X, y, SMALL_GROOVE_WIDTH, height);
-        (enabled ? variant.scroller : variant.scrollerDisabled)
-            .draw(x, y + 1 + handleY, SCROLLBAR_WIDTH, SCROLLER_HEIGHT);
+    public static Menu<?> menu(ListWidget<?, ?> options, @Nullable String themeId) {
+        AE2Look look = AE2Look.ofTheme(themeId);
+        AE2Variant variant = look.variant();
+        if (variant != null) {
+            MUI2Fixes.noScrollShadows(options);
+            MUI2Fixes.scrollTrack(options, variant.colors.line());
+        }
+        Menu<?> menu = new Menu<>().widthRel(1f)
+            .coverChildrenHeight()
+            .child(options.widthRel(1f));
+        MUI2Fixes.menuPadding(menu, look);
+        return menu;
     }
 
     /**
-     * Draws the background of a vertical icon-button bar.
-     *
-     * @param variant non-null AE2 variant
-     * @param x       left edge of the background
-     * @param y       top edge of the background
-     * @param width   background width, including button margins
-     * @param height  background height, including button margins and spacing
-     * @see #BUTTON_BAR_MARGIN
-     * @see #BUTTON_BAR_SPACING
+     * @deprecated use {@link AE2Legacy#legacyStates}
      */
-    public static void drawButtonBar(Variant variant, int x, int y, int width, int height) {
-        GlStateManager.color(1, 1, 1, 1);
-        variant.buttonBar.draw(x, y, width, height);
+    @Deprecated
+    public static ResourceLocation legacyStates(@Nullable AE2Variant variant) {
+        return AE2Legacy.legacyStates(AE2Look.of(variant));
     }
 
     /**
-     * Calculates an upgrade panel's width for columns of at most {@link #UPGRADE_ROWS} slots.
-     *
-     * @param slots nonnegative slot count; zero still reserves one column
-     * @return panel width in pixels, including padding
+     * @deprecated use {@link AE2Legacy#legacyTerminal}
      */
+    @Deprecated
+    public static ResourceLocation legacyTerminal(@Nullable AE2Variant variant) {
+        return AE2Legacy.legacyTerminal(AE2Look.of(variant));
+    }
+
+    /**
+     * @deprecated use {@link AE2Look#scrollbarWidth} of the panel's look
+     */
+    @Deprecated
+    public static int scrollbarWidth(@Nullable AE2Variant variant) {
+        return AE2Look.of(variant)
+            .scrollbarWidth();
+    }
+
+    /**
+     * @deprecated use {@link AE2Look#drawScrollbar} of the panel's look
+     */
+    @Deprecated
+    public static void drawScrollbar(@Nullable AE2Variant variant, int x, int y, int height, int handleY,
+        boolean enabled) {
+        AE2Look.of(variant)
+            .drawScrollbar(x, y, height, handleY, enabled);
+    }
+
+    /**
+     * @deprecated use {@link AE2ScrollbarPainter#drawSmallScrollbar}
+     */
+    @Deprecated
+    public static void drawSmallScrollbar(AE2Variant variant, int x, int y, int height, int handleY, boolean enabled) {
+        AE2ScrollbarPainter.drawSmallScrollbar(variant, x, y, height, handleY, enabled);
+    }
+
+    /**
+     * @deprecated use {@link AE2PanelPainter#drawButtonBar}
+     */
+    @Deprecated
+    public static void drawButtonBar(AE2Variant variant, int x, int y, int width, int height) {
+        AE2PanelPainter.drawButtonBar(variant, x, y, width, height);
+    }
+
+    /**
+     * @deprecated use {@link AE2UpgradePainter#upgradePanelWidth}
+     */
+    @Deprecated
     public static int upgradePanelWidth(int slots) {
-        return UPGRADE_PADDING * 2 + Math.max(1, (slots + UPGRADE_ROWS - 1) / UPGRADE_ROWS) * SLOT_SIZE;
+        return AE2UpgradePainter.upgradePanelWidth(slots);
     }
 
     /**
-     * Calculates an upgrade panel's height, including padding and its bottom shadow.
-     *
-     * @param slots nonnegative slot count; zero still reserves one row
-     * @return panel height in pixels
+     * @deprecated use {@link AE2UpgradePainter#upgradePanelHeight}
      */
+    @Deprecated
     public static int upgradePanelHeight(int slots) {
-        return UPGRADE_PADDING * 2 + UPGRADE_SHADOW + Math.max(1, Math.min(slots, UPGRADE_ROWS)) * SLOT_SIZE;
+        return AE2UpgradePainter.upgradePanelHeight(slots);
     }
 
     /**
-     * Draws an upgrade panel and its empty item slots in column-major order.
-     *
-     * @param variant non-null AE2 variant
-     * @param x       panel left edge
-     * @param y       panel top edge
-     * @param slots   nonnegative number of slots to draw
-     * @see #upgradePanelWidth(int)
-     * @see #upgradePanelHeight(int)
+     * @deprecated use {@link AE2UpgradePainter#drawUpgradePanel}
      */
-    public static void drawUpgradePanel(Variant variant, int x, int y, int slots) {
-        GlStateManager.color(1, 1, 1, 1);
-        variant.panel.draw(x, y, upgradePanelWidth(slots), upgradePanelHeight(slots));
-        for (int i = 0; i < slots; i++) variant.slotItem.draw(
-            x + UPGRADE_PADDING + i / UPGRADE_ROWS * SLOT_SIZE,
-            y + UPGRADE_PADDING + i % UPGRADE_ROWS * SLOT_SIZE,
-            SLOT_SIZE,
-            SLOT_SIZE);
+    @Deprecated
+    public static void drawUpgradePanel(AE2Variant variant, int x, int y, int slots) {
+        AE2UpgradePainter.drawUpgradePanel(variant, x, y, slots);
     }
 
     /**
-     * Calculates a table dimension with one-pixel separators and outer borders.
-     *
-     * @param cells    positive number of cells along the axis
-     * @param cellSize positive inner size of each cell in pixels
-     * @return total dimension in pixels
+     * @deprecated use {@link AE2PanelPainter#tableSize}
      */
+    @Deprecated
     public static int tableSize(int cells, int cellSize) {
-        return cells * cellSize + cells - 1 + INSET_EDGE * 2;
+        return AE2PanelPainter.tableSize(cells, cellSize);
     }
 
     /**
-     * Draws an inset table background with one-pixel grid lines.
-     * <p>
-     * Cell {@code (column, row)} begins at {@code (x + 1 + column * (cellWidth + 1),
-     * y + 1 + row * (cellHeight + 1))}. Cell contents are drawn separately by the caller.
-     *
-     * @param variant    non-null AE2 variant
-     * @param x          table left edge
-     * @param y          table top edge
-     * @param columns    positive column count
-     * @param rows       positive row count
-     * @param cellWidth  positive inner cell width
-     * @param cellHeight positive inner cell height
+     * @deprecated use {@link AE2PanelPainter#drawTable}
      */
-    public static void drawTable(Variant variant, int x, int y, int columns, int rows, int cellWidth, int cellHeight) {
-        int width = tableSize(columns, cellWidth), height = tableSize(rows, cellHeight);
-        GlStateManager.color(1, 1, 1, 1);
-        variant.inset.draw(x, y, width, height);
-        for (int column = 1; column < columns; column++) GuiDraw.drawRect(
-            x + INSET_EDGE + column * (cellWidth + 1) - 1,
-            y + INSET_EDGE,
-            1,
-            height - INSET_EDGE * 2,
-            variant.colors.line);
-        for (int row = 1; row < rows; row++) GuiDraw.drawRect(
-            x + INSET_EDGE,
-            y + INSET_EDGE + row * (cellHeight + 1) - 1,
-            width - INSET_EDGE * 2,
-            1,
-            variant.colors.line);
-        GlStateManager.color(1, 1, 1, 1);
+    @Deprecated
+    public static void drawTable(AE2Variant variant, int x, int y, int columns, int rows, int cellWidth,
+        int cellHeight) {
+        AE2PanelPainter.drawTable(variant, x, y, columns, rows, cellWidth, cellHeight);
     }
 
     /**
-     * Creates a selectable list-row background resolved against the theme at draw time.
-     *
-     * @param selected selection supplier; a hover supplier can be used for hover highlighting
-     * @return an AE2 nine-slice row or the current MUI2 button background
+     * @deprecated use {@link AE2PanelPainter#listRow}, which follows the theme of the row's own panel
      */
+    @Deprecated
     public static IDrawable listRow(BooleanSupplier selected) {
-        return (context, x, y, width, height, theme) -> {
-            boolean lit = selected.getAsBoolean();
-            Variant variant = active(context);
-            if (variant == null) {
-                themeButton(context, lit ? State.HOVER : State.NORMAL, x, y, width, height);
-                return;
-            }
-            GlStateManager.color(1, 1, 1, 1);
-            (lit ? variant.listRowSelected : variant.listRow).draw(x, y, width, height);
-        };
+        return (context, x, y, width, height, theme) -> AE2PanelPainter
+            .drawListRow(AE2Look.of(context), selected.getAsBoolean(), x, y, width, height);
     }
 
     /**
-     * Creates a radio-indicator drawable with a label, without installing input handlers.
-     * <p>
-     * The AE2 indicator is 14 by 14 pixels and the label starts at {@link #RADIO_LABEL_X}. Other themes use a MUI2
-     * checkbox sprite. The label is trimmed to the supplied drawing width. The caller owns selection and input.
-     *
-     * @param widget    widget supplying hover state
-     * @param selected  supplier of the selected state
-     * @param label     supplier of non-null display text
-     * @param available supplier of the visual enabled state
-     * @return the indicator and label drawable
+     * @deprecated use {@link AE2CheckboxPainter#radio}
      */
+    @Deprecated
     public static IDrawable radio(Widget<?> widget, BooleanSupplier selected, Supplier<String> label,
         BooleanSupplier available) {
-        return (context, x, y, width, height, theme) -> {
-            boolean usable = available.getAsBoolean(), lit = usable && widget.isHovering(),
-                checked = selected.getAsBoolean();
-            FontRenderer font = Minecraft.getMinecraft().fontRenderer;
-            String fitted = font.trimStringToWidth(label.get(), Math.max(0, width - RADIO_LABEL_X));
-            Variant variant = active(context);
-            GlStateManager.color(1, 1, 1, usable ? 1 : INACTIVE_ALPHA);
-            if (variant == null) {
-                (checked ? GuiTextures.CHECK_BOX_FULL : GuiTextures.CHECK_BOX_EMPTY).draw(x, y, RADIO_SIZE, RADIO_SIZE);
-                GlStateManager.color(1, 1, 1, 1);
-                ITheme screen = screenTheme(context);
-                WidgetTheme look = screen == null ? null
-                    : screen.getFallback()
-                        .getTheme();
-                text(
-                    fitted,
-                    x + RADIO_LABEL_X,
-                    y + RADIO_LABEL_Y,
-                    look == null ? VANILLA_TEXT : look.getTextColor(),
-                    look != null && look.getTextShadow());
-                return;
-            }
-            variant.radioSprite(checked, lit)
-                .draw(x, y, RADIO_SIZE, RADIO_SIZE);
-            GlStateManager.color(1, 1, 1, 1);
-            text(
-                fitted,
-                x + RADIO_LABEL_X,
-                y + RADIO_LABEL_Y,
-                usable ? variant.colors.text : variant.colors.muted,
-                false);
-        };
+        return AE2CheckboxPainter.radio(widget, selected, label, available);
     }
 
     /**
-     * Measures an untrimmed radio indicator and label using the current font.
-     *
-     * @param label display text
-     * @return required width in pixels
+     * @deprecated use {@link AE2CheckboxPainter#radioWidth}
      */
+    @Deprecated
     public static int radioWidth(String label) {
-        return RADIO_LABEL_X + Minecraft.getMinecraft().fontRenderer.getStringWidth(label);
+        return AE2CheckboxPainter.radioWidth(label);
     }
 
     /**
-     * Draws one cell from the 16-by-16 grid of the legacy state sheet.
-     *
-     * @param variant recolored variant, or {@code null} for the sheet supplied by AE2
-     * @param index   zero-based cell index, from zero through 255
-     * @param x       destination left edge
-     * @param y       destination top edge
-     * @param size    destination width and height in pixels
+     * @deprecated use {@link AE2Legacy#drawLegacyState}
      */
-    public static void drawLegacyState(@Nullable Variant variant, int index, float x, float y, float size) {
-        float u = index % LEGACY_CELLS * ICON_SIZE / (float) SHEET,
-            v = index / LEGACY_CELLS * ICON_SIZE / (float) SHEET, span = ICON_SIZE / (float) SHEET;
-        GuiDraw.drawTexture(legacyStates(variant), x, y, x + size, y + size, u, v, u + span, v + span, true);
+    @Deprecated
+    public static void drawLegacyState(@Nullable AE2Variant variant, int index, float x, float y, float size) {
+        AE2Legacy.drawLegacyState(AE2Look.of(variant), index, x, y, size);
     }
 
     /**
-     * Applies an AE2 handle texture to sliders in a widget tree.
-     * <p>
-     * Only children already present in the tree are visited. An unrecognized theme identifier leaves handles
-     * unchanged.
-     *
-     * @param root    root widget to visit, including its descendants
-     * @param themeId panel or menu theme identifier, possibly {@code null}
+     * @deprecated use {@link AE2ButtonPainter#button}
      */
-    public static void sliderHandles(IWidget root, @Nullable String themeId) {
-        Variant variant = variant(themeId);
-        if (variant != null) sliderHandles(root, new AE2ButtonDrawable(State.NORMAL, variant.folder));
-    }
-
-    private static void sliderHandles(IWidget widget, IDrawable handle) {
-        if (widget instanceof SliderWidget slider) slider.sliderTexture(handle);
-        for (IWidget child : widget.getChildren()) sliderHandles(child, handle);
-    }
-
-    /**
-     * Creates a button background resolved against the theme and supplied state at draw time.
-     *
-     * @param widget    widget supplying hover state
-     * @param available supplier of the visual enabled state; input handling remains the caller's responsibility
-     * @param selected  supplier of the selected state, which uses the highlighted background
-     * @return background drawable suitable for both normal and hover backgrounds
-     * @see #label(Widget, Supplier, BooleanSupplier, BooleanSupplier)
-     */
+    @Deprecated
     public static IDrawable button(Widget<?> widget, BooleanSupplier available, BooleanSupplier selected) {
-        return (context, x, y, width, height, theme) -> {
-            State state = State.of(widget, available.getAsBoolean(), selected.getAsBoolean());
-            Variant variant = active(context);
-            if (variant != null) AE2ButtonDrawable.draw(variant.folder, state, x, y, width, height);
-            else themeButton(context, state, x, y, width, height);
-        };
+        return AE2ButtonPainter.button(widget, available, selected);
     }
 
     /**
-     * Resolves the text style for a button in the active theme.
-     *
-     * @param context current drawing context
-     * @param state   visual button state
-     * @param height  button height in pixels
-     * @return text color, vertical offset and shadow setting
+     * @deprecated use {@link AE2Look#buttonText} of the look of the button's own panel
      */
+    @Deprecated
     public static ButtonText buttonText(GuiContext context, State state, int height) {
-        Variant variant = active(context);
-        if (variant != null)
-            return new ButtonText(variant.colors.button(state), AE2ButtonDrawable.textY(state, height), false);
-        WidgetTheme look = buttonLook(context, state);
-        int color = state == State.DISABLED ? DISABLED_TEXT : look == null ? Color.WHITE.main : look.getTextColor();
-        return new ButtonText(color, (height - LABEL_HEIGHT) / 2, look == null || look.getTextShadow());
+        return AE2Look.of(context)
+            .buttonText(state, height);
     }
 
     /**
-     * Creates a centered, width-trimmed button label matching {@link #button}.
-     *
-     * @param widget    widget supplying hover state
-     * @param text      supplier of non-null display text
-     * @param available supplier of the visual enabled state
-     * @param selected  supplier of the selected state
-     * @return label drawable suitable for a button overlay
+     * @deprecated use {@link AE2ButtonPainter#label}
      */
+    @Deprecated
     public static IDrawable label(Widget<?> widget, Supplier<String> text, BooleanSupplier available,
         BooleanSupplier selected) {
-        return (context, x, y, width, height, theme) -> {
-            State state = State.of(widget, available.getAsBoolean(), selected.getAsBoolean());
-            ButtonText style = buttonText(context, state, height);
-            FontRenderer font = Minecraft.getMinecraft().fontRenderer;
-            String fitted = font.trimStringToWidth(text.get(), Math.max(0, width - LABEL_PADDING * 2));
-            text(fitted, x + (width - font.getStringWidth(fitted)) / 2, y + style.y(), style.color(), style.shadow());
-        };
+        return AE2ButtonPainter.label(widget, text, available, selected);
     }
 
     /**
-     * Creates a toolbar-button background and icon, sized by the drawing area.
-     *
-     * @param widget    widget supplying hover state
-     * @param icon      supplier of the displayed icon
-     * @param available supplier of the visual enabled state
-     * @return combined background and icon drawable; the standard size is 18 by 20 pixels
+     * @deprecated use {@link AE2ButtonPainter#iconButton}
      */
-    public static IDrawable iconButton(Widget<?> widget, Supplier<Icon> icon, BooleanSupplier available) {
-        return (context, x, y, width, height, theme) -> {
-            boolean on = available.getAsBoolean(), lit = on && widget.isHovering();
-            Variant variant = active(context);
-            UITexture sprite = icon.get()
-                .texture(variant);
-            if (variant == null) {
-                themeButton(context, lit ? State.HOVER : State.NORMAL, x, y, width, height);
-                drawIcon(sprite, x + (width - ICON_SIZE) / 2, y + (height - ICON_SIZE) / 2, on);
-                return;
-            }
-            int sink = lit ? 1 : 0;
-            GlStateManager.color(1, 1, 1, 1);
-            (lit ? variant.iconButtonHover : variant.iconButton).draw(x, y + sink, width, height);
-            drawIcon(sprite, x + (width - ICON_SIZE) / 2, y + Math.max(0, (height - ICON_SIZE) / 2 - 1) + sink, on);
-        };
+    @Deprecated
+    public static IDrawable iconButton(Widget<?> widget, Supplier<? extends IconSource> icon,
+        BooleanSupplier available) {
+        return AE2ButtonPainter.iconButton(widget, icon, available);
     }
 
     /**
-     * Creates a tab-button background and icon.
-     * <p>
-     * AE2 tabs occupy 20 by 20 pixels and draw a 22-by-22-pixel background while hovered. Other themes use the
-     * supplied drawing area's size. This drawable does not install input handlers.
-     *
-     * @param widget    widget supplying hover state
-     * @param icon      supplier of the displayed icon
-     * @param available supplier of the visual enabled state
-     * @return combined tab background and icon drawable
+     * @deprecated use {@link AE2ButtonPainter#tabButton}
      */
-    public static IDrawable tabButton(Widget<?> widget, Supplier<Icon> icon, BooleanSupplier available) {
-        return (context, x, y, width, height, theme) -> {
-            boolean on = available.getAsBoolean(), lit = on && widget.isHovering();
-            Variant variant = active(context);
-            UITexture sprite = icon.get()
-                .texture(variant);
-            if (variant == null) {
-                themeButton(context, lit ? State.HOVER : State.NORMAL, x, y, width, height);
-                drawIcon(sprite, x + (width - ICON_SIZE) / 2, y + (height - ICON_SIZE) / 2, on);
-                return;
-            }
-            GlStateManager.color(1, 1, 1, 1);
-            if (lit) variant.tabButtonHover.draw(x, y, TAB_HOVER_SIZE, TAB_HOVER_SIZE);
-            else variant.tabButton.draw(x, y, TAB_BUTTON_SIZE, TAB_BUTTON_SIZE);
-            drawIcon(sprite, x + 2, y + 1, on);
-        };
+    @Deprecated
+    public static IDrawable tabButton(Widget<?> widget, Supplier<? extends IconSource> icon,
+        BooleanSupplier available) {
+        return AE2ButtonPainter.tabButton(widget, icon, available);
     }
 
     /**
-     * Creates a switch drawable with a width-trimmed label, without installing input handlers.
-     * <p>
-     * AE2 switches use a 22-by-12-pixel sprite and label offset {@link #SWITCH_LABEL_X}. Other themes use a MUI2
-     * checkbox sprite. The caller owns the switch value and input handling.
-     *
-     * @param widget    widget supplying hover state
-     * @param on        supplier of the switch value
-     * @param label     supplier of non-null display text
-     * @param available supplier of the visual enabled state
-     * @return combined switch and label drawable
+     * @deprecated use {@link AE2CheckboxPainter#checkbox}
      */
+    @Deprecated
     public static IDrawable toggleSwitch(Widget<?> widget, BooleanSupplier on, Supplier<String> label,
         BooleanSupplier available) {
-        return (context, x, y, width, height, theme) -> {
-            boolean usable = available.getAsBoolean(), lit = usable && widget.isHovering(), checked = on.getAsBoolean();
-            FontRenderer font = Minecraft.getMinecraft().fontRenderer;
-            String fitted = font.trimStringToWidth(label.get(), Math.max(0, width - SWITCH_LABEL_X));
-            Variant variant = active(context);
-            GlStateManager.color(1, 1, 1, usable ? 1 : INACTIVE_ALPHA);
-            if (variant == null) {
-                (checked ? GuiTextures.CHECK_BOX_FULL : GuiTextures.CHECK_BOX_EMPTY)
-                    .draw(x, y, SWITCH_HEIGHT, SWITCH_HEIGHT);
-                GlStateManager.color(1, 1, 1, 1);
-                ITheme screen = screenTheme(context);
-                WidgetTheme look = screen == null ? null
-                    : screen.getFallback()
-                        .getTheme();
-                text(
-                    fitted,
-                    x + SWITCH_HEIGHT + LABEL_PADDING * 2,
-                    y + (SWITCH_HEIGHT - LABEL_HEIGHT) / 2,
-                    look == null ? VANILLA_TEXT : look.getTextColor(),
-                    look != null && look.getTextShadow());
-                return;
-            }
-            variant.switchSprite(checked, lit)
-                .draw(x, y, SWITCH_WIDTH, SWITCH_HEIGHT);
-            GlStateManager.color(1, 1, 1, 1);
-            text(
-                fitted,
-                x + SWITCH_LABEL_X,
-                y + SWITCH_LABEL_Y,
-                usable ? variant.colors.text : variant.colors.muted,
-                false);
-        };
+        return AE2CheckboxPainter.checkbox(widget, on, label, available);
     }
 
     /**
-     * Measures an untrimmed AE2 switch and label using the current font.
-     *
-     * @param label display text
-     * @return required width in pixels
+     * @deprecated use {@link AE2CheckboxPainter#checkboxWidth}
      */
+    @Deprecated
     public static int switchWidth(String label) {
-        return SWITCH_LABEL_X + Minecraft.getMinecraft().fontRenderer.getStringWidth(label);
+        return AE2CheckboxPainter.checkboxWidth(label);
     }
 
     /**
-     * Draws text and resets the OpenGL color to opaque white.
-     *
-     * @param text   display text
-     * @param x      text left edge
-     * @param y      text top edge
-     * @param color  ARGB text color
-     * @param shadow whether to draw a drop shadow
+     * @deprecated use {@link AE2Draw#text}
      */
+    @Deprecated
     public static void text(String text, int x, int y, int color, boolean shadow) {
-        Platform.setupDrawFont();
-        Minecraft.getMinecraft().fontRenderer.drawString(text, x, y, color, shadow);
-        GlStateManager.color(1, 1, 1, 1);
+        AE2Draw.text(text, x, y, color, shadow);
     }
 
-    private static @Nullable ITheme screenTheme(GuiContext context) {
-        return context instanceof ModularGuiContext modular ? modular.getTheme() : null;
-    }
-
-    private static @Nullable WidgetTheme buttonLook(GuiContext context, State state) {
-        ITheme theme = screenTheme(context);
-        if (theme == null) return null;
-        WidgetThemeEntry<?> entry = theme.getButtonTheme();
-        return state == State.HOVER ? entry.getHoverTheme() : entry.getTheme();
-    }
-
-    private static void themeButton(GuiContext context, State state, int x, int y, int width, int height) {
-        GlStateManager.color(1, 1, 1, 1);
-        WidgetTheme look = buttonLook(context, state);
-        IDrawable background = look == null ? null : look.getBackground();
-        if (state == State.HOVER && (background == null || background == IDrawable.NONE)) {
-            look = buttonLook(context, State.NORMAL);
-            background = look == null ? null : look.getBackground();
-        }
-        if (state == State.DISABLED || background == null) {
-            UITexture vanilla = state == State.DISABLED ? GuiTextures.MC_BUTTON_DISABLED
-                : state == State.HOVER ? GuiTextures.MC_BUTTON_HOVERED : GuiTextures.MC_BUTTON;
-            vanilla.draw(x, y, width, height);
-        } else background.draw(context, x, y, width, height, look);
-        GlStateManager.color(1, 1, 1, 1);
-    }
-
-    private static void drawIcon(UITexture icon, int x, int y, boolean active) {
-        GlStateManager.color(1, 1, 1, active ? 1 : INACTIVE_ALPHA);
-        icon.draw(x, y, ICON_SIZE, ICON_SIZE);
-        GlStateManager.color(1, 1, 1, 1);
-    }
-
-    private static SkinDrawable skin(String folder, String name, int width, int height) {
-        return new SkinDrawable().texture(texture(folder, name), width, height);
-    }
-
-    private static UITexture adaptable(String folder, String name, int width, int height, int left, int top, int right,
-        int bottom) {
-        return UITexture.builder()
-            .location(texture(folder, name))
-            .imageSize(width, height)
-            .adaptable(left, top, right, bottom)
-            .name("gtnllib_" + folder + "_" + name)
-            .build();
-    }
-
-    private static Colors darkColors(int hoverText) {
-        return new Colors(
-            0xFFAAAAAA,
-            0xFF7E808E,
-            0xFF9496A4,
-            0xFFE0E0E0,
-            hoverText,
-            0xFF5E6070,
-            0xFFE0E0E0,
-            0xFF6B6E7E,
-            0xFF14151D,
-            0xFF8E8E8E,
-            0xFF42434B,
-            0xFF242631,
-            0xFF0A090E,
-            0xFF2D2F3C,
-            0xFF5FCB79,
-            0xFFE06A60,
-            0xFF6CB4F0,
-            0xFFE0A54A,
-            0xFFFF5A3C);
-    }
-
-    private static UITexture frame(String folder, String name, int x, int y) {
-        return UITexture.builder()
-            .location(texture(folder, "states"))
-            .imageSize(SHEET, SHEET)
-            .subAreaXYWH(x, y, ICON_BUTTON_WIDTH, ICON_BUTTON_HEIGHT)
-            .adaptable(2, 2, 2, 1)
-            .name("gtnllib_" + folder + "_" + name)
-            .build();
-    }
-
-    private static UITexture image(String folder, String name, int width, int height) {
-        return UITexture.builder()
-            .location(texture(folder, name))
-            .imageSize(width, height)
-            .nonOpaque()
-            .name("gtnllib_" + folder + "_" + name)
-            .build();
-    }
-
-    private static UITexture vanillaScroller(int u) {
-        return UITexture.builder()
-            .location(CREATIVE_TABS)
-            .imageSize(SHEET, SHEET)
-            .subAreaXYWH(u, 0, BIG_SCROLLER_WIDTH, SCROLLER_HEIGHT)
-            .build();
-    }
-
-    private static UITexture sprite(String folder, String sheet, int size, int x, int y, int width, int height) {
-        return UITexture.builder()
-            .location(texture(folder, sheet))
-            .imageSize(size, size)
-            .subAreaXYWH(x, y, width, height)
-            .nonOpaque()
-            .build();
-    }
-
-    /**
-     * Text style resolved for a button state.
-     *
-     * @param color  ARGB text color
-     * @param y      vertical offset from the button's top edge in pixels
-     * @param shadow whether to draw a drop shadow
-     */
-    public record ButtonText(int color, int y, boolean shadow) {}
-
-    /**
-     * Semantic ARGB colors for one AE2 variant.
-     *
-     * @param text         primary text color
-     * @param muted        muted text color
-     * @param secondary    secondary text color
-     * @param buttonText   normal button text color
-     * @param hoverText    highlighted button text color
-     * @param disabledText disabled button text color
-     * @param fieldText    text-field content color
-     * @param placeholder  text-field hint color
-     * @param line         separator and grid-line color
-     * @param edge         panel edge color
-     * @param panel        panel fill color
-     * @param well         inset fill color
-     * @param outline      outline color
-     * @param raised       raised surface color
-     * @param good         positive status color
-     * @param bad          negative status color
-     * @param info         informational status color
-     * @param warning      warning status color
-     * @param error        input validation error color
-     */
-    public record Colors(int text, int muted, int secondary, int buttonText, int hoverText, int disabledText,
-        int fieldText, int placeholder, int line, int edge, int panel, int well, int outline, int raised, int good,
-        int bad, int info, int warning, int error) {
-
-        /**
-         * Resolves button text color for a visual state.
-         *
-         * @param state button state
-         * @return ARGB text color
-         */
-        public int button(State state) {
-            return switch (state) {
-                case NORMAL -> buttonText;
-                case HOVER -> hoverText;
-                case DISABLED -> disabledText;
-            };
-        }
-    }
-
-    /**
-     * AE2 panel and menu variants with their palettes and textures.
-     * <p>
-     * Colors and resource names are shared by the registered themes and direct drawing helpers. Raw textures do
-     * not select a variant from the drawing context. Each variant's selection colors match the selected sprites of
-     * its skin.
-     */
-    public enum Variant {
-
-        /** Light AE2 palette. */
-        LIGHT(LIGHT_ID, LIGHT_MENU_ID, "ae2_light",
-            new Colors(
-                0xFF413F54,
-                0xFF878FA5,
-                0xFF4A5068,
-                0xFFF2F2F2,
-                0xFF517497,
-                0xFF413F54,
-                0xFFF2F2F2,
-                0xFFDEDFE3,
-                0xFF696D88,
-                0xFFF2F2F2,
-                0xFFCBCCD4,
-                0xFF9A9FB4,
-                0xFF413F54,
-                0xFFADB0C4,
-                0xFF1C6B34,
-                0xFF8F2B23,
-                0xFF144673,
-                0xFF7A4A00,
-                0xFFCE2401),
-            HIGHLIGHT, HIGHLIGHT_TOP, HIGHLIGHT_SHADOW),
-        /** Dark AE2 palette. */
-        DARK(DARK_ID, DARK_MENU_ID, "ae2_dark", darkColors(0xFF517497), HIGHLIGHT, HIGHLIGHT_TOP, HIGHLIGHT_SHADOW),
-        /** Dark AE2 palette with fluix-purple selection highlights. */
-        DARK_PURPLE(DARK_PURPLE_ID, DARK_PURPLE_MENU_ID, "ae2_dark_purple", darkColors(0xFFFFFFFF), PURPLE_HIGHLIGHT,
-            PURPLE_HIGHLIGHT_TOP, PURPLE_HIGHLIGHT_SHADOW, 0xFFFFFFFF);
-
-        /** Registered panel theme identifier. */
-        public final String id;
-        /** Registered context-menu theme identifier. */
-        public final String menuId;
-        /** Folder name below {@code textures/gui/skin/}. */
-        public final String folder;
-        /** Semantic ARGB colors. */
-        public final Colors colors;
-        /** ARGB selection fill, top edge and bottom shadow matching this skin's selected sprites. */
-        public final int highlight, highlightTop, highlightShadow;
-        /** ARGB text color drawn on the selection fill, such as slider value tags. */
-        public final int highlightText;
-        /** Palette used by GTNLLib's general theme helpers. */
-        public final ThemePalette palette;
-        /** Skin used by GTNLLib's general theme helpers. */
-        public final ThemeSkin skin;
-        /** Recolored AE2 rv3 state and terminal sheets. */
-        public final ResourceLocation legacyStates, legacyTerminal;
-        /** Resizable panel background and inset list well. */
-        public final UITexture panel, inset;
-        /** Empty item and fluid slot backgrounds, natively 18 by 18 pixels. */
-        public final UITexture slotItem, slotFluid;
-        /** Small scroll-bar handle, natively 7 by 15 pixels and resizable by MUI2. */
-        public final UITexture scroller;
-        /** Disabled small scroll-bar handle, 7 by 15 pixels. */
-        public final UITexture scrollerDisabled;
-        /** Enabled and disabled large scroll-bar handles, 12 by 15 pixels. */
-        public final UITexture bigScroller, bigScrollerDisabled;
-        /** Resizable text-field background with a native height of 12 pixels. */
-        public final UITexture textField;
-        /** Normal and hovered toolbar-button frames, natively 18 by 20 pixels. */
-        public final UITexture iconButton, iconButtonHover;
-        /** Normal 20-by-20 and hovered 22-by-22 tab-button backgrounds. */
-        public final UITexture tabButton, tabButtonHover;
-        /** Unchecked switch sprites in normal and hovered states, 22 by 12 pixels. */
-        public final UITexture switchOff, switchOffHover;
-        /** Checked switch sprites in normal and hovered states, 22 by 12 pixels. */
-        public final UITexture switchOn, switchOnHover;
-        /** Unselected radio sprites in normal and hovered states, 14 by 14 pixels. */
-        public final UITexture radioOff, radioOffHover;
-        /** Selected radio sprites in normal and hovered states, 14 by 14 pixels. */
-        public final UITexture radioOn, radioOnHover;
-        /** Resizable normal and selected list rows with a native height of 22 pixels. */
-        public final UITexture listRow, listRowSelected;
-        /** Resizable vertical button-bar background. */
-        public final UITexture buttonBar;
-        /** Empty and filled inscriber progress textures, 6 by 18 pixels, intended for upward filling. */
-        public final UITexture progressEmpty, progressFull;
-        /** Validation warning sprite, drawn at {@link AE2Theme#VALIDATION_ICON_SIZE} in number entries. */
-        public final UITexture invalid;
-
-        Variant(String id, String menuId, String folder, Colors colors, int highlight, int highlightTop,
-            int highlightShadow) {
-            this(id, menuId, folder, colors, highlight, highlightTop, highlightShadow, colors.outline);
-        }
-
-        Variant(String id, String menuId, String folder, Colors colors, int highlight, int highlightTop,
-            int highlightShadow, int highlightText) {
-            this.id = id;
-            this.menuId = menuId;
-            this.folder = folder;
-            this.colors = colors;
-            this.highlight = highlight;
-            this.highlightTop = highlightTop;
-            this.highlightShadow = highlightShadow;
-            this.highlightText = highlightText;
-            palette = palette(colors, highlight, highlightShadow, highlightText);
-            legacyStates = texture(folder, "legacy_states");
-            legacyTerminal = texture(folder, "legacy_terminal");
-            skin = ThemeSkin.NONE
-                .with(
-                    Part.PANEL,
-                    skin(folder, "panel", PANEL_SIZE, PANEL_SIZE)
-                        .border(PANEL_EDGE, PANEL_EDGE, PANEL_EDGE, PANEL_BOTTOM_EDGE))
-                .with(
-                    Part.CARD,
-                    skin(folder, "inset", INSET_WIDTH, INSET_HEIGHT)
-                        .border(INSET_EDGE, INSET_TOP, INSET_EDGE, INSET_EDGE))
-                .with(Part.SLOT, skin(folder, "slot_item", SLOT_SIZE, SLOT_SIZE).border(1, 1, 1, 1))
-                .with(Part.SLIDER_TRACK, skin(folder, "slider_track", TRACK_WIDTH, TRACK_HEIGHT).border(1, 2, 1, 1))
-                .with(Part.SLIDER_FILL, skin(folder, "slider_fill", FILL_SIZE, FILL_SIZE).border(0, 1, 0, 0))
-                .with(Part.SLIDER_TAG, skin(folder, "slider_tag", TAG_WIDTH, TAG_HEIGHT).border(1, 2, 1, 2))
-                .with(Part.DIVIDER, skin(folder, "divider", DIVIDER_WIDTH, DIVIDER_HEIGHT));
-            panel = adaptable(
-                folder,
-                "panel",
-                PANEL_SIZE,
-                PANEL_SIZE,
-                PANEL_EDGE,
-                PANEL_EDGE,
-                PANEL_EDGE,
-                PANEL_BOTTOM_EDGE);
-            inset = adaptable(
-                folder,
-                "inset",
-                INSET_WIDTH,
-                INSET_HEIGHT,
-                INSET_EDGE,
-                INSET_TOP,
-                INSET_EDGE,
-                INSET_EDGE);
-            slotItem = adaptable(folder, "slot_item", SLOT_SIZE, SLOT_SIZE, 1, 1, 1, 1);
-            slotFluid = adaptable(folder, "slot_fluid", SLOT_SIZE, SLOT_SIZE, 1, 1, 1, 1);
-            scroller = adaptable(folder, "scroller", SCROLLBAR_WIDTH, SCROLLER_HEIGHT, 2, 2, 2, 3);
-            scrollerDisabled = image(folder, "scroller_disabled", SCROLLBAR_WIDTH, SCROLLER_HEIGHT);
-            bigScroller = image(folder, "big_scroller", BIG_SCROLLER_WIDTH, SCROLLER_HEIGHT);
-            bigScrollerDisabled = image(folder, "big_scroller_disabled", BIG_SCROLLER_WIDTH, SCROLLER_HEIGHT);
-            textField = UITexture.builder()
-                .location(texture(folder, "text_field"))
-                .imageSize(FIELD_WIDTH, FIELD_WIDTH)
-                .subAreaXYWH(0, 0, FIELD_WIDTH, TEXT_FIELD_HEIGHT)
-                .adaptable(1, 3, 1, 1)
-                .name("gtnllib_" + folder + "_text_field")
-                .build();
-            iconButton = frame(folder, "icon_button", 176, 128);
-            iconButtonHover = frame(folder, "icon_button_hover", 212, 128);
-            tabButton = sprite(folder, "states", SHEET, 160, 192, TAB_BUTTON_SIZE, TAB_BUTTON_SIZE);
-            tabButtonHover = sprite(folder, "states", SHEET, 160, 224, TAB_HOVER_SIZE, TAB_HOVER_SIZE);
-            switchOff = checkbox(folder, "switch_off", 0, 28);
-            switchOffHover = checkbox(folder, "switch_off_hover", 22, 28);
-            switchOn = checkbox(folder, "switch_on", 0, 40);
-            switchOnHover = checkbox(folder, "switch_on_hover", 22, 40);
-            radioOff = sprite(folder, "checkbox", SWITCH_SHEET, RADIO_X, 0, RADIO_SIZE, RADIO_SIZE);
-            radioOffHover = sprite(folder, "checkbox", SWITCH_SHEET, RADIO_X + RADIO_SIZE, 0, RADIO_SIZE, RADIO_SIZE);
-            radioOn = sprite(folder, "checkbox", SWITCH_SHEET, RADIO_X, RADIO_SIZE, RADIO_SIZE, RADIO_SIZE);
-            radioOnHover = sprite(
-                folder,
-                "checkbox",
-                SWITCH_SHEET,
-                RADIO_X + RADIO_SIZE,
-                RADIO_SIZE,
-                RADIO_SIZE,
-                RADIO_SIZE);
-            listRow = rowSprite(folder, "list_row", 0);
-            listRowSelected = rowSprite(folder, "list_row_selected", LIST_ROW_HEIGHT);
-            buttonBar = adaptable(folder, "button_bar", BUTTON_BAR_WIDTH, BUTTON_BAR_HEIGHT, 0, 2, 0, 4);
-            progressEmpty = progressSprite(folder, "progress_empty", 0);
-            progressFull = progressSprite(folder, "progress_full", PROGRESS_WIDTH);
-            invalid = sprite(folder, "states", SHEET, 0, INVALID_Y, ICON_SIZE, ICON_SIZE);
-        }
-
-        /**
-         * Selects the switch sprite for the supplied state.
-         *
-         * @param on      switch value
-         * @param hovered whether the switch is hovered and available
-         * @return a 22-by-12-pixel switch sprite
-         */
-        public UITexture switchSprite(boolean on, boolean hovered) {
-            return on ? hovered ? switchOnHover : switchOn : hovered ? switchOffHover : switchOff;
-        }
-
-        /**
-         * Selects the radio sprite for the supplied state.
-         *
-         * @param on      whether the radio option is selected
-         * @param hovered whether the option is hovered and available
-         * @return a 14-by-14-pixel radio sprite
-         */
-        public UITexture radioSprite(boolean on, boolean hovered) {
-            return on ? hovered ? radioOnHover : radioOn : hovered ? radioOffHover : radioOff;
-        }
-
-        private static UITexture rowSprite(String folder, String name, int y) {
-            return UITexture.builder()
-                .location(texture(folder, "list_row"))
-                .imageSize(LIST_ROW_WIDTH, LIST_ROW_HEIGHT * 2)
-                .subAreaXYWH(0, y, LIST_ROW_WIDTH, LIST_ROW_HEIGHT)
-                .adaptable(1, 1, 1, 2)
-                .name("gtnllib_" + folder + "_" + name)
-                .build();
-        }
-
-        private static UITexture progressSprite(String folder, String name, int x) {
-            return UITexture.builder()
-                .location(texture(folder, "progress"))
-                .imageSize(PROGRESS_WIDTH * 2, PROGRESS_HEIGHT)
-                .subAreaXYWH(x, 0, PROGRESS_WIDTH, PROGRESS_HEIGHT)
-                .name("gtnllib_" + folder + "_" + name)
-                .build();
-        }
-
-        /**
-         * Applies this variant's disc, line, text and highlight colors to a wheel style.
-         *
-         * @param style builder to modify
-         * @return the supplied builder
-         */
-        public WheelStyle.Builder wheel(WheelStyle.Builder style) {
-            return style.discColor(WHEEL_DISC_ALPHA | colors.panel & 0xFFFFFF)
-                .lineColor(colors.line)
-                .textColor(colors.text)
-                .textShadow(false)
-                .highlightColor(highlight);
-        }
-
-        private static UITexture checkbox(String folder, String name, int x, int y) {
-            return UITexture.builder()
-                .location(texture(folder, "checkbox"))
-                .imageSize(SWITCH_SHEET, SWITCH_SHEET)
-                .subAreaXYWH(x, y, SWITCH_WIDTH, SWITCH_HEIGHT)
-                .nonOpaque()
-                .name("gtnllib_" + folder + "_" + name)
-                .build();
-        }
-
-        private static ThemePalette palette(Colors colors, int highlight, int highlightShadow, int highlightText) {
-            return new ThemePalette(
-                highlight,
-                highlightShadow,
-                0x40FFFFFF,
-                colors.text,
-                colors.muted,
-                colors.panel,
-                colors.panel,
-                colors.well,
-                colors.edge,
-                colors.well,
-                highlight,
-                0x80000000 | highlight & 0xFFFFFF,
-                colors.well,
-                colors.edge,
-                0x80FFFFFF,
-                colors.line,
-                colors.muted,
-                colors.edge,
-                colors.raised,
-                colors.text,
-                colors.muted,
-                colors.secondary,
-                colors.hoverText,
-                highlightText,
-                0x40000000 | colors.text & 0xFFFFFF,
-                0x99000000 | colors.text & 0xFFFFFF,
-                colors.error);
-        }
-
-        private ThemeBuilder<?> menu() {
-            return new ThemeBuilder<>(menuId).parent(id)
-                .background(IThemeApi.PANEL, panel)
-                .background(IThemeApi.BUTTON, FLAT_OPTION)
-                .hoverBackground(IThemeApi.BUTTON, listRowSelected)
-                .textColor(IThemeApi.BUTTON, colors.text)
-                .textHoverColor(IThemeApi.BUTTON, colors.hoverText)
-                .widgetTheme(
-                    IThemeApi.TOGGLE_BUTTON,
-                    new SelectableTheme.Builder<>().background(FLAT_OPTION)
-                        .textColor(colors.text)
-                        .selectedBackground(listRowSelected)
-                        .selectedTextColor(colors.hoverText))
-                .widgetThemeHover(
-                    IThemeApi.TOGGLE_BUTTON,
-                    new SelectableTheme.Builder<>().background(listRowSelected)
-                        .textColor(colors.hoverText)
-                        .selectedBackground(listRowSelected)
-                        .selectedTextColor(colors.hoverText));
-        }
-
-        private ThemeBuilder<?> theme() {
-            IDrawable button = new AE2ButtonDrawable(State.NORMAL, folder),
-                lit = new AE2ButtonDrawable(State.HOVER, folder);
-            int normal = colors.buttonText, hover = colors.hoverText;
-            ThemeBuilder<?> theme = PaletteThemes.build(id, ThemeAPI.DEFAULT_ID, palette, STYLE, skin)
-                .defaultTextShadow(false)
-                .background(IThemeApi.BUTTON, button)
-                .hoverBackground(IThemeApi.BUTTON, lit)
-                .textColor(IThemeApi.BUTTON, normal)
-                .textHoverColor(IThemeApi.BUTTON, hover)
-                .textShadow(IThemeApi.BUTTON, false)
-                .textHoverShadow(IThemeApi.BUTTON, false)
-                .widgetTheme(
-                    IThemeApi.TOGGLE_BUTTON,
-                    new SelectableTheme.Builder<>().background(button)
-                        .textColor(normal)
-                        .selectedBackground(lit)
-                        .selectedTextColor(hover))
-                .widgetThemeHover(
-                    IThemeApi.TOGGLE_BUTTON,
-                    new SelectableTheme.Builder<>().background(lit)
-                        .textColor(hover)
-                        .selectedBackground(lit)
-                        .selectedTextColor(hover))
-                .background(IThemeApi.CLOSE_BUTTON, button)
-                .hoverBackground(IThemeApi.CLOSE_BUTTON, lit)
-                .textColor(IThemeApi.CLOSE_BUTTON, normal)
-                .textHoverColor(IThemeApi.CLOSE_BUTTON, hover)
-                .textShadow(IThemeApi.CLOSE_BUTTON, false)
-                .textHoverShadow(IThemeApi.CLOSE_BUTTON, false)
-                .background(IThemeApi.FLUID_SLOT, slotFluid)
-                .background(IThemeApi.TEXT_FIELD, textField)
-                .textColor(IThemeApi.TEXT_FIELD, colors.fieldText)
-                .textFieldHintColor(colors.placeholder)
-                .textFieldMarkedColor(FIELD_SELECTION)
-                .background(IThemeApi.SCROLLBAR, scroller)
-                .widgetTheme(
-                    SlideSwitch.Theme.KEY,
-                    new SlideSwitch.Theme.Builder().text(colors.text, colors.muted, colors.text)
-                        .sprites(switchOff, switchOffHover, switchOn, switchOnHover))
-                .hoverBackground(SlideSwitch.Theme.KEY, IDrawable.EMPTY)
-                .widgetTheme(
-                    LayoutTheme.KEY,
-                    new LayoutTheme.Builder().values(STYLE.layout())
-                        .switches(SWITCH_WIDTH, SWITCH_HEIGHT, SWITCH_LABEL_X - SWITCH_WIDTH))
-                .background(ButtonPurpose.PRIMARY.key, lit)
-                .hoverBackground(ButtonPurpose.PRIMARY.key, lit)
-                .textColor(ButtonPurpose.PRIMARY.key, hover)
-                .textHoverColor(ButtonPurpose.PRIMARY.key, hover)
-                .textShadow(ButtonPurpose.PRIMARY.key, false)
-                .textHoverShadow(ButtonPurpose.PRIMARY.key, false)
-                .background(ButtonPurpose.DANGER.key, button)
-                .hoverBackground(ButtonPurpose.DANGER.key, lit)
-                .textColor(ButtonPurpose.DANGER.key, colors.bad)
-                .textHoverColor(ButtonPurpose.DANGER.key, colors.bad)
-                .background(ButtonPurpose.ICON.key, iconButton)
-                .hoverBackground(ButtonPurpose.ICON.key, iconButtonHover);
-            theme.mergeAdd(
-                IThemeApi.TOGGLE_BUTTON.getFullName(),
-                new JsonBuilder().add(IThemeApi.SELECTED_TEXT_SHADOW, false));
-            PaletteThemes.decorate(theme, palette);
-            return theme;
-        }
-    }
-
-    /** Shared toolbar icons with AE2 sprites and MUI2 fallback textures. */
-    public enum Icon {
-
-        /** Copy action. */
-        COPY(192, 0, GuiTextures.COPY),
-        /** Additional actions. */
-        MORE(16, 0, GuiTextures.MORE),
-        /** Refresh action. */
-        REFRESH(240, 0, GuiTextures.REFRESH),
-        /** Visibility control. */
-        VISIBLE(16, 32, GuiTextures.VISIBLE),
-        /** Start or resume action. */
-        PLAY(48, 32, GuiTextures.PLAY),
-        /** Pause action. */
-        PAUSE(64, 32, GuiTextures.PAUSE),
-        /** Move-to action. */
-        MOVE_TO(224, 32, GuiTextures.MOVE_TO),
-        /** Search action. */
-        SEARCH(160, 48, GuiTextures.SEARCH),
-        /** Confirmation action. */
-        CHECKMARK(176, 48, GuiTextures.CHECKMARK),
-        /** Settings action. */
-        GEAR(0, 0, GuiTextures.GEAR),
-        /** Add action. */
-        ADD(64, 0, GuiTextures.ADD),
-        /** Remove action. */
-        REMOVE(96, 0, GuiTextures.REMOVE),
-        /** Close action. */
-        CLOSE(112, 16, GuiTextures.CLOSE),
-        /** Edit action. */
-        EDIT(80, 16, GuiTextures.EDIT),
-        /** Filter control. */
-        FILTER(128, 0, GuiTextures.FILTER);
-
-        /** Source coordinates within the AE2 icon sheet, in pixels. */
-        public final int x, y;
-        /** MUI2 fallback texture used outside AE2 themes. */
-        public final UITexture vanilla;
-        private final UITexture[] skins = new UITexture[Variant.values().length];
-
-        Icon(int x, int y, UITexture vanilla) {
-            this.x = x;
-            this.y = y;
-            this.vanilla = vanilla;
-        }
-
-        /**
-         * Resolves this icon's texture, caching the AE2 sprite for each variant.
-         *
-         * @param variant AE2 variant, or {@code null} for the MUI2 fallback
-         * @return icon texture
-         */
-        public UITexture texture(@Nullable Variant variant) {
-            if (variant == null) return vanilla;
-            UITexture skin = skins[variant.ordinal()];
-            if (skin == null)
-                skin = skins[variant.ordinal()] = sprite(variant.folder, "icons", SHEET, x, y, ICON_SIZE, ICON_SIZE);
-            return skin;
-        }
-    }
-
-    /** Client event listener that reinstalls the theme definitions before a MUI2 theme reload. */
+    @SideOnly(Side.CLIENT)
     public static class Reloader {
 
         /**

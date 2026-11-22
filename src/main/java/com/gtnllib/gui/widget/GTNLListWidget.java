@@ -1,28 +1,26 @@
 package com.gtnllib.gui.widget;
 
+import org.jetbrains.annotations.NotNull;
+
+import com.cleanroommc.modularui.api.UpOrDown;
 import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.theme.WidgetThemeEntry;
 import com.cleanroommc.modularui.widget.scroll.ScrollData;
 import com.cleanroommc.modularui.widgets.ListWidget;
+import com.gtnllib.gui.theme.MUI2Fixes;
+import com.gtnllib.gui.theme.ae2.AE2Look;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/**
- * List widget with an initial vertical offset and support for persistent scroll bars.
- * <p>
- * Scroll data implementing {@link IPersistentScrollbar} reserves its thickness during layout even when the content
- * fits. Its inactive track is drawn after the content. Scroll offsets are clamped after each resize.
- *
- * @param <I> child widget type
- * @param <W> fluent widget type
- */
 public class GTNLListWidget<I extends IWidget, W extends ListWidget<I, W>> extends ListWidget<I, W> {
 
     private int initialScrollY;
 
-    /** Creates a list positioned at the start of its content. */
+    /**
+     * Creates a list positioned at the start of its content.
+     */
     public GTNLListWidget() {
         this(0);
     }
@@ -35,6 +33,7 @@ public class GTNLListWidget<I extends IWidget, W extends ListWidget<I, W>> exten
     public GTNLListWidget(int initialScrollY) {
         super();
         this.initialScrollY = initialScrollY;
+        MUI2Fixes.noScrollShadows(this);
     }
 
     @Override
@@ -47,6 +46,7 @@ public class GTNLListWidget<I extends IWidget, W extends ListWidget<I, W>> exten
     public void beforeResize(boolean onOpen) {
         super.beforeResize(onOpen);
         ScrollData data = getScrollData();
+        if (data instanceof HandleScrollData handle) handle.look(AE2Look.of(this));
         if (data instanceof IPersistentScrollbar) {
             getScrollArea().getScrollPadding()
                 .scrollPadding(
@@ -55,6 +55,51 @@ public class GTNLListWidget<I extends IWidget, W extends ListWidget<I, W>> exten
                     data.isOnAxisStart(),
                     data.getThickness());
         }
+    }
+
+    @Override
+    public void onUpdate() {
+        super.onUpdate();
+        if (getScrollData() instanceof HandleScrollData handle) {
+            if (isValid() && areAncestorsEnabled()) handle.repeatPaging(getScrollArea());
+            else handle.stopInteraction();
+        }
+    }
+
+    @Override
+    public void dispose() {
+        if (getScrollData() instanceof HandleScrollData handle) handle.stopInteraction();
+        super.dispose();
+    }
+
+    // MUI2 treats every mouse button on the scroll bar as a left press; AE2 scroll bars react to the left one only.
+    @Override
+    public @NotNull Result onMousePressed(int mouseButton) {
+        ModularGuiContext context = getContext();
+        if (mouseButton != 0 && getScrollArea().isInsideScrollbarArea(context.getMouseX(), context.getMouseY()))
+            return Result.IGNORE;
+        return super.onMousePressed(mouseButton);
+    }
+
+    @Override
+    public boolean onMouseRelease(int mouseButton) {
+        if (mouseButton != 0) return false;
+        if (getScrollData() instanceof HandleScrollData handle) handle.stopPaging();
+        return super.onMouseRelease(mouseButton);
+    }
+
+    @Override
+    public void onMouseDrag(int mouseButton, long timeSinceClick) {
+        if (getScrollData() instanceof HandleScrollData handle) {
+            if (mouseButton == 0 && handle.isDragging()) handle.dragTo(getScrollArea(), getContext().getMouseY());
+        } else super.onMouseDrag(mouseButton, timeSinceClick);
+    }
+
+    @Override
+    public boolean onMouseScroll(UpOrDown direction, int amount) {
+        return getScrollData() instanceof HandleScrollData handle
+            ? MUI2Fixes.scrollWheel(getScrollArea(), handle, direction)
+            : super.onMouseScroll(direction, amount);
     }
 
     @Override

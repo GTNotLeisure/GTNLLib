@@ -19,11 +19,8 @@ import com.cleanroommc.modularui.theme.WidgetThemeKey;
 import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.utils.JsonBuilder;
 import com.gtnllib.gui.theme.ThemeSkin.Part;
-import com.gtnllib.gui.widget.CardDrawable;
 import com.gtnllib.gui.widget.Divider;
 import com.gtnllib.gui.widget.FillBar;
-import com.gtnllib.gui.widget.FrameDrawable;
-import com.gtnllib.gui.widget.LayoutTheme;
 import com.gtnllib.gui.widget.SlideSwitch;
 import com.gtnllib.gui.widget.StepSlider;
 
@@ -40,7 +37,7 @@ public class PaletteThemes {
     private static final Map<String, Definition> THEMES = new Object2ObjectLinkedOpenHashMap<>();
     private static final List<BiConsumer<ThemeBuilder<?>, ThemePalette>> EXTENSIONS = new ObjectArrayList<>();
     private static final List<LivePalette> LIVE = new ObjectArrayList<>();
-    private static final Map<String, Variant> VARIANTS = new Object2ObjectOpenHashMap<>();
+    private static final Map<String, Recolored> RECOLORED = new Object2ObjectOpenHashMap<>();
     private static final List<Runnable> LISTENERS = new ObjectArrayList<>();
     private static Supplier<String> chosen = () -> "";
 
@@ -125,7 +122,7 @@ public class PaletteThemes {
         Definition definition = THEMES.get(id);
         if (definition == null || palette == null || palette.equals(definition.palette())) return IThemeApi.get()
             .getTheme(id);
-        Variant cached = VARIANTS.get(id);
+        Recolored cached = RECOLORED.get(id);
         if (cached != null && cached.palette()
             .equals(palette)) return cached.theme();
         ITheme theme = VariantTheme.parse(
@@ -133,7 +130,7 @@ public class PaletteThemes {
             IThemeApi.get()
                 .getTheme(definition.parent()),
             decorated(id, definition, palette).getJson());
-        VARIANTS.put(id, new Variant(palette, theme));
+        RECOLORED.put(id, new Recolored(palette, theme));
         return theme;
     }
 
@@ -267,7 +264,7 @@ public class PaletteThemes {
 
     private record Definition(String parent, ThemePalette palette, ThemeStyle style, ThemeSkin skin) {}
 
-    private record Variant(ThemePalette palette, ITheme theme) {}
+    private record Recolored(ThemePalette palette, ITheme theme) {}
 
     public static class Reloader {
 
@@ -278,7 +275,7 @@ public class PaletteThemes {
 
         @SubscribeEvent
         public void onThemesLoaded(ReloadThemeEvent.Post event) {
-            VARIANTS.clear();
+            RECOLORED.clear();
         }
     }
 }

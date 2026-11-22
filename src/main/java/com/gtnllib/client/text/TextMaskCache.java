@@ -20,7 +20,6 @@ import com.gtnllib.text.TextEffectColors;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 
-/** Render-thread-owned, bounded cache of native font coverage masks. */
 public class TextMaskCache {
 
     private static final int MAX_ENTRIES = 256;
@@ -476,7 +475,6 @@ public class TextMaskCache {
         }
     }
 
-    /** {@code advance} is how far the font moved its pen while drawing the text, which may differ from its measure. */
     public record Mask(Framebuffer target, float width, float height, float padding, int resolution, float advance) {
 
         public Mask(Framebuffer target, float width, float height, float padding, int resolution) {

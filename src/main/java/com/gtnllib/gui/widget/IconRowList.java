@@ -1,0 +1,638 @@
+package com.gtnllib.gui.widget;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.function.LongConsumer;
+import java.util.function.Supplier;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.item.ItemStack;
+
+import org.jetbrains.annotations.NotNull;
+import org.lwjgl.opengl.GL11;
+
+import com.cleanroommc.modularui.api.UpOrDown;
+import com.cleanroommc.modularui.api.widget.Interactable;
+import com.cleanroommc.modularui.drawable.GuiDraw;
+import com.cleanroommc.modularui.drawable.ItemDrawable;
+import com.cleanroommc.modularui.integration.recipeviewer.RecipeViewerIngredientProvider;
+import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
+import com.cleanroommc.modularui.theme.WidgetThemeEntry;
+import com.cleanroommc.modularui.widget.ParentWidget;
+import com.gtnllib.gui.theme.AE2Theme;
+import com.gtnllib.gui.theme.ae2.AE2ListRowPainter;
+import com.gtnllib.gui.theme.ae2.AE2Look;
+import com.gtnllib.gui.theme.ae2.AE2PanelPainter;
+import com.gtnllib.gui.theme.ae2.PlainLook;
+
+import it.unimi.dsi.fastutil.booleans.BooleanArrayList;
+import it.unimi.dsi.fastutil.booleans.BooleanList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+
+public class IconRowList extends ParentWidget<IconRowList> implements Interactable, RecipeViewerIngredientProvider {
+
+    /**
+     * Standard row height, width of the plain look's thin scroll bar, indent of a dropdown's options, width kept for a
+     * dropdown's caret and standard width of a number field, in pixels.
+     */
+    public static final int ROW = AE2ListRowPainter.ROW_HEIGHT, SCROLLBAR = 3, INDENT = 10, CARET = 9,
+        NUMBER_WIDTH = 64;
+    /**
+     * Row colors that stand for the look's own colors: a row in {@code TEXT} uses the look's list text color, and
+     * header rows carry {@code HEADER}.
+     */
+    public static final int HEADER = runtime(0xFFA0A0A8), TEXT = runtime(0xFFE8E8E8);
+    /**
+     * Row colors that stand for the look's good and bad colors; they are the plain look's own. Pass these fields rather
+     * than their values: the values may change between GTNLLib versions.
+     */
+    public static final int GOOD = runtime(PlainLook.GOOD), BAD = runtime(PlainLook.BAD);
+    /**
+     * Width taken by the scroll bar right of the inset under AE2 themes, like AE2's lists: the groove sits on the panel
+     * background, eight pixels from the inset's edge, as in AE2's network status and crafting CPU screens.
+     */
+    public static final int AE2_SCROLL_COLUMN = AE2Theme.BIG_SCROLLER_WIDTH + 5;
+    private static final int AE2_GUTTER = AE2_SCROLL_COLUMN + 1, PLAIN_GUTTER = SCROLLBAR + AE2Look.WELL_EDGE,
+        ICON = 16, MIN_ROW = ICON, MIN_NUMBER_WIDTH = 32;
+
+    /**
+     * The number field of a row.
+     *
+     * @param value shown value; it replaces the text whenever the player is not typing
+     * @param min   inclusive minimum
+     * @param max   inclusive maximum
+     * @param reset value set by right-clicking the field, clamped to the bounds
+     * @param set   receives every valid value the player enters
+     */
+    public record Numeric(long value, long min, long max, long reset, LongConsumer set) {}
+
+    /**
+     * One row, made by one of the factory methods and adjusted with the {@code with...} methods, each of which returns
+     * a changed copy. A row is a header, a plain or clickable item, a check box, a dropdown or a number field. An
+     * unavailable row is drawn muted with a faded check box, does not highlight and ignores clicks; its number field
+     * looks disabled.
+     */
+    public static class Row {
+
+        private ItemStack icon;
+        private String text, detail = "";
+        private int color = TEXT, detailColor;
+        private boolean selected, header, available = true;
+        private Runnable click, secondary;
+        private List<Row> options;
+        private Boolean checked;
+        private Numeric number;
+        private Object key;
+
+        private Row(ItemStack icon, String text) {
+            this.icon = icon;
+            this.text = text;
+        }
+
+        private Row copy() {
+            Row copy = new Row(icon, text);
+            copy.detail = detail;
+            copy.color = color;
+            copy.detailColor = detailColor;
+            copy.selected = selected;
+            copy.header = header;
+            copy.available = available;
+            copy.click = click;
+            copy.secondary = secondary;
+            copy.options = options;
+            copy.checked = checked;
+            copy.number = number;
+            copy.key = key;
+            return copy;
+        }
+
+        /**
+         * Creates a section header: muted text and, under AE2 themes, a divider line. It does not react to the mouse.
+         *
+         * @param text header text
+         * @return the new row
+         */
+        public static Row header(String text) {
+            Row row = new Row(null, text);
+            row.color = HEADER;
+            row.header = true;
+            return row;
+        }
+
+        /**
+         * Creates a row with an optional item icon, a text and a detail against its right end.
+         *
+         * @param icon     item drawn as a 16-pixel icon, or {@code null} for none
+         * @param text     row text, cut to the width left of the detail
+         * @param detail   text against the row's right end, or an empty string
+         * @param selected whether the row shows the selected background
+         * @param click    run on a left click, or {@code null} for a row that is not clickable
+         * @return the new row
+         */
+        public static Row item(ItemStack icon, String text, String detail, boolean selected, Runnable click) {
+            Row row = new Row(icon, text);
+            row.detail = detail;
+            row.selected = selected;
+            row.click = click;
+            return row;
+        }
+
+        /**
+         * Creates a row that is not clickable, with its text and detail in a color of its own.
+         *
+         * @param icon   item drawn as a 16-pixel icon, or {@code null} for none
+         * @param text   row text
+         * @param detail text against the row's right end, or an empty string
+         * @param color  ARGB color; {@link #TEXT}, {@link #GOOD} and {@link #BAD} follow the look
+         * @return the new row
+         */
+        public static Row colored(ItemStack icon, String text, String detail, int color) {
+            Row row = new Row(icon, text);
+            row.detail = detail;
+            row.color = color;
+            return row;
+        }
+
+        /**
+         * Creates a row with a check box against its right end; a left click anywhere on the row runs the action.
+         *
+         * @param text  row text
+         * @param on    whether the box is checked
+         * @param click run on a left click, usually flipping the value
+         * @return the new row
+         */
+        public static Row checkbox(String text, boolean on, Runnable click) {
+            Row row = new Row(null, text);
+            row.checked = on;
+            row.click = click;
+            return row;
+        }
+
+        /**
+         * Creates a dropdown row: a left click opens its options as indented rows under it, and clicking an option
+         * closes them again.
+         *
+         * @param icon     item drawn as a 16-pixel icon, or {@code null} for none
+         * @param text     row text; without a {@link #withKey key}, the list knows which dropdown is open by its text
+         *                 and, for rows with the same text, their order
+         * @param detail   text against the row's right end, such as the current choice, or an empty string
+         * @param selected whether the row shows the selected background
+         * @param options  rows shown while the dropdown is open
+         * @return the new row
+         */
+        public static Row dropdown(ItemStack icon, String text, String detail, boolean selected, List<Row> options) {
+            Row row = new Row(icon, text);
+            row.detail = detail;
+            row.selected = selected;
+            row.options = options;
+            return row;
+        }
+
+        /**
+         * Creates a row with a {@link NumberEntryWidget} against its right end.
+         *
+         * @param text  row text
+         * @param value shown value; it replaces the field's text whenever the player is not typing
+         * @param min   inclusive minimum
+         * @param max   inclusive maximum
+         * @param reset value set by right-clicking the field, clamped to the bounds
+         * @param set   receives every valid value the player enters
+         * @return the new row
+         */
+        public static Row number(String text, long value, long min, long max, long reset, LongConsumer set) {
+            Row row = new Row(null, text);
+            row.number = new Numeric(value, min, max, reset, set);
+            return row;
+        }
+
+        /**
+         * Returns a copy of this row that can or cannot be used.
+         *
+         * @param available whether the row reacts to the mouse
+         * @return the new row
+         */
+        public Row withAvailable(boolean available) {
+            Row row = copy();
+            row.available = available;
+            return row;
+        }
+
+        /**
+         * Returns a copy of this row that runs the action on a right click.
+         *
+         * @param action action for the right mouse button
+         * @return the new row
+         */
+        public Row onRightClick(Runnable action) {
+            Row row = copy();
+            row.secondary = action;
+            return row;
+        }
+
+        /**
+         * Returns a copy of this row whose detail alone is drawn in another color; {@link #GOOD} and {@link #BAD}
+         * follow the AE2 theme like row colors do.
+         *
+         * @param color ARGB color of the detail
+         * @return the new row
+         */
+        public Row withDetailColor(int color) {
+            Row row = copy();
+            row.detailColor = color;
+            return row;
+        }
+
+        /**
+         * Identifies this row across updates. Use a unique stable key to keep dropdowns and numeric edits attached to
+         * the same row when labels or ordering change.
+         *
+         * @param key value that stays the same for this row across updates, such as a slot index or a block position;
+         *            compared with {@code equals}
+         * @return the new row
+         */
+        public Row withKey(Object key) {
+            Row row = copy();
+            row.key = key;
+            return row;
+        }
+    }
+
+    private record Occurrence(String text, int index) {}
+
+    private record OptionIdentity(Object parent, Object option) {}
+
+    private final Supplier<List<Row>> source;
+    private final List<NumberEntryWidget> entries = new ArrayList<>();
+    private final List<Row> entryRows = new ArrayList<>();
+    private final IntList entryTops = new IntArrayList();
+    private final List<Object> entryIdentities = new ArrayList<>();
+    private final List<Row> rows = new ArrayList<>();
+    private final BooleanList nested = new BooleanArrayList();
+    private final List<Object> identities = new ArrayList<>();
+    private final Object2IntOpenHashMap<String> counts = new Object2IntOpenHashMap<>();
+    private Object expanded;
+    private int scroll, edge, gutter = SCROLLBAR, rowHeight = ROW, numberWidth = NUMBER_WIDTH;
+    private boolean revealSelected, numberWheel;
+    private final Scrollbar scrollbar = new Scrollbar(() -> scroll, this::maxScroll, this::scrollTo)
+        .plainBar(PlainLook.THIN_SCROLL_BAR, this::visibleRows);
+
+    /**
+     * Creates a list over a supplier of rows. The caller sets its size.
+     *
+     * @param source supplier of the rows, read every tick while the list is shown; dropdown options are added by the
+     *               list while a dropdown is open
+     */
+    public IconRowList(Supplier<List<Row>> source) {
+        this.source = source;
+        child(
+            scrollbar.right(0)
+                .top(0)
+                .heightRel(1f)
+                .width(SCROLLBAR));
+    }
+
+    /**
+     * Scrolls back to the first row.
+     */
+    public void scrollToTop() {
+        scrollTo(0);
+    }
+
+    private void scrollTo(int row) {
+        scroll = row;
+        placeEntries();
+    }
+
+    /**
+     * Scrolls, once the list has been laid out, so that the first selected row sits in the middle of the view.
+     */
+    public IconRowList revealSelected() {
+        revealSelected = true;
+        return this;
+    }
+
+    /**
+     * Sets the height of every row; the standard is {@link #ROW}. Text, icons, check boxes, carets and number fields
+     * stay centred in the row. Make the list's inner height a multiple of it, or a strip stays empty at the bottom.
+     *
+     * @param rowHeight row height in pixels, at least 16 so a 16-pixel item icon fits
+     */
+    public IconRowList rowHeight(int rowHeight) {
+        this.rowHeight = Math.max(MIN_ROW, rowHeight);
+        resizeEntries();
+        return this;
+    }
+
+    /**
+     * Sets the width of the number fields of number rows; the standard is {@link #NUMBER_WIDTH}.
+     *
+     * @param numberWidth field width in pixels, at least 32 so the arrows and a few digits fit
+     */
+    public IconRowList numberWidth(int numberWidth) {
+        this.numberWidth = Math.max(MIN_NUMBER_WIDTH, numberWidth);
+        resizeEntries();
+        return this;
+    }
+
+    /**
+     * Sets whether the mouse wheel over a number row's field steps its value, as
+     * {@link NumberEntryWidget#wheel(boolean)} does. Off by default, so the wheel scrolls the list there too.
+     *
+     * @param numberWheel true to let the wheel step number fields
+     */
+    public IconRowList numberWheel(boolean numberWheel) {
+        this.numberWheel = numberWheel;
+        for (NumberEntryWidget entry : entries) entry.wheel(numberWheel);
+        return this;
+    }
+
+    private void resizeEntries() {
+        for (NumberEntryWidget entry : entries) entry.size(numberWidth, rowHeight - 2);
+        entryTops.replaceAll(top -> -1);
+        scheduleResize();
+    }
+
+    // MUI2 lets the mouse fall through a parent widget without a theme background; this one draws its own.
+    @Override
+    public boolean canHover() {
+        return true;
+    }
+
+    @Override
+    public boolean canClickThrough() {
+        return false;
+    }
+
+    @Override
+    public boolean canHoverThrough() {
+        return false;
+    }
+
+    /**
+     * Collapses an open dropdown.
+     */
+    public void collapse() {
+        expanded = null;
+    }
+
+    private boolean isExpanded(Object identity) {
+        return identity != null && identity.equals(expanded);
+    }
+
+    @Override
+    public void onUpdate() {
+        super.onUpdate();
+        // MUI2 updates hidden widgets too; a hidden list has nothing to rebuild.
+        if (!isValid() || !areAncestorsEnabled()) return;
+        rows.clear();
+        nested.clear();
+        identities.clear();
+        counts.clear();
+        boolean expandedPresent = false;
+        for (Row row : source.get()) {
+            int count = counts.addTo(row.text, 1);
+            Object identity = row.key != null ? row.key
+                : row.options != null || row.number != null ? new Occurrence(row.text, count) : null;
+            rows.add(row);
+            nested.add(false);
+            identities.add(identity);
+            if (row.options == null || !isExpanded(identity)) continue;
+            expandedPresent = true;
+            if (!row.available) {
+                expanded = null;
+                continue;
+            }
+            int optionIndex = 0;
+            for (Row option : row.options) {
+                rows.add(option);
+                nested.add(true);
+                identities.add(
+                    option.number == null ? null
+                        : new OptionIdentity(
+                            identity,
+                            option.key != null ? option.key : new Occurrence(option.text, optionIndex)));
+                optionIndex++;
+            }
+        }
+        if (!expandedPresent) expanded = null;
+        if (revealSelected && getArea().height >= rowHeight) {
+            revealSelected = false;
+            for (int i = 0; i < rows.size(); i++) {
+                if (!rows.get(i).selected) continue;
+                scroll = i - visibleRows() / 2;
+                break;
+            }
+        }
+        scroll = Math.max(0, Math.min(scroll, maxScroll()));
+        placeEntries();
+    }
+
+    private void placeEntries() {
+        int used = 0;
+        boolean moved = false;
+        for (int i = 0; i < visibleRows() && scroll + i < rows.size(); i++) {
+            Row row = rows.get(scroll + i);
+            if (row.number == null) continue;
+            if (used == entries.size()) {
+                addEntry();
+                moved = true;
+            }
+            NumberEntryWidget entry = entries.get(used);
+            Object identity = identities.get(scroll + i);
+            boolean rebound = !Objects.equals(entryIdentities.get(used), identity);
+            // End editing before rebinding so focus callbacks still address the previous row.
+            if (rebound && entry.isEditing()) getContext().removeFocus();
+            int top = edge + i * rowHeight + 1;
+            if (entryTops.getInt(used) != top) {
+                entry.top(top);
+                entryTops.set(used, top);
+                moved = true;
+            }
+            entryRows.set(used, row);
+            entryIdentities.set(used, identity);
+            entry.setEnabled(true);
+            Numeric number = row.number;
+            entry.bounds(number.min(), number.max())
+                .resetValue(number.reset());
+            if (rebound || !entry.isEditing() && (!entry.isInputValid() || entry.value()
+                .getAsLong() != number.value())) entry.value(number.value());
+            used++;
+        }
+        for (int i = used; i < entries.size(); i++) {
+            NumberEntryWidget entry = entries.get(i);
+            if (entry.isEditing()) getContext().removeFocus();
+            entry.setEnabled(false);
+            entryRows.set(i, null);
+            entryIdentities.set(i, null);
+        }
+        if (moved) scheduleResize();
+    }
+
+    private void addEntry() {
+        int index = entries.size();
+        NumberEntryWidget entry = new NumberEntryWidget().right(gutter + 2)
+            .top(0)
+            .size(numberWidth, rowHeight - 2)
+            .wheel(numberWheel)
+            .available(() -> {
+                Row row = entryRows.get(index);
+                return row != null && row.available;
+            })
+            .onChange(value -> {
+                Row row = entryRows.get(index);
+                if (row != null) row.number.set()
+                    .accept(value);
+            });
+        entries.add(entry);
+        entryRows.add(null);
+        entryTops.add(-1);
+        entryIdentities.add(null);
+        addChild(entry, -1);
+    }
+
+    @Override
+    public void beforeResize(boolean onOpen) {
+        super.beforeResize(onOpen);
+        boolean themed = AE2Look.of(this)
+            .isAE2();
+        int nextGutter = themed ? AE2_GUTTER : PLAIN_GUTTER;
+        if (edge == AE2Look.WELL_EDGE && nextGutter == gutter) return;
+        edge = AE2Look.WELL_EDGE;
+        gutter = nextGutter;
+        scrollbar.width(themed ? AE2Theme.BIG_SCROLLER_WIDTH : SCROLLBAR)
+            .right(themed ? 0 : AE2Look.WELL_EDGE);
+        for (NumberEntryWidget entry : entries) entry.right(gutter + 2);
+        entryTops.replaceAll(top -> -1);
+    }
+
+    @Override
+    public void postResize() {
+        super.postResize();
+        scroll = Math.max(0, Math.min(scroll, maxScroll()));
+        placeEntries();
+    }
+
+    private int visibleRows() {
+        return Math.max(1, (getArea().height - 2 * edge) / rowHeight);
+    }
+
+    private int maxScroll() {
+        return Math.max(0, rows.size() - visibleRows());
+    }
+
+    private boolean inGutter() {
+        return getContext().getMouseX() >= getArea().width - gutter;
+    }
+
+    private int hoveredRow() {
+        if (!isHovering() || inGutter()) return -1;
+        int mouseY = getContext().getMouseY() - edge;
+        int row = scroll + Math.floorDiv(mouseY, rowHeight);
+        return mouseY >= 0 && row < rows.size() && mouseY < visibleRows() * rowHeight ? row : -1;
+    }
+
+    @Override
+    public void draw(ModularGuiContext context, WidgetThemeEntry<?> widgetTheme) {
+        AE2Look look = AE2Look.of(this);
+        int width = getArea().width, height = getArea().height;
+        look.drawWell(0, 0, look.isAE2() ? width - AE2_SCROLL_COLUMN : width, height);
+        FontRenderer font = Minecraft.getMinecraft().fontRenderer;
+        int hovered = hoveredRow(), visible = visibleRows(), textTop = AE2ListRowPainter.textTop(rowHeight);
+        int rowRight = width - gutter, textRight = rowRight - 2;
+        for (int i = 0; i < visible && scroll + i < rows.size(); i++) {
+            int index = scroll + i;
+            Row row = rows.get(index);
+            int top = edge + i * rowHeight, left = edge + (nested.getBoolean(index) ? INDENT : 0);
+            boolean usable = row.available, lit = usable && index == hovered, shadow = usable && look.listShadow();
+            int textColor = usable ? color(look, row.color, look.listText()) : look.listMuted();
+            int detailColor = usable
+                ? color(look, row.detailColor != 0 ? row.detailColor : row.color, look.listDetail())
+                : look.listMuted();
+            if (nested.getBoolean(index)) GuiDraw.drawRect(edge, top, rowRight - edge, rowHeight, look.nested());
+            if (usable && row.selected) {
+                look.drawSelectedRow(left, top, rowRight - left, rowHeight);
+                textColor = detailColor = look.selectedText();
+            }
+            if (lit && !row.header && !row.selected)
+                GuiDraw.drawRect(left, top, rowRight - left, rowHeight, look.hover());
+            int textLeft = left + 3;
+            if (row.icon != null) {
+                new ItemDrawable(row.icon)
+                    .draw(context, left + 1, top + (rowHeight - ICON) / 2, ICON, ICON, widgetTheme.getTheme());
+                textLeft = left + 19;
+            }
+            int right = textRight;
+            if (row.number != null) right -= numberWidth + 2;
+            if (row.options != null) {
+                AE2PanelPainter.drawCaret(
+                    textRight - CARET + 2,
+                    top + (rowHeight - AE2Theme.CARET_HEIGHT) / 2,
+                    isExpanded(identities.get(index)),
+                    textColor);
+                right -= CARET;
+            }
+            if (row.checked != null)
+                right -= AE2ListRowPainter.drawCheckbox(look, textRight, top, rowHeight, row.checked, lit, usable) + 3;
+            String detail = row.detail == null ? "" : row.detail;
+            int detailWidth = detail.isEmpty() ? 0 : font.getStringWidth(detail) + 3, textY = top + textTop;
+            if (!detail.isEmpty()) font.drawString(detail, right - detailWidth + 3, textY, detailColor, shadow);
+            String text = font.trimStringToWidth(row.text, Math.max(0, right - detailWidth - textLeft));
+            if (row.header) AE2ListRowPainter.drawHeader(look, text, textLeft, top, rowHeight, rowRight);
+            else font.drawString(text, textLeft, textY, textColor, shadow);
+        }
+        GL11.glColor4f(1f, 1f, 1f, 1f);
+    }
+
+    // Set through a call so that other mods read the marker colors at run time instead of compiling their values in.
+    private static int runtime(int color) {
+        return color;
+    }
+
+    private static int color(AE2Look look, int color, int plain) {
+        if (color == TEXT) return plain;
+        return color == GOOD ? look.good() : color == BAD ? look.bad() : color;
+    }
+
+    @Override
+    public @NotNull Result onMousePressed(int mouseButton) {
+        int index = hoveredRow();
+        if (index < 0) return Result.ACCEPT;
+        Row row = rows.get(index);
+        return Availability.press(row.available, () -> pressRow(row, index, mouseButton));
+    }
+
+    private Result pressRow(Row row, int index, int mouseButton) {
+        if (mouseButton == 1) {
+            if (row.secondary == null) return Result.ACCEPT;
+            row.secondary.run();
+            Interactable.playButtonClickSound();
+            return Result.SUCCESS;
+        }
+        if (mouseButton != 0) return Result.ACCEPT;
+        if (row.options != null) {
+            expanded = isExpanded(identities.get(index)) ? null : identities.get(index);
+            Interactable.playButtonClickSound();
+        } else if (row.click != null) {
+            row.click.run();
+            if (nested.getBoolean(index)) expanded = null;
+            Interactable.playButtonClickSound();
+        }
+        return Result.SUCCESS;
+    }
+
+    @Override
+    public boolean onMouseScroll(UpOrDown scrollDirection, int amount) {
+        scrollbar.scroll(scrollDirection);
+        return true;
+    }
+
+    @Override
+    public ItemStack getStackForRecipeViewer() {
+        int index = hoveredRow();
+        return index < 0 ? null : rows.get(index).icon;
+    }
+}

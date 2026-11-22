@@ -11,7 +11,6 @@ import org.lwjgl.opengl.GL11;
 import it.unimi.dsi.fastutil.objects.ObjectArrayFIFOQueue;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 
-/** Replays effect text after the model geometry that owns Angelica's deferred font batch. */
 public class DeferredTextEffects {
 
     private static final ObjectArrayFIFOQueue<Draw> PENDING = new ObjectArrayFIFOQueue<>();
@@ -56,7 +55,6 @@ public class DeferredTextEffects {
         if (POOL.size() < 256) POOL.push(draw);
     }
 
-    /** Mutable storage is reused between frames and owned exclusively by the render thread. */
     public static class Draw {
 
         private final FloatBuffer projection = BufferUtils.createFloatBuffer(16);

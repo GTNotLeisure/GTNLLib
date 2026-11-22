@@ -5,7 +5,6 @@ import java.util.Random;
 
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
-/** A reproducible tick schedule with independent idle trials and non-retriggerable flashes. */
 public class TickFlashTimeline {
 
     private final int durationTicks;

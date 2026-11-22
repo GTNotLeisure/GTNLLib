@@ -21,7 +21,6 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 
-/** Client-independent syntax and native formatting rules for effect text. */
 public class TextEffectFormat {
 
     public static final String INLINE_OPEN = "\u00a7{";
@@ -182,7 +181,9 @@ public class TextEffectFormat {
         return result.toString();
     }
 
-    /** Returns the hold in seconds of a pause marker header such as {@code p;0.8}, or -1 for any other header. */
+    /**
+     * Returns the hold in seconds of a pause marker header such as {@code p;0.8}, or -1 for any other header.
+     */
     public static float readPause(String header) {
         Matcher matcher = PAUSE.matcher(header);
         if (!matcher.matches()) return -1;
@@ -190,7 +191,9 @@ public class TextEffectFormat {
         return seconds <= MAX_PAUSE_SECONDS ? seconds : -1;
     }
 
-    /** Writes a time or option value rounded to three decimals without trailing zeros, for example {@code 2.5}. */
+    /**
+     * Writes a time or option value rounded to three decimals without trailing zeros, for example {@code 2.5}.
+     */
     public static String writeDecimal(float value) {
         if (!Float.isFinite(value)) throw new IllegalArgumentException("Value must be finite");
         return BigDecimal.valueOf(value)
@@ -218,7 +221,9 @@ public class TextEffectFormat {
         return rendererId.equals(qualify(SHAKE));
     }
 
-    /** Writes the effect's options as {@code name=value} joined by {@code separator}, in name order. */
+    /**
+     * Writes the effect's options as {@code name=value} joined by {@code separator}, in name order.
+     */
     public static String optionsValue(TextEffectStyle style, String separator) {
         StringBuilder result = new StringBuilder();
         for (Map.Entry<String, Float> entry : style.options()
@@ -232,7 +237,9 @@ public class TextEffectFormat {
         return result.toString();
     }
 
-    /** Reads {@code name=value} pairs joined by commas, as the scoped form writes them. */
+    /**
+     * Reads {@code name=value} pairs joined by commas, as the scoped form writes them.
+     */
     public static TextEffectStyle readOptions(TextEffectStyle style, String value) {
         SortedMap<String, Float> options = new TreeMap<>(style.options());
         for (String pair : value.split(",", -1)) {
@@ -261,19 +268,25 @@ public class TextEffectFormat {
             options);
     }
 
-    /** Text-only renderers that need no registered shader: the typewriter, the number roll and the shake. */
+    /**
+     * Text-only renderers that need no registered shader: the typewriter, the number roll and the shake.
+     */
     public static boolean isPlainRenderer(String rendererId) {
         return isTypewriter(rendererId) || isRoll(rendererId) || isShake(rendererId);
     }
 
-    /** Writes the shake as text, for example {@code 2:sync:jump}, or an empty string when the span stays still. */
+    /**
+     * Writes the shake as text, for example {@code 2:sync:jump}, or an empty string when the span stays still.
+     */
     public static String shakeValue(Shake shake) {
         if (shake.pixels() == 0) return "";
         return shake.pixels() + (shake.mode() == ShakeMode.EACH ? "" : ":" + shake.mode().id)
             + (shake.motion() == ShakeMotion.SMOOTH ? "" : ":" + shake.motion().id);
     }
 
-    /** Reads a pixel amount followed by any of {@code each|sync} and {@code smooth|jump}, each group at most once. */
+    /**
+     * Reads a pixel amount followed by any of {@code each|sync} and {@code smooth|jump}, each group at most once.
+     */
     public static TextEffectStyle readShake(TextEffectStyle style, String value) {
         String[] parts = value.split(":", -1);
         int start = 0;
@@ -320,7 +333,9 @@ public class TextEffectFormat {
             + (roll.waits() ? "" : ":" + NO_WAIT);
     }
 
-    /** The blur as a roll word such as {@code :blur=40}, or an empty string for the default. */
+    /**
+     * The blur as a roll word such as {@code :blur=40}, or an empty string for the default.
+     */
     public static String blurWord(Roll roll) {
         return roll.blur() == TextEffectStyle.DEFAULT_ROLL_BLUR ? "" : ":" + BLUR_PARAMETER + "=" + roll.blur();
     }

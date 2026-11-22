@@ -22,7 +22,6 @@ import com.gtnllib.client.text.EffectTextRenderer;
 import com.gtnllib.client.text.compat.AngelicaTextAdapter;
 import com.gtnllib.client.text.compat.FontBatchBridge;
 
-/** Flushes the current batch before temporary render-target changes. */
 @Mixin(value = BatchingFontRenderer.class, remap = false)
 public abstract class MixinFontBatchTextEffects implements FontBatchBridge {
 

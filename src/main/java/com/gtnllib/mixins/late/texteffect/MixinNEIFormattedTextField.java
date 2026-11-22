@@ -14,7 +14,6 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 
 import codechicken.nei.FormattedTextField;
 
-/** Keeps editable declarations intact and shares the source-aware vanilla text field renderer. */
 @Mixin(value = FormattedTextField.class, remap = false)
 public abstract class MixinNEIFormattedTextField extends GuiTextField {
 

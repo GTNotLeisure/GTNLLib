@@ -9,7 +9,6 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import com.gtnllib.text.EffectTextParser;
 import com.gtnllib.text.TextEffects;
 
-/** Removes effect declarations wherever vanilla explicitly requests unformatted text. */
 @Mixin(EnumChatFormatting.class)
 public abstract class MixinEnumChatFormattingTextEffects {
 

@@ -7,6 +7,7 @@ import net.minecraftforge.common.MinecraftForge;
 
 import com.gtnllib.client.fx.world.FxEffects;
 import com.gtnllib.client.fx.world.FxMoteRenderer;
+import com.gtnllib.client.gallery.WidgetGalleryCommand;
 import com.gtnllib.client.hud.HudLayout;
 import com.gtnllib.client.hud.HudOverlay;
 import com.gtnllib.client.shader.ShaderEffect;
@@ -41,6 +42,7 @@ public class GTNLLibClient {
         ((IReloadableResourceManager) Minecraft.getMinecraft()
             .getResourceManager()).registerReloadListener(EffectTextRenderer.INSTANCE);
         ClientCommandHandler.instance.registerCommand(new TextEffectPreviewCommand());
+        ClientCommandHandler.instance.registerCommand(new WidgetGalleryCommand());
     }
 
     public static void connectConfig() {

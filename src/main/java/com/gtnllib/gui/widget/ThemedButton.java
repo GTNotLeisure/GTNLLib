@@ -1,0 +1,57 @@
+package com.gtnllib.gui.widget;
+
+import java.util.function.BooleanSupplier;
+
+import org.jetbrains.annotations.NotNull;
+
+import com.cleanroommc.modularui.api.layout.IViewportStack;
+import com.cleanroommc.modularui.widgets.ButtonWidget;
+
+public class ThemedButton<W extends ThemedButton<W>> extends ButtonWidget<W> implements IAvailable<W> {
+
+    private final Availability availability = new Availability();
+    private BooleanSupplier selected = () -> false;
+
+    @Override
+    public Availability availability() {
+        return availability;
+    }
+
+    /**
+     * Sets when the button shows the theme's selected look, such as the button of the current choice.
+     *
+     * @param selected supplier read every frame
+     */
+    public W selected(BooleanSupplier selected) {
+        this.selected = selected;
+        return getThis();
+    }
+
+    /**
+     * Sets what a left click does while the button is available; other mouse buttons do nothing. A mouse handler set
+     * afterwards replaces it.
+     *
+     * @param action run on a left click
+     */
+    public W action(Runnable action) {
+        return onMousePressed(button -> {
+            if (button != 0) return false;
+            action.run();
+            return true;
+        });
+    }
+
+    protected boolean isSelected() {
+        return selected.getAsBoolean();
+    }
+
+    @Override
+    public boolean canBeSeen(IViewportStack stack) {
+        return isEnabled() && super.canBeSeen(stack);
+    }
+
+    @Override
+    public @NotNull Result onMousePressed(int button) {
+        return availability.press(() -> super.onMousePressed(button));
+    }
+}

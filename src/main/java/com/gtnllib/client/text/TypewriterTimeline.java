@@ -20,11 +20,6 @@ import cpw.mods.fml.common.gameevent.TickEvent.RenderTickEvent;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 
-/**
- * Render-thread-owned typing clock. A marked string starts typing when it appears and starts over after it has not
- * been drawn for a frame. Lines inside one string type one after another, and so do strings drawn lower at the same x
- * in the same frame, such as the lines of a tooltip.
- */
 public class TypewriterTimeline {
 
     public static final TypewriterTimeline INSTANCE = new TypewriterTimeline();
@@ -43,7 +38,9 @@ public class TypewriterTimeline {
         enabled = setting;
     }
 
-    /** Text being edited, such as a text field, shows in full until the matching {@link #endStill()}. */
+    /**
+     * Text being edited, such as a text field, shows in full until the matching {@link #endStill()}.
+     */
     public void beginStill() {
         stillDepth++;
     }
@@ -69,7 +66,9 @@ public class TypewriterTimeline {
         chain.font = null;
     }
 
-    /** Returns null for complete, disabled or oversized animations; oversized text remains fully visible. */
+    /**
+     * Returns null for complete, disabled or oversized animations; oversized text remains fully visible.
+     */
     public Typing plan(FontRenderer font, String text, Layout layout, float x, float y, double seconds) {
         if (stillDepth > 0 || !enabled.getAsBoolean() || text.length() >= MAX_CACHED_TEXT_LENGTH) return null;
         AppearanceKey key = new AppearanceKey(font, text);
@@ -164,10 +163,6 @@ public class TypewriterTimeline {
         }
     }
 
-    /**
-     * Glyph {@code index} of a run is {@code progress} (0 to 1) through its entrance {@code kind}; a slam starts at
-     * {@code size} times the glyph's size.
-     */
     public record GlyphEntrance(int index, float progress, TextEntrance kind, float size) {}
 
     // Hidden glyphs still advance the clock; a waiting roll advances it once for the entire run.

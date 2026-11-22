@@ -14,7 +14,6 @@ import org.lwjgl.opengl.GLContext;
 
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 
-/** Owns the GL state changed by a temporary font target or effect pass. */
 public class TextRenderState implements AutoCloseable {
 
     private static final ObjectArrayList<FloatBuffer> MATRIX_BUFFERS = new ObjectArrayList<>();
