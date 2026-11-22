@@ -18,7 +18,9 @@ import com.gtnllib.gui.theme.ae2.IconSource;
  */
 public class TabButton extends ThemedButton<TabButton> {
 
-    /** Offset of AE2's back button from its panel's top edge, and its distance from the panel's right edge. */
+    /**
+     * Offset of AE2's back button from its panel's top edge, and its distance from the panel's right edge.
+     */
     public static final int BACK_TOP = -5, BACK_RIGHT = 4;
 
     /**

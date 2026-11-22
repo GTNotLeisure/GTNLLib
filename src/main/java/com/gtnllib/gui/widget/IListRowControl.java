@@ -1,9 +1,5 @@
 package com.gtnllib.gui.widget;
 
-/**
- * A control that draws differently as the control of a {@link ListRow}, such as text in the list's colors instead of
- * the panel's.
- */
 public interface IListRowControl {
 
     /**

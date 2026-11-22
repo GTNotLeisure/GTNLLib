@@ -27,29 +27,16 @@ import com.gtnllib.GTNLLib;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.ae2.AE2ButtonDrawable.State;
 
-/**
- * The look GTNLLib's AE2-styled widgets take in one panel: one of the three AE2 skins, or the plain look every other
- * theme gets. Widgets ask {@link #of(IWidget)} while they draw, so a panel with a theme of its own, such as a dialog
- * over an AE2 screen, gets the look of its own theme rather than the screen's.
- * <p>
- * A look is the one way to say which look to draw. Everything that exists in every look is asked of the look itself:
- * colors, wells, list rows, buttons, check boxes and both scroll bars. Parts only AE2 has, such as the toolbar strip or
- * tables, take the skin from {@link #variant()}, and the few layouts that differ outside AE2 themes take the
- * plain rules from {@link #plainLook()}.
- * <p>
- * A theme names its AE2 skin in the {@link #KEY} entry of its theme data. The AE2 themes write that entry when they are
- * registered, and themes whose parent is an AE2 theme inherit it. A theme without the entry is recognised by its
- * identifier, so the AE2 themes keep their look even when the entry is missing.
- * <p>
- * The class loads on both sides. Resolving a look from a widget, a context or a theme, and every drawing method, is
- * meant for the client, while the widget is part of an open panel.
- */
 public class AE2Look {
 
     private static final AE2Variant[] VARIANTS = AE2Variant.values();
-    /** Theme data entry that names the AE2 skin of a theme; themes without it get the plain look. */
+    /**
+     * Theme data entry that names the AE2 skin of a theme; themes without it get the plain look.
+     */
     public static final WidgetThemeKey<Marker> KEY = Marker.register();
-    /** Pixels a list well's border takes on each side, under every look. */
+    /**
+     * Pixels a list well's border takes on each side, under every look.
+     */
     public static final int WELL_EDGE = 1;
     private static final int LIGHT_SHADE = 0x18000000, DARK_SHADE = 0x18FFFFFF;
     private static final AE2Look PLAIN = new AE2Look(null, new PlainLook(null));
@@ -448,10 +435,11 @@ public class AE2Look {
         return looks;
     }
 
-    /** Theme data naming the AE2 skin a theme uses. */
     public static class Marker extends WidgetTheme {
 
-        /** JSON key holding the skin folder name. */
+        /**
+         * JSON key holding the skin folder name.
+         */
         public static final String SKIN = "skin";
         private static final Logger LOG = LogManager.getLogger(GTNLLib.MODID);
         private final String skin;
@@ -511,7 +499,6 @@ public class AE2Look {
                 .register();
         }
 
-        /** Writes the entry into a theme definition. */
         public static class Builder extends WidgetThemeBuilder<Marker, Builder> {
 
             /**

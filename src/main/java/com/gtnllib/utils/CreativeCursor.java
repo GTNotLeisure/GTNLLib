@@ -6,10 +6,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import net.minecraft.entity.player.EntityPlayerMP;
 
-/**
- * The creative inventory screen keeps the cursor stack on the client only; the server copy stays empty. Sending it
- * would wipe whatever the player holds there. Other screens over the player's container keep a server cursor.
- */
 public class CreativeCursor {
 
     private static final Set<UUID> CREATIVE_SCREENS = ConcurrentHashMap.newKeySet();
@@ -37,7 +33,9 @@ public class CreativeCursor {
         player.inventory.setItemStack(null);
     }
 
-    /** Sends the cursor produced by an action that adopted the client's cursor, then hands it back to the client. */
+    /**
+     * Sends the cursor produced by an action that adopted the client's cursor, then hands it back to the client.
+     */
     public static void returnToClient(EntityPlayerMP player) {
         player.updateHeldItem();
         if (clientOwned(player)) player.inventory.setItemStack(null);

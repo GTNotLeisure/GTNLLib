@@ -5,7 +5,6 @@ import java.util.List;
 import com.gtnllib.client.text.EffectTextLayout.Glyph;
 import com.gtnllib.client.text.EffectTextLayout.Layout;
 
-/** Projects source-indexed text field ranges onto a complete formatted layout. */
 public class EffectTextFieldView {
 
     private final String source;
@@ -24,7 +23,9 @@ public class EffectTextFieldView {
         return layout == current && source.equals(text);
     }
 
-    /** Encodes only visible glyphs; declarations cut by the cursor never become literal text. */
+    /**
+     * Encodes only visible glyphs; declarations cut by the cursor never become literal text.
+     */
     public String slice(int start, int end) {
         int first = firstGlyph(start);
         int last = lastGlyph(end);
@@ -53,7 +54,9 @@ public class EffectTextFieldView {
         return (int) Math.ceil(width);
     }
 
-    /** Returns an original source slice so mouse and selection indices remain valid. */
+    /**
+     * Returns an original source slice so mouse and selection indices remain valid.
+     */
     public String trim(int start, int end, int width, boolean reverse) {
         start = Math.max(0, Math.min(start, source.length()));
         end = Math.max(start, Math.min(end, source.length()));

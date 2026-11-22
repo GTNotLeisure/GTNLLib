@@ -10,10 +10,6 @@ import com.cleanroommc.modularui.drawable.UITexture;
 import com.cleanroommc.modularui.screen.viewport.GuiContext;
 import com.cleanroommc.modularui.theme.WidgetTheme;
 
-/**
- * What a toolbar button, a tab or a page tab shows in its 16-by-16 icon square: one of the built-in {@link AE2Icon}s,
- * which follow the AE2 skin, or any texture or item through {@link #of(IDrawable)} and {@link #of(ItemStack)}.
- */
 public interface IconSource {
 
     /**

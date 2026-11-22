@@ -82,16 +82,6 @@ import com.gtnllib.gui.widget.UpgradesPanel;
 import com.gtnllib.gui.widget.ValueStepper;
 import com.gtnllib.gui.widget.VerticalButtonBar;
 
-/**
- * A client-only screen with every AE2-styled widget of GTNLLib, all working, opened by {@code /gtnl_widgets}. The
- * buttons on top reopen it in each AE2 skin or the plain look, keeping the widgets' values; the dialog button opens a
- * panel in another theme. A check box hides one toolbar button and all upgrade slots, so the toolbar shortens and the
- * empty upgrade panel no longer asks NEI to keep clear. Two pages show MUI2's own widgets under the theme, polished by
- * the one {@code AE2Theme.polish} call an AE2 screen adds, its context menu built by {@code AE2Theme.menu}, and the
- * dropdown's menu laid out as MUI2 lays it out, which only a subclass such as {@code CycleDropdown} changes; the last
- * page compares MUI2 and GTNLLib
- * buttons at several heights and the three ways to change a number with the mouse wheel. Client only.
- */
 public class WidgetGallery {
 
     private static final String LANG = "gtnllib.widget_gallery.", PANEL_NAME = "gtnllib_widget_gallery",

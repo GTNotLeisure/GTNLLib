@@ -9,6 +9,7 @@ import net.minecraft.client.Minecraft;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.opengl.GL11;
 
+import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.api.widget.Interactable;
 import com.cleanroommc.modularui.drawable.GuiDraw;
 import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
@@ -20,23 +21,11 @@ import com.gtnllib.gui.theme.ae2.AE2Draw;
 import com.gtnllib.gui.theme.ae2.AE2ListRowPainter;
 import com.gtnllib.gui.theme.ae2.AE2Look;
 
-/**
- * One list row made of widgets and drawn like an {@link IconRowList} row, with the same {@link AE2ListRowPainter}: a
- * one-line label on the left and, against the right end, an optional control widget or check box. Rows with a click
- * action highlight under the mouse. A label cut to fit shows in full as the tooltip unless a tooltip builder replaces
- * it.
- * <p>
- * The row is meant to sit inside a list inset, like {@link IconRowList}'s rows: a row as wide as that list's inset
- * places its label {@link #TEXT_INSET} pixels and its control {@link #END_INSET} pixels from the inset's edges, the
- * same as the list's own rows. Use it where a list mixes MUI2 controls such as {@link NumberEntryWidget} and
- * {@link CycleDropdown} with plain rows. The row is {@link AE2ListRowPainter#ROW_HEIGHT} pixels high unless its height
- * is set; the label, check box and control stay centred in any height. It can be built on either side, so it also works
- * in GUIs the server opens. While it is not {@link #available(BooleanSupplier) available} it draws its label muted and
- * its check box faded, does not highlight, and swallows clicks without running its action.
- */
 public class ListRow extends ParentWidget<ListRow> implements Interactable, IAvailable<ListRow> {
 
-    /** Pixels from the row's left edge to the label and from its right edge to the control or check box. */
+    /**
+     * Pixels from the row's left edge to the label and from its right edge to the control or check box.
+     */
     public static final int TEXT_INSET = 4, END_INSET = 3;
     private static final int EDGE = AE2Look.WELL_EDGE, GAP = 4;
     private final Supplier<String> label;
@@ -84,6 +73,7 @@ public class ListRow extends ParentWidget<ListRow> implements Interactable, IAva
      * @param height  control height in pixels, at most the row's height
      */
     public ListRow control(Widget<?> control, int width, int height) {
+        if (this.control != null && this.control != control) remove(this.control);
         this.control = control;
         controlWidth = width;
         if (control instanceof IListRowControl rowControl) rowControl.placedInListRow();
@@ -92,6 +82,15 @@ public class ListRow extends ParentWidget<ListRow> implements Interactable, IAva
                 .right(END_INSET)
                 .top(() -> (getArea().height - height) / 2, Measure.PIXEL));
         return this;
+    }
+
+    @Override
+    protected void onChildRemove(IWidget child) {
+        super.onChildRemove(child);
+        if (child == control) {
+            control = null;
+            controlWidth = 0;
+        }
     }
 
     /**

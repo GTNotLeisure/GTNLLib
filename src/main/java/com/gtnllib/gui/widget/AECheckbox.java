@@ -10,21 +10,6 @@ import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.ae2.AE2CheckboxPainter;
 import com.gtnllib.gui.theme.ae2.AE2Look;
 
-/**
- * AE2's check box with its label ({@code AECheckbox}), or one radio button of a group, drawn by the theme of its panel
- * ({@link AE2CheckboxPainter#checkbox}, {@link AE2CheckboxPainter#radio}). A left click anywhere on it flips the check
- * box, or selects the radio button. Radio buttons that share one integer value form a group: each stands for one value,
- * and selecting it sets the value, so only one is selected at a time.
- * <p>
- * Values are MUI2 values, so a sync value registered with the panel's sync manager makes it work in GUIs the server
- * opens. Unless the caller sets a size, it is as high as the box and as wide as the box and one line of label in the
- * look of its panel, measured while the panel is laid out and again whenever the label's text changes. It is a
- * {@link ThemedButton}, so {@code available} disables it.
- * <p>
- * It does not extend MUI2's {@code ToggleButton}: that class fixes its own type, so chained calls on a subclass would
- * stop returning the subclass, and it would lose the disabled look and swallowed clicks that {@link ThemedButton}
- * gives.
- */
 public class AECheckbox extends ThemedButton<AECheckbox> {
 
     private final Supplier<String> label;

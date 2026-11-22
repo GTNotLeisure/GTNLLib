@@ -10,10 +10,6 @@ import com.cleanroommc.modularui.drawable.UITexture;
 import com.cleanroommc.modularui.utils.GlStateManager;
 import com.cleanroommc.modularui.utils.Platform;
 
-/**
- * Drawing helpers that do not depend on the look, shared by the AE2 painters and {@link PlainLook}: text, and icons
- * drawn tinted, faded or blended. Everything that depends on the look is asked of an {@link AE2Look}. Client only.
- */
 public class AE2Draw {
 
     private AE2Draw() {}

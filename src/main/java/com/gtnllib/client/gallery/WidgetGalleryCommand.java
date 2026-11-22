@@ -8,7 +8,6 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent.ClientTickEvent;
 import cpw.mods.fml.common.gameevent.TickEvent.Phase;
 
-/** Client command {@code /gtnl_widgets} that opens the {@link WidgetGallery}. */
 public class WidgetGalleryCommand extends CommandBase {
 
     private boolean pending;

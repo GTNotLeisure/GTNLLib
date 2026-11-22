@@ -34,18 +34,6 @@ import com.google.gson.JsonObject;
 import com.gtnllib.gui.theme.SkinDrawable;
 import com.gtnllib.utils.ColorMath;
 
-/**
- * A slider over a fixed number of steps, drawn from theme data ({@link Theme}): a track with a fill, tick marks with
- * milestones in their own color, and a tag that shows the value in a small built-in font. Dragging or clicking selects
- * the nearest step, and holding Shift snaps to milestones. After {@link #wheel(boolean) wheel(true)} the mouse wheel
- * moves it one step per notch, or one milestone while Shift is held. It is horizontal unless
- * {@link #vertical(boolean)} is set. While it is not {@link #available(BooleanSupplier) available} it is drawn in grey
- * (skins without a glow layer, such as AE2's, are darkened instead), shows no hover and ignores input.
- * <p>
- * It does not extend MUI2's {@code SliderWidget}: that class fixes its own type, so chained calls on a subclass would
- * stop returning the subclass, and this slider would have to replace both its drawing and its input handling, which
- * leaves nothing of it to reuse.
- */
 public class StepSlider extends Widget<StepSlider>
     implements Interactable, IAvailable<StepSlider>, IWheelStep<StepSlider> {
 
@@ -82,16 +70,19 @@ public class StepSlider extends Widget<StepSlider>
     private double min = 0, max = 1;
     private int steps = 10, milestoneEvery = 5;
     private int[] colors, tickColors;
+    private Theme resolvedBase, resolvedColors;
     private int tagWidth;
     private boolean vertical, dragging;
     private long lastSound;
 
-    /** Creates a slider from 0 to 1 in 10 steps with a milestone every 5. The caller sets its size and value. */
+    /**
+     * Creates a slider from 0 to 1 in 10 steps with a milestone every 5. The caller sets its size and value.
+     */
     public StepSlider() {
         disableThemeBackground(true);
         disableHoverThemeBackground(true);
         listenGuiAction((IGuiAction.MouseReleased) button -> {
-            if (dragging) release();
+            if (button == 0 && dragging) release();
             return false;
         });
     }
@@ -166,7 +157,9 @@ public class StepSlider extends Widget<StepSlider>
         return wheelStep;
     }
 
-    /** @deprecated use {@link #available(BooleanSupplier)}, the name every GTNLLib widget uses */
+    /**
+     * @deprecated use {@link #available(BooleanSupplier)}, the name every GTNLLib widget uses
+     */
     @Deprecated
     public StepSlider activeWhen(BooleanSupplier active) {
         return available(active);
@@ -203,6 +196,7 @@ public class StepSlider extends Widget<StepSlider>
      */
     public StepSlider colors(int track, int fill, int cursor, int cursorText) {
         this.colors = new int[] { track, fill, cursor, cursorText };
+        resolvedColors = null;
         return this;
     }
 
@@ -224,6 +218,7 @@ public class StepSlider extends Widget<StepSlider>
      */
     public StepSlider tickColors(int tick, int milestone) {
         this.tickColors = new int[] { tick, milestone };
+        resolvedColors = null;
         return this;
     }
 
@@ -290,7 +285,7 @@ public class StepSlider extends Widget<StepSlider>
     private int stepAt(int mouse) {
         int step = nearestStep(mouse, steps, length(), vertical);
         if (milestoneEvery > 0 && Interactable.hasShiftDown())
-            step = Math.min(steps, Math.round(step / (float) milestoneEvery) * milestoneEvery);
+            step = (int) Math.min(steps, Math.round(step / (double) milestoneEvery) * milestoneEvery);
         return step;
     }
 
@@ -298,8 +293,8 @@ public class StepSlider extends Widget<StepSlider>
         return milestoneEvery > 0 && (step % milestoneEvery == 0 || step == steps);
     }
 
-    private boolean select(int step) {
-        step = Math.max(0, Math.min(steps, step));
+    private boolean select(long target) {
+        int step = (int) Math.max(0, Math.min(steps, target));
         if (Math.abs(valueAt(step) - getter.getAsDouble()) < (max - min) / steps * 1.0E-3) return false;
         setter.accept(valueAt(step));
         long now = Minecraft.getSystemTime();
@@ -337,14 +332,19 @@ public class StepSlider extends Widget<StepSlider>
 
     @Override
     public void onMouseDrag(int mouseButton, long timeSinceClick) {
-        if (dragging) select(stepAt(mouse(getContext())));
+        if (mouseButton != 0 || !dragging) return;
+        if (!isAvailable()) {
+            release();
+            return;
+        }
+        select(stepAt(mouse(getContext())));
     }
 
     @Override
     public boolean onMouseScroll(UpOrDown scrollDirection, int amount) {
         return wheelStep.scroll(this, isAvailable(), scrollDirection, sign -> {
             int notches = milestoneEvery > 0 && Interactable.hasShiftDown() ? milestoneEvery : 1;
-            if (select(step() + sign * notches) && onRelease != null) onRelease.run();
+            if (select(step() + (long) sign * notches) && onRelease != null) onRelease.run();
             return true;
         });
     }
@@ -358,18 +358,19 @@ public class StepSlider extends Widget<StepSlider>
     private Theme resolveColors(WidgetTheme theme) {
         Theme base = theme instanceof Theme slider ? slider : Theme.KEY.getDefaultValue();
         if (colors == null && tickColors == null) return base;
-        int[] main = colors != null ? colors : new int[] { base.track, base.fill, base.cursor, base.cursorText };
-        int[] ticks = tickColors != null ? tickColors : new int[] { base.tick, base.milestone };
-        return new Theme(
-            main[0],
-            main[1],
-            main[2],
-            main[3],
-            ticks[0],
-            ticks[1],
+        if (resolvedBase == base && resolvedColors != null) return resolvedColors;
+        resolvedBase = base;
+        resolvedColors = new Theme(
+            colors == null ? base.track : colors[0],
+            colors == null ? base.fill : colors[1],
+            colors == null ? base.cursor : colors[2],
+            colors == null ? base.cursorText : colors[3],
+            tickColors == null ? base.tick : tickColors[0],
+            tickColors == null ? base.milestone : tickColors[1],
             base.trackSkin,
             base.fillSkin,
             base.tagSkin);
+        return resolvedColors;
     }
 
     @Override
@@ -393,17 +394,13 @@ public class StepSlider extends Widget<StepSlider>
         else skin(palette.fillSkin, fillStart, trackStart, fillLength, TRACK_THICKNESS, fill, tint);
         float tickStart = trackStart + TRACK_THICKNESS + TICK_GAP;
         boolean minorTicks = (length - 3F) / steps >= MIN_TICK_SPACING;
-        for (int step = 0; step <= steps; step++) {
-            boolean major = milestone(step);
-            if (!major && !minorTicks) continue;
-            int color = step <= current && on ? light : major ? palette.milestone : palette.tick;
-            bar(
-                notchPosition(step, steps, length, vertical),
-                tickStart,
-                1,
-                major ? MAJOR_TICK : MINOR_TICK,
-                color,
-                color);
+        if (minorTicks || milestoneEvery > 0) {
+            long minStep = Math.max(1L, (long) Math.ceil((double) steps * MIN_TICK_SPACING / Math.max(1, length - 3)));
+            long stride = minorTicks ? 1 : (minStep + milestoneEvery - 1) / milestoneEvery * milestoneEvery;
+            // Sample dense milestones at visible spacing instead of traversing the entire value range.
+            for (long tick = 0; tick < steps; tick += stride)
+                drawTick((int) tick, tickStart, current, on, light, palette);
+            drawTick(steps, tickStart, current, on, light, palette);
         }
         if (on && isHovering() && !dragging) {
             int hovered = stepAt(mouse(context));
@@ -417,6 +414,12 @@ public class StepSlider extends Widget<StepSlider>
                 ghost);
         }
         drawTag(format.apply(valueAt(current)), cursor, trackStart + TRACK_THICKNESS / 2F, on, palette);
+    }
+
+    private void drawTick(int step, float top, int current, boolean on, int light, Theme palette) {
+        boolean major = milestone(step);
+        int color = step <= current && on ? light : major ? palette.milestone : palette.tick;
+        bar(notchPosition(step, steps, length(), vertical), top, 1, major ? MAJOR_TICK : MINOR_TICK, color, color);
     }
 
     private void skin(SkinDrawable skin, float along, float across, float alongSize, float acrossSize, int glow,

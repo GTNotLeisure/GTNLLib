@@ -11,9 +11,6 @@ import com.cleanroommc.modularui.drawable.GuiDraw;
 import com.cleanroommc.modularui.utils.GlStateManager;
 import com.gtnllib.gui.theme.AE2Theme;
 
-/**
- * Layout and drawing of AE2's upgrade panel, the strip of upgrade slots on the right of a screen.
- */
 public class AE2UpgradePainter {
 
     private static final int UPGRADE_SHADOW = 2;

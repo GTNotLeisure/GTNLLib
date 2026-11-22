@@ -15,36 +15,7 @@ import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widget.sizer.Unit.Measure;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.ae2.AE2Look;
-import com.gtnllib.gui.theme.ae2.PlainLook;
 
-/**
- * A vertical scroll bar that stands on its own, like AE2's {@code Scrollbar}, for widgets that draw or place their own
- * content: grids, tables, terminals and row lists. It scrolls over whole positions, usually rows, from zero to a
- * maximum; it reads the position and the maximum from its owner and hands every change back, so the owner keeps the
- * position. For a MUI2 list of child widgets use {@link HandleScrollData} instead. It can be built on either side, so
- * it also works in GUIs the server opens.
- * <p>
- * It does not extend a MUI2 scroll widget: MUI2's scroll bars belong to a scroll area that moves its own child widgets,
- * while this bar only reports a position to an owner that places its content itself.
- * <p>
- * The left button drags the handle; the drag is anchored to the position at the press, so a handle held still never
- * moves long lists, and a handle pushed to either end reaches the first or last position. A press on the track beside
- * the handle moves the handle's centre to the pointer at once, and the same press keeps dragging from there.
- * {@link #pageOnTrackPress(boolean) pageOnTrackPress(true)} makes such a press page like AE2's scroll bar instead: one
- * {@link #step(int) step} towards the pointer, repeating while the button is held ({@link PressRepeat}). The mouse
- * wheel over the bar moves one step per notch; an owner forwards the wheel over its content with
- * {@link #scroll(UpOrDown)}. Without a range the bar draws its disabled handle at the top and swallows left presses.
- * <p>
- * The look follows the theme of the panel the bar is in, read while drawing. Under AE2 themes it is AE2's groove with
- * the fixed 12-by-15 handle ({@link AE2Theme#BIG_SCROLLER_WIDTH} pixels wide), or with {@link #small(boolean)} the
- * 5-pixel groove and 7-by-15 handle ({@link AE2Theme#SMALL_SCROLLER_WIDTH}). Other themes get the vanilla
- * creative-inventory scroll bar, {@link PlainLook#SCROLLBAR_WIDTH} pixels wide, its handle narrowed to fit
- * {@link PlainLook#SMALL_SCROLLBAR_WIDTH} pixels with {@link #small(boolean)}, or a {@link #plainBar plain bar}.
- * <p>
- * Unless the caller sets a width, the bar takes the width of its look while the panel is laid out, so the same bar is
- * as wide as it draws in every theme; set only its height. The groove border takes one pixel at the top and bottom, so
- * the bar must be at least {@code AE2Theme.SCROLLER_HEIGHT + 2} pixels high.
- */
 public class Scrollbar extends Widget<Scrollbar> implements Interactable {
 
     private static final int BORDER = 1, PLAIN_MIN_HANDLE = 8;
@@ -150,7 +121,7 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable {
      */
     public boolean scroll(UpOrDown direction) {
         if (max() == 0) return false;
-        moveTo(position() - direction.modifier * step);
+        moveTo(position() - (long) direction.modifier * step);
         return true;
     }
 
@@ -158,8 +129,8 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable {
         return Math.max(0, maxPosition.getAsInt());
     }
 
-    private void moveTo(int target) {
-        int clamped = Math.max(0, Math.min(max(), target)), current = position();
+    private void moveTo(long target) {
+        int clamped = (int) Math.max(0, Math.min(max(), target)), current = position();
         if (clamped != current) scrollTo.accept(clamped);
     }
 
@@ -174,7 +145,7 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable {
     private int handleLength(AE2Look look) {
         if (!plain(look)) return AE2Theme.SCROLLER_HEIGHT;
         int visible = Math.max(1, plainVisible.getAsInt()), height = getArea().height;
-        return Math.min(height, Math.max(PLAIN_MIN_HANDLE, height * visible / (max() + visible)));
+        return (int) Math.min(height, Math.max(PLAIN_MIN_HANDLE, (long) height * visible / ((long) max() + visible)));
     }
 
     private int travel(AE2Look look) {
@@ -199,9 +170,9 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable {
 
     @Override
     public @NotNull Result onMousePressed(int mouseButton) {
+        if (mouseButton != 0) return Result.IGNORE;
         grab = -1;
         paging.stop();
-        if (mouseButton != 0) return Result.IGNORE;
         if (max() == 0) return Result.SUCCESS;
         AE2Look look = AE2Look.of(this);
         int mouseY = getContext().getMouseY(), top = border(look) + handleOffset(look), length = handleLength(look);
@@ -214,9 +185,9 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable {
             page();
         } else {
             int max = max(), travel = travel(look);
-            int target = travel <= 0 ? position()
-                : (int) Math.round((double) (mouseY - border(look) - length / 2) * max / travel);
-            pressPosition = Math.max(0, Math.min(max, target));
+            long target = travel <= 0 ? position()
+                : Math.round(((double) mouseY - border(look) - length / 2) * max / travel);
+            pressPosition = (int) Math.max(0, Math.min(max, target));
             moveTo(pressPosition);
             grab = length / 2;
             pressMouse = mouseY;
@@ -234,11 +205,12 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable {
         if (mouseY == pressMouse) moveTo(pressPosition);
         else if (handle <= 0) moveTo(0);
         else if (handle >= travel) moveTo(max);
-        else moveTo((int) Math.round(pressPosition + (double) (mouseY - pressMouse) * max / travel));
+        else moveTo(Math.round(pressPosition + ((double) mouseY - pressMouse) * max / travel));
     }
 
     @Override
     public boolean onMouseRelease(int mouseButton) {
+        if (mouseButton != 0) return false;
         boolean handled = grab >= 0 || paging.isActive();
         grab = -1;
         paging.stop();
@@ -257,6 +229,6 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable {
     }
 
     private void page() {
-        moveTo(position() + paging.direction() * step);
+        moveTo(position() + (long) paging.direction() * step);
     }
 }

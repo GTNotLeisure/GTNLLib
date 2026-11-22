@@ -35,11 +35,14 @@ public class SkinDrawable implements IDrawable, IJsonSerializable {
     private ResourceLocation texture, glow;
     private int width = 1, height = 1, left, top, right, bottom, glowColor;
     private boolean tiled;
+    private List<Piece> geometry;
+    private int geometryWidth, geometryHeight;
 
     public SkinDrawable texture(ResourceLocation texture, int width, int height) {
         this.texture = texture;
         this.width = width;
         this.height = height;
+        geometry = null;
         return this;
     }
 
@@ -48,11 +51,13 @@ public class SkinDrawable implements IDrawable, IJsonSerializable {
         this.top = top;
         this.right = right;
         this.bottom = bottom;
+        geometry = null;
         return this;
     }
 
     public SkinDrawable tiled(boolean tiled) {
         this.tiled = tiled;
+        geometry = null;
         return this;
     }
 
@@ -145,15 +150,19 @@ public class SkinDrawable implements IDrawable, IJsonSerializable {
      */
     public void draw(int x, int y, int width, int height, int glowColor, int tint) {
         if (texture == null || width <= 0 || height <= 0) return;
-        List<Piece> pieces = pieces(x, y, width, height);
-        layer(texture, tint, pieces);
-        if (glow != null && glowColor != 0) layer(glow, glowColor, pieces);
+        if (geometry == null || geometryWidth != width || geometryHeight != height) {
+            geometry = pieces(0, 0, width, height);
+            geometryWidth = width;
+            geometryHeight = height;
+        }
+        layer(texture, tint, geometry, x, y);
+        if (glow != null && glowColor != 0) layer(glow, glowColor, geometry, x, y);
         GlStateManager.color(1, 1, 1, 1);
         GlStateManager.disableBlend();
         GlStateManager.enableAlpha();
     }
 
-    private static void layer(ResourceLocation location, int color, List<Piece> pieces) {
+    private static void layer(ResourceLocation location, int color, List<Piece> pieces, int x, int y) {
         Platform.setupDrawTex(true);
         Minecraft.getMinecraft().renderEngine.bindTexture(location);
         Color.setGlColor(color);
@@ -161,8 +170,8 @@ public class SkinDrawable implements IDrawable, IJsonSerializable {
             for (Piece piece : pieces) {
                 if (piece.tileWidth() > 0) GuiDraw.drawTiledTexture(
                     buffer,
-                    piece.x(),
-                    piece.y(),
+                    x + piece.x(),
+                    y + piece.y(),
                     piece.w(),
                     piece.h(),
                     piece.u0(),
@@ -174,10 +183,10 @@ public class SkinDrawable implements IDrawable, IJsonSerializable {
                     0);
                 else GuiDraw.drawTexture(
                     buffer,
-                    piece.x(),
-                    piece.y(),
-                    piece.x() + piece.w(),
-                    piece.y() + piece.h(),
+                    x + piece.x(),
+                    y + piece.y(),
+                    x + piece.x() + piece.w(),
+                    y + piece.y() + piece.h(),
                     piece.u0(),
                     piece.v0(),
                     piece.u1(),
@@ -189,6 +198,7 @@ public class SkinDrawable implements IDrawable, IJsonSerializable {
 
     @Override
     public void loadFromJson(JsonObject json) {
+        geometry = null;
         String location = JsonHelper.getString(json, null, TEXTURE);
         if (location != null) texture = new ResourceLocation(location);
         String glowLocation = JsonHelper.getString(json, null, GLOW);

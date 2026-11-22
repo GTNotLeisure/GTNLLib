@@ -18,9 +18,13 @@ import com.gtnllib.gui.theme.ae2.AE2Look;
  */
 public class CloseButton extends ButtonWidget<CloseButton> {
 
-    /** Width of the button, and its height outside AE2 themes. */
+    /**
+     * Width of the button, and its height outside AE2 themes.
+     */
     public static final int SIZE = 12;
-    /** Height of the button under AE2 themes. */
+    /**
+     * Height of the button under AE2 themes.
+     */
     public static final int AE2_HEIGHT = 13;
     private static final int CROSS_INSET = 4;
     private static final int[][] CROSS = { { 0, 0 }, { 3, 0 }, { 1, 1 }, { 2, 1 }, { 1, 2 }, { 2, 2 }, { 0, 3 },

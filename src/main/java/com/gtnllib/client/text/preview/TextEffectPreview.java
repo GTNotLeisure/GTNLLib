@@ -20,7 +20,6 @@ import com.gtnllib.text.TextEffects;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 
-/** Interactive rendering sample using the same entry points as ordinary GUI text. */
 public class TextEffectPreview extends GuiScreen {
 
     private static final int PAGE_SIZE = 7;

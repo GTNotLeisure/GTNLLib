@@ -5,11 +5,6 @@ import java.util.function.Supplier;
 import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.gtnllib.gui.theme.ae2.AE2ButtonPainter;
 
-/**
- * AE2's text button ({@code AE2Button}): {@link AE2ButtonPainter#button} with {@link AE2ButtonPainter#label}, drawn by
- * the theme of its panel. It reacts to the left mouse button; see {@link ThemedButton} for the available and selected
- * states. The caller sets its size.
- */
 public class AE2Button extends ThemedButton<AE2Button> {
 
     /**

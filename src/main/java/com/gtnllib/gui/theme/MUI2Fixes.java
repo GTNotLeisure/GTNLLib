@@ -1,7 +1,10 @@
 package com.gtnllib.gui.theme;
 
 import com.cleanroommc.modularui.api.IThemeApi;
+import com.cleanroommc.modularui.api.UpOrDown;
 import com.cleanroommc.modularui.widget.AbstractScrollWidget;
+import com.cleanroommc.modularui.widget.scroll.ScrollArea;
+import com.cleanroommc.modularui.widget.scroll.ScrollData;
 import com.cleanroommc.modularui.widgets.SliderWidget;
 import com.cleanroommc.modularui.widgets.menu.Menu;
 import com.cleanroommc.modularui.widgets.menu.MenuPanel;
@@ -10,21 +13,11 @@ import com.gtnllib.gui.theme.ae2.AE2ButtonDrawable.State;
 import com.gtnllib.gui.theme.ae2.AE2Look;
 import com.gtnllib.gui.theme.ae2.AE2Variant;
 
-/**
- * Every place where GTNLLib works around a part of ModularUI 2 (2.3.94) that a theme cannot change. Other GTNLLib code
- * calls these methods instead of the MUI2 ones, so a MUI2 upgrade that moves one of these parts into the theme is
- * checked and undone here:
- * <ul>
- * <li>scroll areas darken their edges while there is more to scroll, and paint their track in a fixed color;</li>
- * <li>a menu panel asks for MUI2's context-menu theme, unless its screen registers another theme for it by name;</li>
- * <li>a menu puts its list on the menu panel's border;</li>
- * <li>sliders draw MUI2's own handle.</li>
- * </ul>
- * Each method only changes the widget it is given, and only in the way its documentation says.
- */
 public class MUI2Fixes {
 
-    /** Pixels a menu keeps clear inside the border of a menu panel in a plain theme. */
+    /**
+     * Pixels a menu keeps clear inside the border of a menu panel in a plain theme.
+     */
     public static final int MENU_EDGE = 1;
     // The thread name FML's getEffectiveSide tests for; FML's handler itself cannot load outside a game.
     private static final String SERVER_THREAD = "Server thread";
@@ -49,6 +42,21 @@ public class MUI2Fixes {
     public static void scrollTrack(AbstractScrollWidget<?, ?> scroll, int color) {
         scroll.getScrollArea()
             .setScrollBarBackgroundColor(color);
+    }
+
+    /**
+     * Scrolls one wheel step without overflowing MUI2's integer target calculation.
+     */
+    public static boolean scrollWheel(ScrollArea area, ScrollData data, UpOrDown direction) {
+        if (!data.isScrollBarActive(area)) return false;
+        int current = data.getScroll(), max = data.getScrollSize() - data.getFullVisibleSize(area);
+        int from = data.isAnimating() ? data.getAnimatingTo() : current;
+        int target = (int) Math.max(0, Math.min(max, from - (long) direction.modifier * data.getScrollSpeed()));
+        data.scrollTo(area, target);
+        boolean changed = data.getScroll() != current;
+        data.scrollTo(area, current);
+        if (changed) data.animateTo(area, target);
+        return changed || data.isCancelScrollEdge();
     }
 
     /**

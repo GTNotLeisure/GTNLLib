@@ -1,8 +1,8 @@
 package com.gtnllib.gui.widget;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.LongConsumer;
 import java.util.function.Supplier;
 
@@ -27,23 +27,12 @@ import com.gtnllib.gui.theme.ae2.AE2Look;
 import com.gtnllib.gui.theme.ae2.AE2PanelPainter;
 import com.gtnllib.gui.theme.ae2.PlainLook;
 
+import it.unimi.dsi.fastutil.booleans.BooleanArrayList;
+import it.unimi.dsi.fastutil.booleans.BooleanList;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 
-/**
- * A scrolling list whose rows are drawn directly instead of being widgets, so it stays fast with hundreds of rows. The
- * rows are read from a supplier every tick. A row can carry an item icon, a right-aligned detail, a check box, a
- * dropdown whose options open as indented rows under it, or a number field. Number fields are {@link NumberEntryWidget}
- * children placed over the visible number rows, so only those rows cost a widget.
- * <p>
- * Under an AE2 theme the list draws as an AE2 inset with AE2 list-row highlights and check boxes, and AE2's scroll bar
- * beside the inset; otherwise it draws as Minecraft's sunken slot box with MUI2's check boxes and a thin bar, in the
- * colors of {@link PlainLook}. Rows are drawn with {@link AE2ListRowPainter}, like {@link ListRow}'s. The scroll bar is
- * a {@link Scrollbar} child: the wheel moves one row, as in AE2's network status and crafting CPU screens. The wheel
- * scrolls the list everywhere, also over number fields, unless {@link #numberWheel(boolean) numberWheel(true)} lets it
- * step the field under the pointer instead.
- */
 public class IconRowList extends ParentWidget<IconRowList> implements Interactable, RecipeViewerIngredientProvider {
 
     /**
@@ -258,9 +247,8 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
         }
 
         /**
-         * Returns a copy of this row that the list knows by a key of the caller's instead of by its text and order. An
-         * open dropdown stays open on the row with the same key, so give dropdown rows a key when their texts or order
-         * can change while one is open.
+         * Identifies this row across updates. Use a unique stable key to keep dropdowns and numeric edits attached to
+         * the same row when labels or ordering change.
          *
          * @param key value that stays the same for this row across updates, such as a slot index or a block position;
          *            compared with {@code equals}
@@ -275,17 +263,21 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
 
     private record Occurrence(String text, int index) {}
 
+    private record OptionIdentity(Object parent, Object option) {}
+
     private final Supplier<List<Row>> source;
     private final List<NumberEntryWidget> entries = new ArrayList<>();
     private final List<Row> entryRows = new ArrayList<>();
     private final IntList entryTops = new IntArrayList();
-    private List<Row> rows = Collections.emptyList();
-    private boolean[] nested = new boolean[0];
-    private Object[] identities = new Object[0];
+    private final List<Object> entryIdentities = new ArrayList<>();
+    private final List<Row> rows = new ArrayList<>();
+    private final BooleanList nested = new BooleanArrayList();
+    private final List<Object> identities = new ArrayList<>();
+    private final Object2IntOpenHashMap<String> counts = new Object2IntOpenHashMap<>();
     private Object expanded;
     private int scroll, edge, gutter = SCROLLBAR, rowHeight = ROW, numberWidth = NUMBER_WIDTH;
     private boolean revealSelected, numberWheel;
-    private final Scrollbar scrollbar = new Scrollbar(() -> scroll, this::maxScroll, row -> scroll = row)
+    private final Scrollbar scrollbar = new Scrollbar(() -> scroll, this::maxScroll, this::scrollTo)
         .plainBar(PlainLook.THIN_SCROLL_BAR, this::visibleRows);
 
     /**
@@ -307,7 +299,12 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
      * Scrolls back to the first row.
      */
     public void scrollToTop() {
-        scroll = 0;
+        scrollTo(0);
+    }
+
+    private void scrollTo(int row) {
+        scroll = row;
+        placeEntries();
     }
 
     /**
@@ -391,35 +388,41 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
         super.onUpdate();
         // MUI2 updates hidden widgets too; a hidden list has nothing to rebuild.
         if (!isEnabled()) return;
-        List<Row> flat = new ArrayList<>();
-        List<Boolean> inside = new ArrayList<>();
-        List<Object> seen = new ArrayList<>();
-        Object2IntOpenHashMap<String> counts = new Object2IntOpenHashMap<>();
+        rows.clear();
+        nested.clear();
+        identities.clear();
+        counts.clear();
+        boolean expandedPresent = false;
         for (Row row : source.get()) {
             int count = counts.addTo(row.text, 1);
-            Object identity = row.key != null ? row.key : new Occurrence(row.text, count);
-            flat.add(row);
-            inside.add(false);
-            seen.add(identity);
+            Object identity = row.key != null ? row.key
+                : row.options != null || row.number != null ? new Occurrence(row.text, count) : null;
+            rows.add(row);
+            nested.add(false);
+            identities.add(identity);
             if (row.options == null || !isExpanded(identity)) continue;
+            expandedPresent = true;
             if (!row.available) {
                 expanded = null;
                 continue;
             }
+            int optionIndex = 0;
             for (Row option : row.options) {
-                flat.add(option);
-                inside.add(true);
-                seen.add(null);
+                rows.add(option);
+                nested.add(true);
+                identities.add(
+                    option.number == null ? null
+                        : new OptionIdentity(
+                            identity,
+                            option.key != null ? option.key : new Occurrence(option.text, optionIndex)));
+                optionIndex++;
             }
         }
-        rows = flat;
-        nested = new boolean[flat.size()];
-        for (int i = 0; i < nested.length; i++) nested[i] = inside.get(i);
-        identities = seen.toArray();
+        if (!expandedPresent) expanded = null;
         if (revealSelected && getArea().height >= rowHeight) {
             revealSelected = false;
-            for (int i = 0; i < flat.size(); i++) {
-                if (!flat.get(i).selected) continue;
+            for (int i = 0; i < rows.size(); i++) {
+                if (!rows.get(i).selected) continue;
                 scroll = i - visibleRows() / 2;
                 break;
             }
@@ -439,6 +442,10 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
                 moved = true;
             }
             NumberEntryWidget entry = entries.get(used);
+            Object identity = identities.get(scroll + i);
+            boolean rebound = !Objects.equals(entryIdentities.get(used), identity);
+            // End editing before rebinding so focus callbacks still address the previous row.
+            if (rebound && entry.isEditing()) getContext().removeFocus();
             int top = edge + i * rowHeight + 1;
             if (entryTops.getInt(used) != top) {
                 entry.top(top);
@@ -446,18 +453,21 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
                 moved = true;
             }
             entryRows.set(used, row);
+            entryIdentities.set(used, identity);
             entry.setEnabled(true);
             Numeric number = row.number;
             entry.bounds(number.min(), number.max())
                 .resetValue(number.reset());
-            if (!entry.isEditing() && entry.value()
-                .orElse(Long.MIN_VALUE) != number.value()) entry.value(number.value());
+            if (rebound || !entry.isEditing() && (!entry.isInputValid() || entry.value()
+                .getAsLong() != number.value())) entry.value(number.value());
             used++;
         }
         for (int i = used; i < entries.size(); i++) {
-            entries.get(i)
-                .setEnabled(false);
+            NumberEntryWidget entry = entries.get(i);
+            if (entry.isEditing()) getContext().removeFocus();
+            entry.setEnabled(false);
             entryRows.set(i, null);
+            entryIdentities.set(i, null);
         }
         if (moved) scheduleResize();
     }
@@ -470,20 +480,25 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
             .wheel(numberWheel)
             .available(() -> {
                 Row row = entryRows.get(index);
-                return row == null || row.available;
+                return row != null && row.available;
             })
             .onChange(value -> {
                 Row row = entryRows.get(index);
-                if (row != null && row.number != null) row.number.set()
+                if (row != null) row.number.set()
                     .accept(value);
             });
         entries.add(entry);
         entryRows.add(null);
         entryTops.add(-1);
+        entryIdentities.add(null);
         addChild(entry, -1);
     }
 
-    private void layout(boolean themed) {
+    @Override
+    public void beforeResize(boolean onOpen) {
+        super.beforeResize(onOpen);
+        boolean themed = AE2Look.of(this)
+            .isAE2();
         int nextGutter = themed ? AE2_GUTTER : PLAIN_GUTTER;
         if (edge == AE2Look.WELL_EDGE && nextGutter == gutter) return;
         edge = AE2Look.WELL_EDGE;
@@ -492,8 +507,13 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
             .right(themed ? 0 : AE2Look.WELL_EDGE);
         for (NumberEntryWidget entry : entries) entry.right(gutter + 2);
         entryTops.replaceAll(top -> -1);
+    }
+
+    @Override
+    public void postResize() {
+        super.postResize();
+        scroll = Math.max(0, Math.min(scroll, maxScroll()));
         placeEntries();
-        scheduleResize();
     }
 
     private int visibleRows() {
@@ -518,7 +538,6 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
     @Override
     public void draw(ModularGuiContext context, WidgetThemeEntry<?> widgetTheme) {
         AE2Look look = AE2Look.of(this);
-        layout(look.isAE2());
         int width = getArea().width, height = getArea().height;
         look.drawWell(0, 0, look.isAE2() ? width - AE2_SCROLL_COLUMN : width, height);
         FontRenderer font = Minecraft.getMinecraft().fontRenderer;
@@ -527,14 +546,14 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
         for (int i = 0; i < visible && scroll + i < rows.size(); i++) {
             int index = scroll + i;
             Row row = rows.get(index);
-            int top = edge + i * rowHeight, left = edge + (nested[index] ? INDENT : 0);
+            int top = edge + i * rowHeight, left = edge + (nested.getBoolean(index) ? INDENT : 0);
             boolean usable = row.available, lit = usable && index == hovered, shadow = usable && look.listShadow();
             int textColor = usable ? color(look, row.color, look.listText()) : look.listMuted();
             int detailColor = usable
                 ? color(look, row.detailColor != 0 ? row.detailColor : row.color, look.listDetail())
                 : look.listMuted();
-            if (nested[index]) GuiDraw.drawRect(edge, top, rowRight - edge, rowHeight, look.nested());
-            if (row.selected) {
+            if (nested.getBoolean(index)) GuiDraw.drawRect(edge, top, rowRight - edge, rowHeight, look.nested());
+            if (usable && row.selected) {
                 look.drawSelectedRow(left, top, rowRight - left, rowHeight);
                 textColor = detailColor = look.selectedText();
             }
@@ -552,7 +571,7 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
                 AE2PanelPainter.drawCaret(
                     textRight - CARET + 2,
                     top + (rowHeight - AE2Theme.CARET_HEIGHT) / 2,
-                    isExpanded(identities[index]),
+                    isExpanded(identities.get(index)),
                     textColor);
                 right -= CARET;
             }
@@ -595,11 +614,11 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
         }
         if (mouseButton != 0) return Result.ACCEPT;
         if (row.options != null) {
-            expanded = isExpanded(identities[index]) ? null : identities[index];
+            expanded = isExpanded(identities.get(index)) ? null : identities.get(index);
             Interactable.playButtonClickSound();
         } else if (row.click != null) {
             row.click.run();
-            if (nested[index]) expanded = null;
+            if (nested.getBoolean(index)) expanded = null;
             Interactable.playButtonClickSound();
         }
         return Result.SUCCESS;

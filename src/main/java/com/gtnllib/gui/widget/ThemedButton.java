@@ -7,15 +7,6 @@ import org.jetbrains.annotations.NotNull;
 import com.cleanroommc.modularui.api.layout.IViewportStack;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 
-/**
- * The button the AE2 buttons build on: {@link AE2Button}, {@link IconButton} and {@link TabButton}. On its own, with an
- * empty background, it is an invisible click area ({@code new ThemedButton<>()}). While it is not
- * {@link #available(BooleanSupplier) available} it looks disabled, shows no hover and swallows every mouse button, so
- * clicks never reach a widget below it ({@link Availability}). It can be built on either side, so it also works in GUIs
- * the server opens.
- *
- * @param <W> the button's own type, so chained calls keep returning the subclass
- */
 public class ThemedButton<W extends ThemedButton<W>> extends ButtonWidget<W> implements IAvailable<W> {
 
     private final Availability availability = new Availability();

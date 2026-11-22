@@ -12,11 +12,6 @@ import com.gtnllib.gui.layout.Layout;
 import com.gtnllib.gui.layout.Size;
 import com.gtnllib.gui.theme.LayoutTheme;
 
-/**
- * Three whole-block X, Y and Z fields for editing a position, laid out as cells of a {@link Layout#line} row. A field
- * left untouched gives back the exact coordinate it started with; a typed block gives the middle of that block on X
- * and Z and its floor on Y.
- */
 public class BlockPosFields {
 
     private static final String[] AXES = { "X", "Y", "Z" };

@@ -10,75 +10,140 @@ import com.cleanroommc.modularui.drawable.UITexture;
 import com.cleanroommc.modularui.screen.viewport.GuiContext;
 import com.cleanroommc.modularui.theme.WidgetTheme;
 
-/** Shared toolbar icons with AE2 sprites and MUI2 fallback textures. */
 public enum AE2Icon implements IconSource {
 
-    /** Copy action. */
+    /**
+     * Copy action.
+     */
     COPY(192, 0, GuiTextures.COPY),
-    /** Additional actions. */
+    /**
+     * Additional actions.
+     */
     MORE(16, 0, GuiTextures.MORE),
-    /** Refresh action. */
+    /**
+     * Refresh action.
+     */
     REFRESH(240, 0, GuiTextures.REFRESH),
-    /** Visibility control. */
+    /**
+     * Visibility control.
+     */
     VISIBLE(16, 32, GuiTextures.VISIBLE),
-    /** Start or resume action. */
+    /**
+     * Start or resume action.
+     */
     PLAY(48, 32, GuiTextures.PLAY),
-    /** Pause action. */
+    /**
+     * Pause action.
+     */
     PAUSE(64, 32, GuiTextures.PAUSE),
-    /** Move-to action. */
+    /**
+     * Move-to action.
+     */
     MOVE_TO(224, 32, GuiTextures.MOVE_TO),
-    /** Search action. */
+    /**
+     * Search action.
+     */
     SEARCH(160, 48, GuiTextures.SEARCH),
-    /** Confirmation action. */
+    /**
+     * Confirmation action.
+     */
     CHECKMARK(176, 48, GuiTextures.CHECKMARK),
-    /** Warning, such as a problem to look at. */
+    /**
+     * Warning, such as a problem to look at.
+     */
     EXCLAMATION(16, 48, GuiTextures.EXCLAMATION),
-    /** Settings action. */
+    /**
+     * Settings action.
+     */
     GEAR(0, 0, GuiTextures.GEAR),
-    /** Add action. */
+    /**
+     * Add action.
+     */
     ADD(64, 0, GuiTextures.ADD),
-    /** Remove action. */
+    /**
+     * Remove action.
+     */
     REMOVE(96, 0, GuiTextures.REMOVE),
-    /** Close action. */
+    /**
+     * Close action.
+     */
     CLOSE(112, 16, GuiTextures.CLOSE),
-    /** Edit action. */
+    /**
+     * Edit action.
+     */
     EDIT(80, 16, GuiTextures.EDIT),
-    /** Filter control. */
+    /**
+     * Filter control.
+     */
     FILTER(128, 0, GuiTextures.FILTER),
-    /** Hidden state of a visibility control. */
+    /**
+     * Hidden state of a visibility control.
+     */
     INVISIBLE(32, 32, GuiTextures.INVISIBLE),
-    /** Upward arrow from a bar, such as raising something. */
+    /**
+     * Upward arrow from a bar, such as raising something.
+     */
     UPLOAD(16, 16, GuiTextures.UPLOAD),
-    /** Downward arrow onto a bar, such as lowering something. */
+    /**
+     * Downward arrow onto a bar, such as lowering something.
+     */
     DOWNLOAD(0, 16, GuiTextures.DOWNLOAD),
-    /** Two opposite horizontal arrows, such as mirroring. */
+    /**
+     * Two opposite horizontal arrows, such as mirroring.
+     */
     REVERSE(224, 16, GuiTextures.REVERSE),
-    /** A block or cube. */
+    /**
+     * A block or cube.
+     */
     BLOCK(240, 16, GuiTextures.BLOCK),
-    /** Turning arrow, such as a quarter turn. */
+    /**
+     * Turning arrow, such as a quarter turn.
+     */
     SHIFT_BACKWARD(208, 32, GuiTextures.SHIFT_BACKWARD),
-    /** A page of text, such as a list. */
+    /**
+     * A page of text, such as a list.
+     */
     FILE(80, 48, GuiTextures.FILE),
-    /** A chip, such as a machine part. */
+    /**
+     * A chip, such as a machine part.
+     */
     PROCESSOR(96, 48, GuiTextures.PROCESSOR),
-    /** Arrows pointing outwards, such as fitting a view to its content. */
+    /**
+     * Arrows pointing outwards, such as fitting a view to its content.
+     */
     MAXIMIZE(80, 32, GuiTextures.MAXIMIZE),
-    /** Arrows pointing inwards, such as turning around a centre. */
+    /**
+     * Arrows pointing inwards, such as turning around a centre.
+     */
     MINIMIZE(96, 32, GuiTextures.MINIMIZE),
-    /** Plain upward arrow, such as raising by one step. */
+    /**
+     * Plain upward arrow, such as raising by one step.
+     */
     ARROW_UP(0, 64, GuiTextures.ARROW_UP),
-    /** Plain downward arrow, such as lowering by one step. */
+    /**
+     * Plain downward arrow, such as lowering by one step.
+     */
     ARROW_DOWN(16, 64, GuiTextures.ARROW_DOWN),
-    /** Two opposite vertical arrows, such as flipping upside down. */
+    /**
+     * Two opposite vertical arrows, such as flipping upside down.
+     */
     FLIP_VERTICAL(32, 64, null),
-    /** {@link #MOVE_TO} pointing up, such as a face turned upwards. */
+    /**
+     * {@link #MOVE_TO} pointing up, such as a face turned upwards.
+     */
     MOVE_TO_UP(48, 64, null),
-    /** {@link #MOVE_TO} pointing down, such as a face turned downwards. */
+    /**
+     * {@link #MOVE_TO} pointing down, such as a face turned downwards.
+     */
     MOVE_TO_DOWN(64, 64, null);
 
-    /** Source coordinates within the AE2 icon sheet, in pixels. */
+    /**
+     * Source coordinates within the AE2 icon sheet, in pixels.
+     */
     public final int x, y;
-    /** MUI2 fallback texture used outside AE2 themes, or {@code null} to use the light AE2 sprite there. */
+    /**
+     * MUI2 fallback texture used outside AE2 themes, or {@code null} to use the light AE2 sprite there.
+     */
     public final @Nullable UITexture vanilla;
     private final UITexture[] skins = new UITexture[AE2Variant.values().length];
 

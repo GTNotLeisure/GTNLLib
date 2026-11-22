@@ -7,10 +7,6 @@ import static com.gtnllib.gui.theme.AE2Theme.SMALL_SCROLLER_WIDTH;
 import com.cleanroommc.modularui.drawable.GuiDraw;
 import com.cleanroommc.modularui.utils.GlStateManager;
 
-/**
- * AE2 scroll-bar grooves and handles. A scroll bar that follows the look, with the creative-inventory scroll bar
- * outside AE2 themes, is drawn by {@link AE2Look#drawScrollbar}.
- */
 public class AE2ScrollbarPainter {
 
     private static final int GROOVE_X = 3, GROOVE_WIDTH = 6, SMALL_GROOVE_X = 1, SMALL_GROOVE_WIDTH = 5;

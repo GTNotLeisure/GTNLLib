@@ -27,7 +27,6 @@ import com.gtnllib.gui.theme.ae2.AE2ButtonDrawable.State;
 import com.gtnllib.gui.theme.ae2.AE2ButtonPainter;
 import com.gtnllib.gui.theme.ae2.AE2CheckboxPainter;
 import com.gtnllib.gui.theme.ae2.AE2Draw;
-import com.gtnllib.gui.theme.ae2.AE2Icon;
 import com.gtnllib.gui.theme.ae2.AE2Legacy;
 import com.gtnllib.gui.theme.ae2.AE2Look;
 import com.gtnllib.gui.theme.ae2.AE2PanelPainter;
@@ -43,54 +42,49 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/**
- * The AE2 light, dark and purple dark themes for ModularUI 2: their identifiers, AE2's widget dimensions, the three
- * skins with their colors and textures ({@link AE2Variant}), the built-in toolbar icons ({@link AE2Icon}) and the theme
- * registration.
- * <p>
- * Select a panel theme through {@link ScreenTheme}. Panel backgrounds, fields, slots, switches and button styles are
- * supplied by the registered theme. What a theme cannot reach in MUI2's own widgets is added in one call once the
- * screen is built, {@link #polish(ModularScreen)}: scroll areas without MUI2's edge shadows and with the skin's track
- * color, AE2 slider handles, and menus in the skin's menu theme. {@link #menu(ListWidget, String)} builds a context
- * menu's contents. {@code CycleDropdown} and {@code GTNLListWidget} need neither. The MUI2 workarounds themselves are
- * in {@link MUI2Fixes}.
- * <p>
- * Drawing lives in the {@code ae2} package. Widgets ask {@link AE2Look#of(IWidget)} for the look of the panel they are
- * in, and the look answers everything that exists in every look. The painters draw AE2's parts, one class per part:
- * {@link AE2ButtonPainter}, {@link AE2CheckboxPainter}, {@link AE2ScrollbarPainter}, {@link AE2PanelPainter},
- * {@link AE2UpgradePainter}, {@code AE2ListRowPainter}, {@link AE2Legacy} and {@link AE2Draw}; {@code PlainLook} holds
- * the look outside AE2 themes. The drawing methods still declared here forward to those classes and are deprecated.
- * <p>
- * The class loads on both sides: constants, {@link AE2Variant} lookups and drawable factories may be used while a GUI
- * is built on the server, as ModularUI 2 builds GUIs opened by the server on both sides. Drawing, measuring text and
- * theme registration run on the client only.
- *
- * @see AE2Variant
- * @see AE2Look
- */
 public class AE2Theme {
 
-    /** Light panel theme identifier. */
+    /**
+     * Light panel theme identifier.
+     */
     public static final String LIGHT_ID = "gtnllib:ae2_light";
-    /** Light context-menu theme identifier. */
+    /**
+     * Light context-menu theme identifier.
+     */
     public static final String LIGHT_MENU_ID = "gtnllib:ae2_light_menu";
-    /** Dark panel theme identifier. */
+    /**
+     * Dark panel theme identifier.
+     */
     public static final String DARK_ID = "gtnllib:ae2_dark";
-    /** Dark context-menu theme identifier. */
+    /**
+     * Dark context-menu theme identifier.
+     */
     public static final String DARK_MENU_ID = "gtnllib:ae2_dark_menu";
-    /** Dark panel theme identifier with purple selection highlights. */
+    /**
+     * Dark panel theme identifier with purple selection highlights.
+     */
     public static final String DARK_PURPLE_ID = "gtnllib:ae2_dark_purple";
-    /** Dark context-menu theme identifier with purple selection highlights. */
+    /**
+     * Dark context-menu theme identifier with purple selection highlights.
+     */
     public static final String DARK_PURPLE_MENU_ID = "gtnllib:ae2_dark_purple_menu";
-    /** MUI2 context-menu theme used outside AE2 panels. */
+    /**
+     * MUI2 context-menu theme used outside AE2 panels.
+     */
     public static final String CONTEXT_MENU_ID = "modularui.context_menu";
-    /** ARGB light-blue selection fill, top edge and shadow of the light and dark variants. */
+    /**
+     * ARGB light-blue selection fill, top edge and shadow of the light and dark variants.
+     */
     public static final int HIGHLIGHT = 0xFF9CD3FF, HIGHLIGHT_TOP = 0xFFDAFFFF, HIGHLIGHT_SHADOW = 0xFF708CBA,
         FIELD_SELECTION = 0xFF0000FF;
-    /** ARGB fluix-purple selection fill, top edge and shadow of the purple dark variant. */
+    /**
+     * ARGB fluix-purple selection fill, top edge and shadow of the purple dark variant.
+     */
     public static final int PURPLE_HIGHLIGHT = 0xFF644595, PURPLE_HIGHLIGHT_TOP = 0xFFE2A3E3,
         PURPLE_HIGHLIGHT_SHADOW = 0xFF212040;
-    /** ARGB text color of a text field that cannot be edited, as Minecraft draws uneditable fields. */
+    /**
+     * ARGB text color of a text field that cannot be edited, as Minecraft draws uneditable fields.
+     */
     public static final int FIELD_DISABLED_TEXT = 0xFF707070;
     /**
      * Widget dimensions, label offsets, border widths and layout spacing in GUI pixels. {@code SMALL_SCROLLER_WIDTH}
@@ -112,10 +106,14 @@ public class AE2Theme {
     @Deprecated
     public static final int SWITCH_WIDTH = CHECKBOX_WIDTH, SWITCH_HEIGHT = CHECKBOX_HEIGHT,
         SWITCH_LABEL_X = CHECKBOX_LABEL_X, SWITCH_LABEL_Y = CHECKBOX_LABEL_Y;
-    /** @deprecated use {@link #SMALL_SCROLLER_WIDTH}; this name reads like the width of a whole scroll bar */
+    /**
+     * @deprecated use {@link #SMALL_SCROLLER_WIDTH}; this name reads like the width of a whole scroll bar
+     */
     @Deprecated
     public static final int SCROLLBAR_WIDTH = SMALL_SCROLLER_WIDTH;
-    /** @deprecated use {@link #UPGRADE_SLOTS_PER_COLUMN}; the slots run down a column, not across a row */
+    /**
+     * @deprecated use {@link #UPGRADE_SLOTS_PER_COLUMN}; the slots run down a column, not across a row
+     */
     @Deprecated
     public static final int UPGRADE_ROWS = UPGRADE_SLOTS_PER_COLUMN;
     /**
@@ -123,26 +121,40 @@ public class AE2Theme {
      * the panel's right edge, which its left columns cover so the selected tab joins the panel.
      */
     public static final int PAGE_TAB_SIZE = 22, PAGE_TAB_PITCH = 21, PAGE_TAB_INSET = 3;
-    /** How far an upgrade panel starts inside the right edge of the panel it belongs to, as AE2 places it. */
+    /**
+     * How far an upgrade panel starts inside the right edge of the panel it belongs to, as AE2 places it.
+     */
     public static final int UPGRADE_OVERLAP = 2;
-    /** Size of the dropdown triangle drawn by {@link AE2PanelPainter#drawCaret}. */
+    /**
+     * Size of the dropdown triangle drawn by {@link AE2PanelPainter#drawCaret}.
+     */
     public static final int CARET_WIDTH = 5, CARET_HEIGHT = 3;
     /**
      * Size of AE2's square sprite sheets, the 18-pixel item slot, the space kept left and right of a button label and
      * the height of one line of label text, in GUI pixels.
      */
     public static final int SHEET = 256, SLOT_SIZE = 18, LABEL_PADDING = 2, LABEL_HEIGHT = 8;
-    /** ARGB text color of disabled buttons and unavailable text outside the AE2 themes, MUI2's disabled grey. */
+    /**
+     * ARGB text color of disabled buttons and unavailable text outside the AE2 themes, MUI2's disabled grey.
+     */
     public static final int DISABLED_TEXT = 0xFFA0A0A0;
-    /** Alpha of sprites and icons drawn for something that cannot be used. */
+    /**
+     * Alpha of sprites and icons drawn for something that cannot be used.
+     */
     public static final float INACTIVE_ALPHA = 0.5F;
-    /** Folder names of the three AE2 skins below {@code textures/gui/skin/}. */
+    /**
+     * Folder names of the three AE2 skins below {@code textures/gui/skin/}.
+     */
     public static final String LIGHT_FOLDER = "ae2_light", DARK_FOLDER = "ae2_dark", PURPLE_FOLDER = "ae2_dark_purple";
-    /** Textures the purple dark skin recolours; it takes the others from {@link #DARK_FOLDER}. */
+    /**
+     * Textures the purple dark skin recolours; it takes the others from {@link #DARK_FOLDER}.
+     */
     public static final Set<String> PURPLE_TEXTURES = Set
         .of("button_highlighted", "checkbox", "legacy_states", "list_row", "slider_fill", "slider_tag", "states");
     private static final String ROOT = "textures/gui/skin/";
-    /** Shared sizing and spacing used by all three AE2 skins. */
+    /**
+     * Shared sizing and spacing used by all three AE2 skins.
+     */
     public static final ThemeStyle STYLE = new ThemeStyle(
         ThemeStyle.DEFAULT.cornerLength(),
         ThemeStyle.DEFAULT.cornerThickness(),
@@ -246,7 +258,9 @@ public class AE2Theme {
         for (String menu : menus) MUI2Fixes.registerMenuTheme(owner, screen, menu, look);
     }
 
-    /** @deprecated use {@link #polish(ModularScreen)}, which also gives sliders AE2's handle */
+    /**
+     * @deprecated use {@link #polish(ModularScreen)}, which also gives sliders AE2's handle
+     */
     @Deprecated
     public static void sliderHandles(IWidget root, @Nullable String themeId) {
         AE2Variant variant = AE2Look.ofTheme(themeId)
@@ -338,26 +352,34 @@ public class AE2Theme {
         return menu;
     }
 
-    /** @deprecated use {@link AE2Legacy#legacyStates} */
+    /**
+     * @deprecated use {@link AE2Legacy#legacyStates}
+     */
     @Deprecated
     public static ResourceLocation legacyStates(@Nullable AE2Variant variant) {
         return AE2Legacy.legacyStates(AE2Look.of(variant));
     }
 
-    /** @deprecated use {@link AE2Legacy#legacyTerminal} */
+    /**
+     * @deprecated use {@link AE2Legacy#legacyTerminal}
+     */
     @Deprecated
     public static ResourceLocation legacyTerminal(@Nullable AE2Variant variant) {
         return AE2Legacy.legacyTerminal(AE2Look.of(variant));
     }
 
-    /** @deprecated use {@link AE2Look#scrollbarWidth} of the panel's look */
+    /**
+     * @deprecated use {@link AE2Look#scrollbarWidth} of the panel's look
+     */
     @Deprecated
     public static int scrollbarWidth(@Nullable AE2Variant variant) {
         return AE2Look.of(variant)
             .scrollbarWidth();
     }
 
-    /** @deprecated use {@link AE2Look#drawScrollbar} of the panel's look */
+    /**
+     * @deprecated use {@link AE2Look#drawScrollbar} of the panel's look
+     */
     @Deprecated
     public static void drawScrollbar(@Nullable AE2Variant variant, int x, int y, int height, int handleY,
         boolean enabled) {
@@ -365,129 +387,166 @@ public class AE2Theme {
             .drawScrollbar(x, y, height, handleY, enabled);
     }
 
-    /** @deprecated use {@link AE2ScrollbarPainter#drawSmallScrollbar} */
+    /**
+     * @deprecated use {@link AE2ScrollbarPainter#drawSmallScrollbar}
+     */
     @Deprecated
     public static void drawSmallScrollbar(AE2Variant variant, int x, int y, int height, int handleY, boolean enabled) {
         AE2ScrollbarPainter.drawSmallScrollbar(variant, x, y, height, handleY, enabled);
     }
 
-    /** @deprecated use {@link AE2PanelPainter#drawButtonBar} */
+    /**
+     * @deprecated use {@link AE2PanelPainter#drawButtonBar}
+     */
     @Deprecated
     public static void drawButtonBar(AE2Variant variant, int x, int y, int width, int height) {
         AE2PanelPainter.drawButtonBar(variant, x, y, width, height);
     }
 
-    /** @deprecated use {@link AE2UpgradePainter#upgradePanelWidth} */
+    /**
+     * @deprecated use {@link AE2UpgradePainter#upgradePanelWidth}
+     */
     @Deprecated
     public static int upgradePanelWidth(int slots) {
         return AE2UpgradePainter.upgradePanelWidth(slots);
     }
 
-    /** @deprecated use {@link AE2UpgradePainter#upgradePanelHeight} */
+    /**
+     * @deprecated use {@link AE2UpgradePainter#upgradePanelHeight}
+     */
     @Deprecated
     public static int upgradePanelHeight(int slots) {
         return AE2UpgradePainter.upgradePanelHeight(slots);
     }
 
-    /** @deprecated use {@link AE2UpgradePainter#drawUpgradePanel} */
+    /**
+     * @deprecated use {@link AE2UpgradePainter#drawUpgradePanel}
+     */
     @Deprecated
     public static void drawUpgradePanel(AE2Variant variant, int x, int y, int slots) {
         AE2UpgradePainter.drawUpgradePanel(variant, x, y, slots);
     }
 
-    /** @deprecated use {@link AE2PanelPainter#tableSize} */
+    /**
+     * @deprecated use {@link AE2PanelPainter#tableSize}
+     */
     @Deprecated
     public static int tableSize(int cells, int cellSize) {
         return AE2PanelPainter.tableSize(cells, cellSize);
     }
 
-    /** @deprecated use {@link AE2PanelPainter#drawTable} */
+    /**
+     * @deprecated use {@link AE2PanelPainter#drawTable}
+     */
     @Deprecated
     public static void drawTable(AE2Variant variant, int x, int y, int columns, int rows, int cellWidth,
         int cellHeight) {
         AE2PanelPainter.drawTable(variant, x, y, columns, rows, cellWidth, cellHeight);
     }
 
-    /** @deprecated use {@link AE2PanelPainter#listRow}, which follows the theme of the row's own panel */
+    /**
+     * @deprecated use {@link AE2PanelPainter#listRow}, which follows the theme of the row's own panel
+     */
     @Deprecated
     public static IDrawable listRow(BooleanSupplier selected) {
         return (context, x, y, width, height, theme) -> AE2PanelPainter
             .drawListRow(AE2Look.of(context), selected.getAsBoolean(), x, y, width, height);
     }
 
-    /** @deprecated use {@link AE2CheckboxPainter#radio} */
+    /**
+     * @deprecated use {@link AE2CheckboxPainter#radio}
+     */
     @Deprecated
     public static IDrawable radio(Widget<?> widget, BooleanSupplier selected, Supplier<String> label,
         BooleanSupplier available) {
         return AE2CheckboxPainter.radio(widget, selected, label, available);
     }
 
-    /** @deprecated use {@link AE2CheckboxPainter#radioWidth} */
+    /**
+     * @deprecated use {@link AE2CheckboxPainter#radioWidth}
+     */
     @Deprecated
     public static int radioWidth(String label) {
         return AE2CheckboxPainter.radioWidth(label);
     }
 
-    /** @deprecated use {@link AE2Legacy#drawLegacyState} */
+    /**
+     * @deprecated use {@link AE2Legacy#drawLegacyState}
+     */
     @Deprecated
     public static void drawLegacyState(@Nullable AE2Variant variant, int index, float x, float y, float size) {
         AE2Legacy.drawLegacyState(AE2Look.of(variant), index, x, y, size);
     }
 
-    /** @deprecated use {@link AE2ButtonPainter#button} */
+    /**
+     * @deprecated use {@link AE2ButtonPainter#button}
+     */
     @Deprecated
     public static IDrawable button(Widget<?> widget, BooleanSupplier available, BooleanSupplier selected) {
         return AE2ButtonPainter.button(widget, available, selected);
     }
 
-    /** @deprecated use {@link AE2Look#buttonText} of the look of the button's own panel */
+    /**
+     * @deprecated use {@link AE2Look#buttonText} of the look of the button's own panel
+     */
     @Deprecated
     public static ButtonText buttonText(GuiContext context, State state, int height) {
         return AE2Look.of(context)
             .buttonText(state, height);
     }
 
-    /** @deprecated use {@link AE2ButtonPainter#label} */
+    /**
+     * @deprecated use {@link AE2ButtonPainter#label}
+     */
     @Deprecated
     public static IDrawable label(Widget<?> widget, Supplier<String> text, BooleanSupplier available,
         BooleanSupplier selected) {
         return AE2ButtonPainter.label(widget, text, available, selected);
     }
 
-    /** @deprecated use {@link AE2ButtonPainter#iconButton} */
+    /**
+     * @deprecated use {@link AE2ButtonPainter#iconButton}
+     */
     @Deprecated
     public static IDrawable iconButton(Widget<?> widget, Supplier<? extends IconSource> icon,
         BooleanSupplier available) {
         return AE2ButtonPainter.iconButton(widget, icon, available);
     }
 
-    /** @deprecated use {@link AE2ButtonPainter#tabButton} */
+    /**
+     * @deprecated use {@link AE2ButtonPainter#tabButton}
+     */
     @Deprecated
     public static IDrawable tabButton(Widget<?> widget, Supplier<? extends IconSource> icon,
         BooleanSupplier available) {
         return AE2ButtonPainter.tabButton(widget, icon, available);
     }
 
-    /** @deprecated use {@link AE2CheckboxPainter#checkbox} */
+    /**
+     * @deprecated use {@link AE2CheckboxPainter#checkbox}
+     */
     @Deprecated
     public static IDrawable toggleSwitch(Widget<?> widget, BooleanSupplier on, Supplier<String> label,
         BooleanSupplier available) {
         return AE2CheckboxPainter.checkbox(widget, on, label, available);
     }
 
-    /** @deprecated use {@link AE2CheckboxPainter#checkboxWidth} */
+    /**
+     * @deprecated use {@link AE2CheckboxPainter#checkboxWidth}
+     */
     @Deprecated
     public static int switchWidth(String label) {
         return AE2CheckboxPainter.checkboxWidth(label);
     }
 
-    /** @deprecated use {@link AE2Draw#text} */
+    /**
+     * @deprecated use {@link AE2Draw#text}
+     */
     @Deprecated
     public static void text(String text, int x, int y, int color, boolean shadow) {
         AE2Draw.text(text, x, y, color, shadow);
     }
 
-    /** Client event listener that reinstalls the theme definitions before a MUI2 theme reload. */
     @SideOnly(Side.CLIENT)
     public static class Reloader {
 

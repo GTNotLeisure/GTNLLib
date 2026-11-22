@@ -4,9 +4,6 @@ import static com.gtnllib.gui.theme.AE2Theme.SLOT_SIZE;
 import static com.gtnllib.gui.theme.AE2Theme.UPGRADE_OVERLAP;
 import static com.gtnllib.gui.theme.AE2Theme.UPGRADE_SLOTS_PER_COLUMN;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.api.widget.INotifyEnabled;
 import com.cleanroommc.modularui.api.widget.IWidget;
@@ -22,27 +19,13 @@ import com.gtnllib.gui.theme.ae2.AE2PanelPainter;
 import com.gtnllib.gui.theme.ae2.AE2UpgradePainter;
 import com.gtnllib.gui.theme.ae2.PlainLook;
 
-/**
- * AE2's upgrade panel ({@code UpgradesPanel}): a strip of upgrade slots attached to the right of a panel. Add the slots
- * with {@link #slot(Widget)}, usually MUI2 {@code ItemSlot}s on the machine's upgrade inventory; the panel places them,
- * sizes itself to them and draws its background, in columns of {@link AE2Theme#UPGRADE_SLOTS_PER_COLUMN} slots from the
- * top. Place it at {@code panelRight - AE2Theme.UPGRADE_OVERLAP} and add it after the panel's other children.
- * <p>
- * Under AE2 themes it is AE2's panel ({@link AE2UpgradePainter}): it has no left border and covers the panel's right
- * border, and it draws the slot wells itself, so it turns off the slots' own theme frames, in both their normal and
- * hovered state. Other themes draw the panel background of the theme without its left border, joined to the panel the
- * same way, with the slots' own frames; the slots then start at the panel's right edge, two pixels further right than
- * under AE2 themes. As in AE2, a slot turned off with {@code setEnabled(false)} or {@code setEnabledIf} leaves no gap,
- * and with no slots shown it takes no space, draws nothing and does not ask NEI to keep clear. Otherwise the panel
- * stands outside its panel, so it tells NEI to keep its panels clear of it. It can be built on either side, so it also
- * works in GUIs the server opens.
- */
 public class UpgradesPanel extends ParentWidget<UpgradesPanel> implements INotifyEnabled {
 
-    /** Pixels the slots and the right edge move right outside AE2 themes, where the background hides a wider border. */
+    /**
+     * Pixels the slots and the right edge move right outside AE2 themes, where the background hides a wider border.
+     */
     public static final int PLAIN_SHIFT = 2;
     private final IDrawable plainPanel = AE2PanelPainter.panelBackground(this, 0, 0);
-    private final List<Widget<?>> slots = new ArrayList<>();
     private int perColumn = UPGRADE_SLOTS_PER_COLUMN, shown;
 
     /**
@@ -60,10 +43,36 @@ public class UpgradesPanel extends ParentWidget<UpgradesPanel> implements INotif
      * @param slot slot widget, not added anywhere else
      */
     public UpgradesPanel slot(Widget<?> slot) {
-        slots.add(slot);
         child(slot.size(SLOT_SIZE, SLOT_SIZE));
-        layoutSlots();
         return this;
+    }
+
+    @Override
+    public boolean addChild(IWidget child, int index) {
+        boolean changed = super.addChild(child, index);
+        if (changed) layoutSlots();
+        return changed;
+    }
+
+    @Override
+    public boolean remove(IWidget child) {
+        boolean changed = super.remove(child);
+        if (changed) layoutSlots();
+        return changed;
+    }
+
+    @Override
+    public boolean remove(int index) {
+        boolean changed = super.remove(index);
+        if (changed) layoutSlots();
+        return changed;
+    }
+
+    @Override
+    public boolean removeAll() {
+        boolean changed = super.removeAll();
+        if (changed) layoutSlots();
+        return changed;
     }
 
     @Override
@@ -79,10 +88,11 @@ public class UpgradesPanel extends ParentWidget<UpgradesPanel> implements INotif
 
     private void layoutSlots() {
         int index = 0;
-        for (Widget<?> slot : slots) {
+        for (IWidget slot : getChildren()) {
             if (!slot.isEnabled()) continue;
             int place = index++;
-            slot.left(() -> AE2UpgradePainter.upgradeSlotX(place, perColumn) + shift(), Measure.PIXEL)
+            slot.resizer()
+                .left(() -> AE2UpgradePainter.upgradeSlotX(place, perColumn) + shift(), Measure.PIXEL)
                 .top(() -> AE2UpgradePainter.upgradeSlotY(place, perColumn), Measure.PIXEL);
         }
         shown = index;
@@ -119,8 +129,10 @@ public class UpgradesPanel extends ParentWidget<UpgradesPanel> implements INotif
     @Override
     public void draw(ModularGuiContext context, WidgetThemeEntry<?> widgetTheme) {
         AE2Look look = AE2Look.of(this);
-        for (Widget<?> slot : slots) slot.disableThemeBackground(look.isAE2())
-            .disableHoverThemeBackground(look.isAE2());
+        for (IWidget child : getChildren()) {
+            if (child instanceof Widget<?>slot) slot.disableThemeBackground(look.isAE2())
+                .disableHoverThemeBackground(look.isAE2());
+        }
         if (shown == 0) return;
         if (look.isAE2()) {
             AE2UpgradePainter.drawUpgradePanel(look.variant(), 0, 0, shown, perColumn);

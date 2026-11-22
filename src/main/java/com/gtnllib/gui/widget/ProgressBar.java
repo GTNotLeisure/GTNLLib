@@ -10,15 +10,6 @@ import com.gtnllib.gui.theme.ae2.AE2Look;
 import com.gtnllib.gui.theme.ae2.AE2Variant;
 import com.gtnllib.gui.theme.ae2.PlainLook;
 
-/**
- * AE2's progress bar: the inscriber's {@link AE2Theme#PROGRESS_WIDTH} by {@link AE2Theme#PROGRESS_HEIGHT} bar that
- * fills upwards, drawn from the skin of the panel it is in. Outside AE2 themes it is a sunken slot-style well that
- * fills with the plain look's green ({@link PlainLook#GOOD}). AE2's sprite is upright, so under AE2 themes the bar is
- * meant to fill up or down; other directions stretch it.
- * <p>
- * It is MUI2's {@link ProgressWidget}, so it takes an {@code IDoubleValue} from 0 to 1 or a synced value and works in
- * GUIs the server opens. Like AE2's, it fills in whole pixels.
- */
 public class ProgressBar extends ProgressWidget {
 
     /**

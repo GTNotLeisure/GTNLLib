@@ -5,13 +5,6 @@ import java.util.function.IntPredicate;
 import com.cleanroommc.modularui.api.UpOrDown;
 import com.cleanroommc.modularui.api.widget.IWidget;
 
-/**
- * The mouse-wheel rule of every GTNLLib widget that changes a value with the wheel. The wheel is off until
- * {@code wheel(true)}, so a wheel turned over a scrolling list keeps scrolling the list. It acts only while the pointer
- * is over the widget, so a focused text field elsewhere does not take it, and never while the widget is unavailable,
- * so the wheel goes to the widgets around it. Widgets keep one of these behind {@link IWheelStep}, say what one notch
- * does, and route {@code onMouseScroll} through {@link #scroll}.
- */
 public class WheelStep {
 
     private boolean on;

@@ -1,7 +1,5 @@
 package com.gtnllib.gui.widget;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.IntPredicate;
@@ -24,37 +22,16 @@ import com.gtnllib.gui.theme.ae2.AE2Variant;
 import com.gtnllib.gui.theme.ae2.IconSource;
 import com.gtnllib.gui.theme.ae2.PlainLook;
 
-/**
- * A column of icon buttons on the left of a panel, laid out like AE2 1.21's vertical toolbar: 18-by-20-pixel buttons 22
- * pixels apart on a background strip under AE2 themes, and 18-pixel square buttons 20 apart in other themes, whose
- * buttons have no shadow below them ({@link AE2Look#iconButtonHeight()}). Icons are {@code AE2Icon}s,
- * {@code AE2SettingIcon}s or any texture or item through {@link IconSource#of}. {@link #add(Widget)} puts any widget in
- * the next slot, such as a {@link SettingToggleButton} or an {@link IconButton} of your own, as AE2's
- * {@code addToLeftToolbar} takes any button.
- * {@link #available(BooleanSupplier)} makes the button added last unavailable when it should not be used: it then looks
- * disabled and swallows clicks, as every GTNLLib widget's {@code available} does.
- * <p>
- * The bar stands outside the panel, so it tells NEI to keep its panels clear of it, as AE2's toolbar does. Place the
- * bar at {@code panelLeft - WIDTH + OVERLAP} and add it after the panel's other children: its right {@link #OVERLAP}
- * pixels are drawn over the panel's left border, so the strip and the panel read as one piece without a dividing line.
- * At the panel's top, where AE2 places it, the strip's top border continues the panel's top border; placed lower, the
- * panel's left border runs on into the strip's top border, as it does at the strip's bottom. The height grows with each
- * added button. A button that is turned off with {@code setEnabled(false)} or {@code setEnabledIf} leaves no gap: the
- * buttons below move up and the strip gets shorter, and with no button shown nothing is drawn, as in AE2. Outside AE2
- * themes the strip uses the panel background of the current theme without its right border, covering the panel's left
- * border the same way. {@link #buttonSize(int, int)} changes the button size
- * from AE2's. It can be built on either side, so it also works in GUIs the server opens.
- */
 public class VerticalButtonBar extends ParentWidget<VerticalButtonBar> implements INotifyEnabled {
 
-    /** Strip width, distance between button tops under AE2 themes and pixels drawn over the panel's left border. */
+    /**
+     * Strip width, distance between button tops under AE2 themes and pixels drawn over the panel's left border.
+     */
     public static final int WIDTH = 21, PITCH = 22, OVERLAP = 2;
     private static final int BUTTON_X = 3, BUTTON_Y = 3, EDGES = 6, BUTTON_GAP = PITCH - AE2Theme.ICON_BUTTON_HEIGHT,
         PANEL_OUTLINE = 1, BORDER_SAMPLE = 16;
     private final IDrawable panelBackground = AE2PanelPainter.panelBackground(this, 0, 0);
-    private final List<Widget<?>> buttons = new ArrayList<>();
     private int buttonWidth = AE2Theme.ICON_BUTTON_WIDTH, buttonHeight, shownButtons;
-    private Widget<?> last;
 
     /**
      * Creates an empty bar; add buttons with {@code button} and {@code toggle}.
@@ -114,11 +91,36 @@ public class VerticalButtonBar extends ParentWidget<VerticalButtonBar> implement
      * @param widget widget to add, not added anywhere else
      */
     public VerticalButtonBar add(Widget<?> widget) {
-        last = widget;
-        buttons.add(widget);
         child(widget);
-        layoutButtons();
         return this;
+    }
+
+    @Override
+    public boolean addChild(IWidget child, int index) {
+        boolean changed = super.addChild(child, index);
+        if (changed) layoutButtons();
+        return changed;
+    }
+
+    @Override
+    public boolean remove(IWidget child) {
+        boolean changed = super.remove(child);
+        if (changed) layoutButtons();
+        return changed;
+    }
+
+    @Override
+    public boolean remove(int index) {
+        boolean changed = super.remove(index);
+        if (changed) layoutButtons();
+        return changed;
+    }
+
+    @Override
+    public boolean removeAll() {
+        boolean changed = super.removeAll();
+        if (changed) layoutButtons();
+        return changed;
     }
 
     /**
@@ -130,7 +132,7 @@ public class VerticalButtonBar extends ParentWidget<VerticalButtonBar> implement
      *                               own ({@link IAvailable})
      */
     public VerticalButtonBar available(BooleanSupplier available) {
-        if (!(last instanceof IAvailable<?>widget))
+        if (!hasChildren() || !(getChildren().get(getChildren().size() - 1) instanceof IAvailable<?>widget))
             throw new IllegalStateException("The widget added last has no available state");
         widget.available(available);
         return this;
@@ -175,10 +177,11 @@ public class VerticalButtonBar extends ParentWidget<VerticalButtonBar> implement
 
     private void layoutButtons() {
         int shown = 0;
-        for (Widget<?> button : buttons) {
+        for (IWidget button : getChildren()) {
             if (!button.isEnabled()) continue;
             int slot = shown++;
-            button.left(BUTTON_X)
+            button.resizer()
+                .left(BUTTON_X)
                 .top(() -> BUTTON_Y + slot * pitch(), Measure.PIXEL)
                 .width(buttonWidth)
                 .height(this::buttonHeight, Measure.PIXEL);

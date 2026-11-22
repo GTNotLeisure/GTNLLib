@@ -2,7 +2,6 @@ package com.gtnllib.gui.widget;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.function.BooleanSupplier;
 
 import net.minecraft.item.ItemStack;
 
@@ -38,33 +37,12 @@ import com.gtnllib.gui.theme.ae2.ButtonText;
 
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 
-/**
- * A dropdown whose menu stays inside the panel, follows values changed elsewhere and marks itself with a caret; after
- * {@link #wheel(boolean) wheel(true)} it also cycles with the mouse wheel while the pointer is over it, one choice per
- * notch, wrapping around at the ends. It can be built on either side, so it also works in GUIs the server opens.
- * <p>
- * The shown value reads like a button label: text widgets in it that have no color of their own, and the caret, use the
- * button text color and shadow of the current state, under AE2 themes and plain ones alike. Under AE2 themes the shown
- * value also sinks with the button face on hover. The sinking uses the shown widget's {@code transform} hook, so a
- * transform set on it by {@code optionToWidget} is replaced.
- * <p>
- * An option that is a single text widget, which is what MUI2 makes when no {@code optionToWidget} is set, is laid out
- * by the dropdown: in the menu it becomes a {@value #OPTION_HEIGHT}-pixel row with the text at its left, centred
- * vertically, and as the shown value it fills the dropdown's height, placed where an AE2 button places its label.
- * Other option widgets, such as {@link #iconOption} rows, keep their own layout.
- * <p>
- * While {@link #available(BooleanSupplier)} reports false the dropdown looks like a disabled button, shows no hover,
- * closes its menu and ignores clicks and the wheel.
- * <p>
- * The menu opens in a panel of its own, which MUI2 gives its context-menu theme. The dropdown gives that panel the menu
- * theme of its own panel's look instead: AE2's menu theme of the same skin under an AE2 theme, MUI2's context menu
- * otherwise, so no {@code AE2Theme.useMenuTheme} call is needed. A theme registered for the menu panel's name still
- * wins, as MUI2 lets registered screen themes win over a panel's own.
- */
 public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>>
     implements IAvailable<CycleDropdown<T>>, IWheelStep<CycleDropdown<T>> {
 
-    /** Height of an {@link #iconOption} row and of its icon in pixels. */
+    /**
+     * Height of an {@link #iconOption} row and of its icon in pixels.
+     */
     public static final int OPTION_HEIGHT = 16;
     private static final int VALUE_INSET = 3, CARET_SPACE = AE2Theme.CARET_WIDTH + 4;
     private final List<T> choices = new ObjectArrayList<>();
@@ -199,9 +177,10 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>>
     @Override
     public void onUpdate() {
         super.onUpdate();
-        IValue<T> value = getValue();
-        if (value != null && isValid() && !Objects.equals(value.getValue(), shown)) setValue(value.getValue(), false);
-        if (!isAvailable() && isValid() && isOpen()) closeMenu(false);
+        if (!isValid()) return;
+        T current = getValue().getValue();
+        if (!Objects.equals(current, shown)) setValue(current, false);
+        if (isOpen() && (!isAvailable() || !areAncestorsEnabled())) closeMenu(false);
     }
 
     /**
@@ -216,7 +195,14 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>>
         this.choices.addAll(choices);
         clearOptions().options(choices);
         deleteMenu();
+        if (isValid()) setValue(getValue().getValue(), false);
         return this;
+    }
+
+    @Override
+    public void deleteMenu() {
+        if (isValid() && isOpen()) closeMenu(false);
+        super.deleteMenu();
     }
 
     @Override
@@ -239,6 +225,7 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>>
      * @param width menu width in pixels; zero keeps the dropdown's own width
      */
     public CycleDropdown<T> menuWidth(int width) {
+        if (menuWidth == width) return this;
         menuWidth = width;
         deleteMenu();
         return this;

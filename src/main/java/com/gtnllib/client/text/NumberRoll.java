@@ -11,11 +11,6 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 
-/**
- * Computes odometer and slot-machine frames without rendering. Leading zeros and decimal places remain visible;
- * other odometer wheels appear as the value reaches them. Separators ({@code , . _ '}) join adjacent digits into a
- * number, and separate numbers advance together. Slot wheels stay visible and stop in {@link SlotOrder} order.
- */
 public class NumberRoll {
 
     public static final double JUMP_STEP_SECONDS = 0.05;
@@ -230,13 +225,7 @@ public class NumberRoll {
         }
     }
 
-    /**
-     * {@code text} is the glyph drawn at {@code x} (relative to the run, after hidden wheels made room) and moved down
-     * by {@code shift} line heights at {@code alpha} opacity; {@code moving} marks a digit sliding past the line's
-     * edge.
-     */
     public record Layer(String text, float x, float shift, boolean moving, float alpha) {}
 
-    /** {@code jumpText} is the whole number as it reads now, used when the number jumps instead of sliding. */
     public record Frame(List<Layer> layers, String jumpText, float hidden) {}
 }

@@ -2,6 +2,7 @@ package com.gtnllib.gui.widget;
 
 import org.jetbrains.annotations.NotNull;
 
+import com.cleanroommc.modularui.api.UpOrDown;
 import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.theme.WidgetThemeEntry;
@@ -13,23 +14,13 @@ import com.gtnllib.gui.theme.ae2.AE2Look;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/**
- * List widget with an initial vertical offset and support for persistent scroll bars.
- * <p>
- * Scroll data implementing {@link IPersistentScrollbar} reserves its thickness during layout even when the content
- * fits. Its inactive track is drawn after the content. Scroll offsets are clamped after each resize. A
- * {@link HandleScrollData} gets the look of the list's panel before each layout, so its handle and width follow the
- * panel's theme. Like AE2's lists, it does not darken its top and bottom edges while there is more to scroll; call
- * {@code showScrollShadows(true)} for MUI2's shading.
- *
- * @param <I> child widget type
- * @param <W> fluent widget type
- */
 public class GTNLListWidget<I extends IWidget, W extends ListWidget<I, W>> extends ListWidget<I, W> {
 
     private int initialScrollY;
 
-    /** Creates a list positioned at the start of its content. */
+    /**
+     * Creates a list positioned at the start of its content.
+     */
     public GTNLListWidget() {
         this(0);
     }
@@ -83,8 +74,23 @@ public class GTNLListWidget<I extends IWidget, W extends ListWidget<I, W>> exten
 
     @Override
     public boolean onMouseRelease(int mouseButton) {
+        if (mouseButton != 0) return false;
         if (getScrollData() instanceof HandleScrollData handle) handle.stopPaging();
         return super.onMouseRelease(mouseButton);
+    }
+
+    @Override
+    public void onMouseDrag(int mouseButton, long timeSinceClick) {
+        if (getScrollData() instanceof HandleScrollData handle) {
+            if (mouseButton == 0 && handle.isDragging()) handle.dragTo(getScrollArea(), getContext().getMouseY());
+        } else super.onMouseDrag(mouseButton, timeSinceClick);
+    }
+
+    @Override
+    public boolean onMouseScroll(UpOrDown direction, int amount) {
+        return getScrollData() instanceof HandleScrollData handle
+            ? MUI2Fixes.scrollWheel(getScrollArea(), handle, direction)
+            : super.onMouseScroll(direction, amount);
     }
 
     @Override

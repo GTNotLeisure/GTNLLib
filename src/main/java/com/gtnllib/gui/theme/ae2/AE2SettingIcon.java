@@ -7,16 +7,6 @@ import com.cleanroommc.modularui.drawable.UITexture;
 import com.cleanroommc.modularui.screen.viewport.GuiContext;
 import com.cleanroommc.modularui.theme.WidgetTheme;
 
-/**
- * AE2 1.21's own 16-by-16 setting icons, such as the redstone modes, fuzzy modes, access modes and power units, with
- * the names and sheet positions of AE2's {@code Icon} enum. Use them on a {@code SettingToggleButton}, an
- * {@code IconButton} or a toolbar button for settings that AE2 has too, so they look like AE2's.
- * <p>
- * They are drawn from the {@code states.png} sheet of the panel's AE2 skin, which a resource pack can repaint per skin,
- * and from the light skin's sheet outside AE2 themes, where they are white like MUI2's icons. AE2 1.21 leaves twenty of
- * its icon cells as placeholders in that sheet (the search, type filter, substitution, level and white/black list
- * icons); those have no constant here. {@link AE2Icon} holds the general actions such as add, refresh and close.
- */
 public enum AE2SettingIcon implements IconSource {
 
     REDSTONE_LOW(0, 0),
@@ -109,7 +99,9 @@ public enum AE2SettingIcon implements IconSource {
     OVERLAY_ON(64, 240);
 
     private static final String SHEET_NAME = "states";
-    /** Position of the icon in AE2's {@code states.png}, in pixels. */
+    /**
+     * Position of the icon in AE2's {@code states.png}, in pixels.
+     */
     public final int x, y;
     private final UITexture[] skins = new UITexture[AE2Variant.values().length];
 

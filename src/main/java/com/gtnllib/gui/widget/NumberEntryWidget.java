@@ -3,7 +3,6 @@ package com.gtnllib.gui.widget;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.OptionalLong;
-import java.util.function.BooleanSupplier;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 import java.util.regex.Pattern;
@@ -31,48 +30,20 @@ import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.ae2.AE2Look;
 import com.gtnllib.gui.theme.ae2.AE2Variant;
+import com.gtnllib.utils.LongMath;
 
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 
-/**
- * Integer input with a text field, validation feedback and step controls. It can be built on either side, so it also
- * works in GUIs the server opens.
- * <p>
- * The layout follows the widget's size. From {@link #HEIGHT} pixels up the entry shows AE2's four pairs of step buttons
- * above and below the text field, stretched to the width; the default size is {@link #WIDTH} by {@link #HEIGHT}. A
- * lower entry is a single row of {@code <}, the text field and {@code >}, for example 64 by 16 pixels inside a list
- * row.
- * <p>
- * Input may contain a signed {@code long} literal or a numeric expression with SI suffixes, such as {@code 2 * 64} or
- * {@code 1.5k}. Only integral results within the configured bounds are valid. Invalid text remains editable and is
- * accompanied by an error tooltip, and in the tall layout an error icon. The text field accepts up to 64 characters.
- * <p>
- * Step button sizes are 1, 10, 100 and 1000, or 1, 16, 32 and 64 while Shift or Ctrl is held. The {@code <} and
- * {@code >} buttons step by 1, or by 10 while Shift is held, and so does the mouse wheel over the text field after
- * {@link #wheel(boolean) wheel(true)}. The wheel steps only while the pointer is over the text field, even after the
- * player has clicked into it; elsewhere, or with the wheel off, it is left to the widgets under the pointer, such as a
- * list around the entry. Steps are clamped to the configured bounds. Increasing a value of one by a step larger than
- * one selects that step value. Invalid input is treated as zero when applying a step. Right-clicking the text field
- * sets the reset value, clamped to the bounds, so the default reset value of zero becomes one when the minimum is one.
- * <p>
- * While {@link #available(BooleanSupplier)} reports false the entry looks disabled like AE2's: the buttons are drawn
- * disabled and the text field gets AE2's dark uneditable background and grey text; clicks, typing and the wheel do
- * nothing, and the text field gives up keyboard focus.
- * <p>
- * {@link #isInputValid()} describes the input. Inherited {@link #isValid()} describes the MUI2 widget lifecycle.
- * <p>
- * Invalid text is drawn in the error color of the theme the entry is drawn with: AE2's input error color under AE2
- * themes, a plain red otherwise.
- * <p>
- * For example, {@code new NumberEntryWidget().bounds(1, 1_000_000).value(64)} creates a bounded input with an initial
- * value of 64.
- */
 public class NumberEntryWidget extends ParentWidget<NumberEntryWidget>
     implements IAvailable<NumberEntryWidget>, IWheelStep<NumberEntryWidget> {
 
-    /** Default widget dimensions in GUI pixels; lower entries use the single-row layout. */
+    /**
+     * Default widget dimensions in GUI pixels; lower entries use the single-row layout.
+     */
     public static final int WIDTH = 138, HEIGHT = 62;
-    /** Width of the {@code <} and {@code >} buttons of the single-row layout. */
+    /**
+     * Width of the {@code <} and {@code >} buttons of the single-row layout.
+     */
     public static final int ARROW_WIDTH = 12;
     private static final long[] STEPS = { 1, 10, 100, 1000 }, SHIFT_STEPS = { 1, 16, 32, 64 };
     private static final int[] BUTTON_X = { 0, 28, 62, 100 }, BUTTON_WIDTH = { 22, 28, 32, 38 };
@@ -168,7 +139,13 @@ public class NumberEntryWidget extends ParentWidget<NumberEntryWidget>
     @Override
     public void onUpdate() {
         super.onUpdate();
-        if (!isAvailable() && isEditing()) getContext().removeFocus();
+        if (isEditing() && (!isAvailable() || !areAncestorsEnabled())) getContext().removeFocus();
+    }
+
+    @Override
+    public void dispose() {
+        if (isEditing()) getContext().removeFocus();
+        super.dispose();
     }
 
     /**
@@ -203,8 +180,10 @@ public class NumberEntryWidget extends ParentWidget<NumberEntryWidget>
      * @param max maximum accepted value; values below {@code min} are replaced with {@code min}
      */
     public NumberEntryWidget bounds(long min, long max) {
+        max = Math.max(min, max);
+        if (this.min == min && this.max == max) return this;
         this.min = min;
-        this.max = Math.max(min, max);
+        this.max = max;
         validate(false);
         return this;
     }
@@ -245,7 +224,7 @@ public class NumberEntryWidget extends ParentWidget<NumberEntryWidget>
         value(source.getAsLong());
         onUpdateListener(widget -> {
             long current = source.getAsLong();
-            if (!isEditing() && value().orElse(Long.MIN_VALUE) != current) value(current);
+            if (!isEditing() && (!inputValid || this.value != current)) value(current);
         }, true);
         return this;
     }
@@ -319,13 +298,9 @@ public class NumberEntryWidget extends ParentWidget<NumberEntryWidget>
     }
 
     private void add(long delta) {
-        BigDecimal current = inputValid ? BigDecimal.valueOf(value) : BigDecimal.ZERO;
-        BigDecimal next = current.compareTo(BigDecimal.ONE) == 0 && delta > 1 ? BigDecimal.valueOf(delta)
-            : current.add(BigDecimal.valueOf(delta));
-        setText(
-            next.max(BigDecimal.valueOf(min))
-                .min(BigDecimal.valueOf(max))
-                .toPlainString());
+        long current = inputValid ? value : 0;
+        long next = current == 1 && delta > 1 ? delta : LongMath.saturatedAdd(current, delta);
+        setText(Long.toString(Math.max(min, Math.min(max, next))));
         validate(true);
     }
 
@@ -359,10 +334,8 @@ public class NumberEntryWidget extends ParentWidget<NumberEntryWidget>
             .matches()) return new BigDecimal(trimmed);
         try {
             ParseResult result = MathUtils.parseExpression(trimmed, 0);
-            if (result.isFailure() || !result.hasValue()
-                || !result.getResult()
-                    .isNumberValue())
-                return null;
+            if (result.isFailure() || !result.getResult()
+                .isNumberValue()) return null;
             return result.getResult()
                 .getNumberValue();
         } catch (ArithmeticException | NumberFormatException ignored) {
@@ -394,7 +367,7 @@ public class NumberEntryWidget extends ParentWidget<NumberEntryWidget>
 
         @Override
         public @NotNull Result onKeyPressed(char character, int keyCode) {
-            return isAvailable() ? super.onKeyPressed(character, keyCode) : Result.IGNORE;
+            return isAvailable() && areAncestorsEnabled() ? super.onKeyPressed(character, keyCode) : Result.IGNORE;
         }
 
         @Override

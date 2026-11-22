@@ -4,18 +4,15 @@ import com.gtnllib.text.ShakeMode;
 import com.gtnllib.text.ShakeMotion;
 import com.gtnllib.text.TextEffectStyle.Shake;
 
-/**
- * Where trembling text sits at one moment. Every glyph (or the whole span) heads for a new random target
- * {@link #STEPS_PER_SECOND} times a second: a smooth shake glides there and eases in and out, a jumping shake holds a
- * whole-pixel position for each step.
- */
 public class TextShake {
 
     public static final double STEPS_PER_SECOND = 12;
 
     private TextShake() {}
 
-    /** Offset in pixels of glyph {@code index} along {@code axis} (0 across, 1 down), within {@code amplitude}. */
+    /**
+     * Offset in pixels of glyph {@code index} along {@code axis} (0 across, 1 down), within {@code amplitude}.
+     */
     public static float offset(int index, int axis, double seconds, float amplitude, boolean jump) {
         double time = seconds * STEPS_PER_SECOND;
         long step = (long) Math.floor(time);

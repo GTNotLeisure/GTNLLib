@@ -1,6 +1,5 @@
 package com.gtnllib.text;
 
-/** Whether shaking text glides between positions ({@link #SMOOTH}) or holds whole-pixel steps ({@link #JUMP}). */
 public enum ShakeMotion {
 
     SMOOTH("smooth"),
@@ -12,7 +11,9 @@ public enum ShakeMotion {
         this.id = id;
     }
 
-    /** Returns the motion written as {@code id}, or null when the name is unknown. */
+    /**
+     * Returns the motion written as {@code id}, or null when the name is unknown.
+     */
     public static ShakeMotion byId(String id) {
         for (ShakeMotion motion : values()) {
             if (motion.id.equals(id)) return motion;

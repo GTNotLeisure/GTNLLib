@@ -2,15 +2,11 @@ package com.gtnllib.gui.widget;
 
 import org.lwjgl.input.Mouse;
 
-/**
- * Repeats a held left-button press the way AE2's scroll bars page: the owner acts once on the press, again after
- * {@value #FIRST_DELAY_MILLIS} ms and then every {@value #INTERVAL_MILLIS} ms until the button is released. The owner
- * calls {@link #start(int)} on the press, acts once, and then acts once more each time {@link #due()}, called every
- * client tick, returns true.
- */
 public class PressRepeat {
 
-    /** Delay before a held press acts again, and the interval between later repeats, in milliseconds. */
+    /**
+     * Delay before a held press acts again, and the interval between later repeats, in milliseconds.
+     */
     public static final int FIRST_DELAY_MILLIS = 250, INTERVAL_MILLIS = 150;
 
     private int direction;
@@ -26,7 +22,9 @@ public class PressRepeat {
         next = System.currentTimeMillis() + FIRST_DELAY_MILLIS;
     }
 
-    /** Stops repeating, such as when the owner sees the button released. */
+    /**
+     * Stops repeating, such as when the owner sees the button released.
+     */
     public void stop() {
         direction = 0;
     }

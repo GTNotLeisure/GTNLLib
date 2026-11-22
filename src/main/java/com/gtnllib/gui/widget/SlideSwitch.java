@@ -83,7 +83,9 @@ public class SlideSwitch extends ButtonWidget<SlideSwitch> implements IAvailable
         return availability;
     }
 
-    /** @deprecated use {@link #available(BooleanSupplier)}, the name every GTNLLib widget uses */
+    /**
+     * @deprecated use {@link #available(BooleanSupplier)}, the name every GTNLLib widget uses
+     */
     @Deprecated
     public SlideSwitch availableWhen(BooleanSupplier available) {
         return available(available);

@@ -47,17 +47,11 @@ import com.gtnllib.gui.theme.ThemePalette;
 import com.gtnllib.gui.theme.ThemeSkin;
 import com.gtnllib.gui.theme.ThemeSkin.Part;
 
-/**
- * The three AE2 skins: light, dark and purple dark. A skin is data only: its theme identifiers, its palette, its
- * selection colors, which match the selected sprites of the skin, and its textures.
- * <p>
- * The registered themes ({@link AE2ThemeDefinitions}) and the AE2 painters both read it. The enum loads on both sides
- * and builds no theme itself. Drawing code does not pick a skin: it asks {@link AE2Look#of} for the look of its panel
- * and takes the skin from {@link AE2Look#variant()}.
- */
 public enum AE2Variant {
 
-    /** Light AE2 palette. */
+    /**
+     * Light AE2 palette.
+     */
     LIGHT(LIGHT_ID, LIGHT_MENU_ID, LIGHT_FOLDER, false, AE2Colors.builder()
         .text(0xFF413F54)
         .muted(0xFF878FA5)
@@ -79,9 +73,13 @@ public enum AE2Variant {
         .warning(0xFF7A4A00)
         .error(0xFFFF1900)
         .build(), HIGHLIGHT, HIGHLIGHT_TOP, HIGHLIGHT_SHADOW),
-    /** Dark AE2 palette. */
+    /**
+     * Dark AE2 palette.
+     */
     DARK(DARK_ID, DARK_MENU_ID, DARK_FOLDER, true, darkColors(0xFF517497), HIGHLIGHT, HIGHLIGHT_TOP, HIGHLIGHT_SHADOW),
-    /** Dark AE2 palette with fluix-purple selection highlights. */
+    /**
+     * Dark AE2 palette with fluix-purple selection highlights.
+     */
     DARK_PURPLE(DARK_PURPLE_ID, DARK_PURPLE_MENU_ID, PURPLE_FOLDER, true, darkColors(0xFFFFFFFF), PURPLE_HIGHLIGHT,
         PURPLE_HIGHLIGHT_TOP, PURPLE_HIGHLIGHT_SHADOW, 0xFFFFFFFF);
 
@@ -92,63 +90,117 @@ public enum AE2Variant {
         DIVIDER_WIDTH = 4, DIVIDER_HEIGHT = 2, LIST_ROW_WIDTH = 67, BUTTON_BAR_WIDTH = 21, BUTTON_BAR_HEIGHT = 26,
         RADIO_X = 28, INVALID_Y = 128;
 
-    /** Registered panel theme identifier. */
+    /**
+     * Registered panel theme identifier.
+     */
     public final String id;
-    /** Registered context-menu theme identifier. */
+    /**
+     * Registered context-menu theme identifier.
+     */
     public final String menuId;
-    /** Folder name below {@code textures/gui/skin/}. */
+    /**
+     * Folder name below {@code textures/gui/skin/}.
+     */
     public final String folder;
-    /** Whether the panel is dark, so overlays such as a hovered row lighten it rather than darken it. */
+    /**
+     * Whether the panel is dark, so overlays such as a hovered row lighten it rather than darken it.
+     */
     public final boolean dark;
-    /** Semantic ARGB colors. */
+    /**
+     * Semantic ARGB colors.
+     */
     public final AE2Colors colors;
-    /** ARGB selection fill, top edge and bottom shadow matching this skin's selected sprites. */
+    /**
+     * ARGB selection fill, top edge and bottom shadow matching this skin's selected sprites.
+     */
     public final int highlight, highlightTop, highlightShadow;
-    /** ARGB text color drawn on the selection fill, such as slider value tags. */
+    /**
+     * ARGB text color drawn on the selection fill, such as slider value tags.
+     */
     public final int highlightText;
-    /** Palette used by GTNLLib's general theme helpers. */
+    /**
+     * Palette used by GTNLLib's general theme helpers.
+     */
     public final ThemePalette palette;
-    /** Skin used by GTNLLib's general theme helpers. */
+    /**
+     * Skin used by GTNLLib's general theme helpers.
+     */
     public final ThemeSkin skin;
-    /** Recolored AE2 rv3 state and terminal sheets. */
+    /**
+     * Recolored AE2 rv3 state and terminal sheets.
+     */
     public final ResourceLocation legacyStates, legacyTerminal;
-    /** Resizable panel background and inset list well. */
+    /**
+     * Resizable panel background and inset list well.
+     */
     public final UITexture panel, inset;
     /**
      * The panel texture without its left border, for upgrade panels; see {@link AE2UpgradePainter#drawUpgradePanel}.
      */
     public final UITexture upgradeFrame;
-    /** Empty item and fluid slot backgrounds, natively 18 by 18 pixels. */
+    /**
+     * Empty item and fluid slot backgrounds, natively 18 by 18 pixels.
+     */
     public final UITexture slotItem, slotFluid;
-    /** Small scroll-bar handle, natively 7 by 15 pixels and resizable by MUI2. */
+    /**
+     * Small scroll-bar handle, natively 7 by 15 pixels and resizable by MUI2.
+     */
     public final UITexture scroller;
-    /** Disabled small scroll-bar handle, 7 by 15 pixels. */
+    /**
+     * Disabled small scroll-bar handle, 7 by 15 pixels.
+     */
     public final UITexture scrollerDisabled;
-    /** Enabled and disabled large scroll-bar handles, 12 by 15 pixels. */
+    /**
+     * Enabled and disabled large scroll-bar handles, 12 by 15 pixels.
+     */
     public final UITexture bigScroller, bigScrollerDisabled;
-    /** Resizable text-field background with a native height of 12 pixels. */
+    /**
+     * Resizable text-field background with a native height of 12 pixels.
+     */
     public final UITexture textField;
-    /** Dark background of a text field that cannot be edited, with the same borders as {@link #textField}. */
+    /**
+     * Dark background of a text field that cannot be edited, with the same borders as {@link #textField}.
+     */
     public final UITexture textFieldDisabled;
-    /** Normal, hovered and selected toolbar-button frames, natively 18 by 20 pixels. */
+    /**
+     * Normal, hovered and selected toolbar-button frames, natively 18 by 20 pixels.
+     */
     public final UITexture iconButton, iconButtonHover, iconButtonSelected;
-    /** Normal 20-by-20 and hovered 22-by-22 tab-button backgrounds. */
+    /**
+     * Normal 20-by-20 and hovered 22-by-22 tab-button backgrounds.
+     */
     public final UITexture tabButton, tabButtonHover;
-    /** Normal, selected and hovered 22-by-22 page tabs that stick out of a panel's right edge. */
+    /**
+     * Normal, selected and hovered 22-by-22 page tabs that stick out of a panel's right edge.
+     */
     public final UITexture pageTab, pageTabSelected, pageTabHover;
-    /** Unchecked check box sprites in normal and hovered states, 22 by 12 pixels. */
+    /**
+     * Unchecked check box sprites in normal and hovered states, 22 by 12 pixels.
+     */
     public final UITexture checkboxOff, checkboxOffHover;
-    /** Checked check box sprites in normal and hovered states, 22 by 12 pixels. */
+    /**
+     * Checked check box sprites in normal and hovered states, 22 by 12 pixels.
+     */
     public final UITexture checkboxOn, checkboxOnHover;
-    /** Unselected radio sprites in normal and hovered states, 14 by 14 pixels. */
+    /**
+     * Unselected radio sprites in normal and hovered states, 14 by 14 pixels.
+     */
     public final UITexture radioOff, radioOffHover;
-    /** Selected radio sprites in normal and hovered states, 14 by 14 pixels. */
+    /**
+     * Selected radio sprites in normal and hovered states, 14 by 14 pixels.
+     */
     public final UITexture radioOn, radioOnHover;
-    /** Resizable normal and selected list rows with a native height of 22 pixels. */
+    /**
+     * Resizable normal and selected list rows with a native height of 22 pixels.
+     */
     public final UITexture listRow, listRowSelected;
-    /** Resizable vertical button-bar background. */
+    /**
+     * Resizable vertical button-bar background.
+     */
     public final UITexture buttonBar;
-    /** Empty and filled inscriber progress textures, 6 by 18 pixels, intended for upward filling. */
+    /**
+     * Empty and filled inscriber progress textures, 6 by 18 pixels, intended for upward filling.
+     */
     public final UITexture progressEmpty, progressFull;
     /**
      * Validation warning sprite, 16 by 16 pixels and drawn at that size like AE2's; number entries use

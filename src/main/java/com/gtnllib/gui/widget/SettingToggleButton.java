@@ -1,7 +1,6 @@
 package com.gtnllib.gui.widget;
 
 import java.util.Arrays;
-import java.util.function.BooleanSupplier;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -17,18 +16,6 @@ import com.gtnllib.gui.theme.ae2.AE2Icon;
 import com.gtnllib.gui.theme.ae2.AE2Look;
 import com.gtnllib.gui.theme.ae2.IconSource;
 
-/**
- * AE2's setting button: a toolbar button ({@link AE2ButtonPainter#iconButton}) that shows one icon per value
- * and steps to the next value on a left click and to the previous one on a right click, like AE2's
- * {@code SettingToggleButton}. With a boolean value it is AE2's two-icon {@code ToggleButton}, where either click flips
- * it. Its tooltip is the {@link #title(IKey) title} followed by the description of the current value.
- * <p>
- * It is MUI2's cycle button, so it takes an {@code IIntValue}, an {@code IEnumValue}, an {@code IBoolValue} or a synced
- * value and works in GUIs the server opens. An enum or boolean value sets the number of values itself; for a plain
- * integer value call {@link #stateCount(int)}. Set the value before the states. While it is not
- * {@link #available(BooleanSupplier) available} it looks disabled and swallows every mouse button. A value without an
- * icon shows {@link AE2Icon#MORE}.
- */
 public class SettingToggleButton extends AbstractCycleButtonWidget<SettingToggleButton>
     implements IAvailable<SettingToggleButton> {
 

@@ -18,9 +18,6 @@ import com.cleanroommc.modularui.theme.WidgetTheme;
 import com.cleanroommc.modularui.utils.GlStateManager;
 import com.gtnllib.gui.theme.AE2Theme;
 
-/**
- * AE2 panel pieces: panel backgrounds, list wells and rows, the vertical toolbar strip, tables and the dropdown caret.
- */
 public class AE2PanelPainter {
 
     private AE2PanelPainter() {}

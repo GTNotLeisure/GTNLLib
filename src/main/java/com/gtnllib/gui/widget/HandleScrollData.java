@@ -12,24 +12,6 @@ import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.ae2.AE2Look;
 import com.gtnllib.gui.theme.ae2.AE2Variant;
 
-/**
- * Vertical scroll data with a fixed-size AE2 or vanilla handle. It can be built on either side, so it also works in
- * GUIs the server opens.
- * <p>
- * The handle follows the look of the panel the list is in: AE2's groove and handle under AE2 themes, the vanilla
- * creative-inventory scroll bar otherwise, and the width follows with it. {@link GTNLListWidget} hands it its panel's
- * look before every layout; other scroll widgets call {@link #look(AE2Look)} themselves, or keep the plain look.
- * <p>
- * {@link GTNLListWidget} reserves the track width and draws the disabled handle when the content fits. Other scroll
- * widgets must reserve {@link #getThickness()} pixels on the right and draw the inactive track themselves. The
- * available vertical track must be at least {@link AE2Theme#SCROLLER_HEIGHT} pixels tall.
- * <p>
- * Scrolling is smooth by default. {@link #rows(int)} enables immediate scrolling snapped to row boundaries. Scroll
- * shadows are never drawn. A press on the track beside the handle moves the handle's centre to the pointer at once, and
- * the same press keeps dragging from there. {@link #pageOnTrackPress(boolean) pageOnTrackPress(true)} pages like AE2
- * instead: the press moves one wheel step (MUI2's scroll speed, one row after {@link #rows(int)}) towards the pointer,
- * and inside a {@link GTNLListWidget} holding the button keeps paging ({@link PressRepeat}).
- */
 public class HandleScrollData extends VerticalScrollData implements IPersistentScrollbar {
 
     private final boolean small;
@@ -39,7 +21,9 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
     private int dragMouse, dragScroll;
     private boolean pages;
 
-    /** Creates scroll data with a large handle. */
+    /**
+     * Creates scroll data with a large handle.
+     */
     public HandleScrollData() {
         this(false);
     }
@@ -54,13 +38,17 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
         this(null, small);
     }
 
-    /** @deprecated use {@link #HandleScrollData()}; the handle follows the panel's theme */
+    /**
+     * @deprecated use {@link #HandleScrollData()}; the handle follows the panel's theme
+     */
     @Deprecated
     public HandleScrollData(@Nullable AE2Variant variant) {
         this(variant, false);
     }
 
-    /** @deprecated use {@link #HandleScrollData(boolean)}; the handle follows the panel's theme */
+    /**
+     * @deprecated use {@link #HandleScrollData(boolean)}; the handle follows the panel's theme
+     */
     @Deprecated
     public HandleScrollData(@Nullable AE2Variant variant, boolean small) {
         super(
@@ -153,6 +141,7 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
      */
     @Override
     public boolean onMouseClicked(ScrollArea area, int mainAxisPos, int crossAxisPos, int button) {
+        if (button != 0) return false;
         int track = mainAxisPos - trackTop(area);
         paging.stop();
         if (!isScrollBarActive(area) || !super.onMouseClicked(area, track, crossAxisPos, button)) return false;
@@ -182,7 +171,9 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
         if (paging.due()) page(area);
     }
 
-    /** Stops paging after the mouse button is released. */
+    /**
+     * Stops paging after the mouse button is released.
+     */
     public void stopPaging() {
         paging.stop();
     }
@@ -191,7 +182,7 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
         int step = Math.max(1, getScrollSpeed());
         int max = Math.max(0, getScrollSize() - getFullVisibleSize(area)),
             from = isAnimating() ? getAnimatingTo() : getScroll();
-        animateTo(area, Math.max(0, Math.min(max, from + paging.direction() * step)));
+        animateTo(area, (int) Math.max(0, Math.min(max, from + (long) paging.direction() * step)));
     }
 
     /**
@@ -210,16 +201,28 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
         int visible = getFullVisibleSize(area);
         int range = getScrollSize() - visible;
         if (range <= 0) return 0;
+        // MUI2 adds the track thickness and truncates the result when consuming progress.
+        return (float) ((dragOffset(area, mainAxisPos) + 0.5D) / ((double) range + getThickness()));
+    }
+
+    /**
+     * Applies a drag without converting the scroll position to floating-point progress.
+     */
+    public void dragTo(ScrollArea area, int mainAxisPos) {
+        scrollTo(area, dragOffset(area, mainAxisPos));
+    }
+
+    private int dragOffset(ScrollArea area, int mainAxisPos) {
+        int visible = getFullVisibleSize(area);
+        int range = getScrollSize() - visible;
+        if (range <= 0) return 0;
         int length = getScrollBarLength(area), travel = visible - length, track = mainAxisPos - trackTop(area);
         int handle = track - clickOffset;
-        long offset;
         // A stationary press keeps its exact offset; a moved thumb at either end uses the track endpoint.
-        if (travel <= 0) offset = getScroll();
-        else if (isDragging() && (track == dragMouse || handle > 0 && handle < travel)) offset = Math
-            .max(0, Math.min(range, Math.round(dragScroll + (double) (track - dragMouse) * range / travel)));
-        else offset = offsetAt(handle, visible, length);
-        // ScrollArea.drag multiplies by the range plus the track thickness and truncates; the half pixel survives both.
-        return (float) ((offset + 0.5D) / ((double) range + getThickness()));
+        if (travel <= 0) return getScroll();
+        if (isDragging() && (track == dragMouse || handle > 0 && handle < travel)) return (int) Math
+            .max(0, Math.min(range, Math.round(dragScroll + ((double) track - dragMouse) * range / travel)));
+        return offsetAt(handle, visible, length);
     }
 
     private int offsetAt(int handle, int visible, int length) {

@@ -2,7 +2,6 @@ package com.gtnllib.client.text.compat;
 
 import net.minecraft.client.gui.FontRenderer;
 
-/** The vertical atlas interval occupied by a glyph, independent of its screen position. */
 public record GlyphTextureMetrics(float vStart, float vSpan) {
 
     public static final String DEFAULT_CHARACTERS = "\u00c0\u00c1\u00c2\u00c8\u00ca\u00cb\u00cd\u00d3\u00d4\u00d5\u00da\u00df\u00e3\u00f5\u011f\u0130"

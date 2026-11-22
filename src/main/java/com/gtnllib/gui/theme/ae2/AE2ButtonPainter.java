@@ -10,7 +10,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 
 import com.cleanroommc.modularui.api.drawable.IDrawable;
-import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.drawable.Stencil;
 import com.cleanroommc.modularui.screen.viewport.GuiContext;
 import com.cleanroommc.modularui.theme.WidgetTheme;
@@ -19,10 +18,6 @@ import com.cleanroommc.modularui.widget.Widget;
 import com.gtnllib.gui.theme.AE2Theme;
 import com.gtnllib.gui.theme.ae2.AE2ButtonDrawable.State;
 
-/**
- * AE2 text buttons, toolbar icon buttons, tabs and page tabs as drawables. Each resolves the look of its widget's panel
- * when drawn ({@link AE2Look#of(IWidget)}); outside AE2 themes the look draws the theme's MUI2 button instead.
- */
 public class AE2ButtonPainter {
 
     private static final double MARQUEE_SECONDS_PER_PIXEL = 0.5, MARQUEE_MIN_PERIOD = 3;

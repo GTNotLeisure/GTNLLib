@@ -13,7 +13,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import com.gtnllib.client.text.EffectTextLayout;
 import com.gtnllib.client.text.EffectTextRenderer;
 
-/** Runs after low-priority font overwrites, but before other draw callbacks. */
 @Mixin(value = FontRenderer.class, priority = 100)
 public abstract class MixinFontRendererTextEffects {
 

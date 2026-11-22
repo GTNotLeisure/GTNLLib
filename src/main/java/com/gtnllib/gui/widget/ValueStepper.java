@@ -1,6 +1,5 @@
 package com.gtnllib.gui.widget;
 
-import java.util.function.BooleanSupplier;
 import java.util.function.IntConsumer;
 import java.util.function.Supplier;
 
@@ -17,19 +16,12 @@ import com.cleanroommc.modularui.widgets.TextWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.gtnllib.gui.theme.ae2.AE2Look;
 
-/**
- * Steps through a list of named values: {@code <} and {@code >} buttons around the current value's name, and, after
- * {@link #wheel(boolean) wheel(true)}, the mouse wheel anywhere over it. It holds no values itself; the step callback
- * moves the owner's selection, so it suits values that are not numbers, such as voltage tiers. For numbers use
- * {@link NumberEntryWidget}. The name takes the panel's text color, or the list's text color and shadow when the
- * stepper is the control of a {@link ListRow}. While {@link #available(BooleanSupplier)} reports false the arrows look
- * disabled, the name is greyed out, and clicks and the wheel do nothing. It can be built on either side, so it also
- * works in GUIs the server opens.
- */
 public class ValueStepper extends ParentWidget<ValueStepper>
     implements Interactable, IListRowControl, IAvailable<ValueStepper>, IWheelStep<ValueStepper> {
 
-    /** Width of each arrow button in pixels. */
+    /**
+     * Width of each arrow button in pixels.
+     */
     public static final int ARROW_WIDTH = 12;
     private final IntConsumer step;
     private final TextWidget<?> name;

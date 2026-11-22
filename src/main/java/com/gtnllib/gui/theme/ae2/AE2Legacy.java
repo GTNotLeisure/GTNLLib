@@ -7,9 +7,6 @@ import net.minecraft.util.ResourceLocation;
 
 import com.cleanroommc.modularui.drawable.GuiDraw;
 
-/**
- * The state and terminal sprite sheets of GTNH's AE2 (rv3), as AE2 ships them or recolored for each AE2 skin.
- */
 public class AE2Legacy {
 
     private static final ResourceLocation AE2_LEGACY_STATES = new ResourceLocation(

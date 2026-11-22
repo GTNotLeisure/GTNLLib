@@ -2,29 +2,6 @@ package com.gtnllib.gui.theme.ae2;
 
 import com.gtnllib.gui.theme.ae2.AE2ButtonDrawable.State;
 
-/**
- * Semantic ARGB colors for one AE2 variant.
- *
- * @param text         primary text color
- * @param muted        muted text color
- * @param secondary    secondary text color
- * @param buttonText   normal button text color
- * @param hoverText    highlighted button text color
- * @param disabledText disabled button text color
- * @param fieldText    text-field content color
- * @param placeholder  text-field hint color
- * @param line         separator and grid-line color
- * @param edge         panel edge color
- * @param panel        panel fill color
- * @param well         inset fill color
- * @param outline      outline color
- * @param raised       raised surface color
- * @param good         positive status color
- * @param bad          negative status color
- * @param info         informational status color
- * @param warning      warning status color
- * @param error        input validation error color
- */
 public record AE2Colors(int text, int muted, int secondary, int buttonText, int hoverText, int disabledText,
     int fieldText, int placeholder, int line, int edge, int panel, int well, int outline, int raised, int good, int bad,
     int info, int warning, int error) {
@@ -53,7 +30,6 @@ public record AE2Colors(int text, int muted, int secondary, int buttonText, int 
         return new Builder();
     }
 
-    /** Collects the colors of an {@link AE2Colors} by name; each setter takes an ARGB color. */
     public static class Builder {
 
         private int text, muted, secondary, buttonText, hoverText, disabledText, fieldText, placeholder, line, edge,

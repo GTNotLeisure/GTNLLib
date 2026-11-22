@@ -29,20 +29,11 @@ import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.utils.GlStateManager;
 import com.gtnllib.gui.theme.ae2.AE2ButtonDrawable.State;
 
-/**
- * The plain look of GTNLLib's AE2-styled widgets, used under every theme that is not an AE2 theme: Minecraft's sunken
- * slot box and creative-inventory scroll bar, MUI2's button, check box and icons, and the theme's own text style.
- * <p>
- * Every color and drawing rule of the plain look is written here once; the AE2 painters only draw the AE2 skins. An
- * {@link AE2Look} that is not an AE2 skin hands out its plain look with {@link AE2Look#plainLook()}, for the few places
- * where the plain layout differs from AE2's. Colors are constants because they do not depend on the theme; text and
- * buttons read the theme the look was resolved from.
- * <p>
- * The class loads on both sides; its drawing methods are client only.
- */
 public class PlainLook {
 
-    /** ARGB fill, top-left shadow and bottom-right light of Minecraft's sunken slot box. */
+    /**
+     * ARGB fill, top-left shadow and bottom-right light of Minecraft's sunken slot box.
+     */
     public static final int WELL_FILL = 0xFF8B8B8B, WELL_SHADOW = 0xFF373737, WELL_LIGHT = 0xFFFFFFFF;
     /**
      * ARGB colors of list rows: white row text, Minecraft's dark grey label color for headers and unusable rows, the
@@ -56,22 +47,34 @@ public class PlainLook {
      * constants are copied into a mod when it is compiled, so a later GTNLLib that changes them would not reach it.
      */
     public static final int GOOD = 0xFF60E060, BAD = 0xFFCE2401;
-    /** ARGB color of invalid text in an input field, AE2 1.21's {@code TEXTFIELD_ERROR} palette color. */
+    /**
+     * ARGB color of invalid text in an input field, AE2 1.21's {@code TEXTFIELD_ERROR} palette color.
+     */
     public static final int INPUT_ERROR = 0xFFFF1900;
-    /** ARGB color of the thin scroll bar of drawn lists, the face color of Minecraft's scroll handle. */
+    /**
+     * ARGB color of the thin scroll bar of drawn lists, the face color of Minecraft's scroll handle.
+     */
     public static final int THIN_SCROLL_BAR = 0xFFC6C6C6;
-    /** Width of the creative-inventory scroll bar: its 12-pixel handle and a one-pixel track border on each side. */
+    /**
+     * Width of the creative-inventory scroll bar: its 12-pixel handle and a one-pixel track border on each side.
+     */
     public static final int SCROLLBAR_WIDTH = BIG_SCROLLER_WIDTH + 2;
     /**
      * Border width of MUI2's vanilla panel background on each side. Parts attached to a panel's edge, such as the
      * toolbar and the upgrade panel, leave out their border on that side and cover the panel's border this far.
      */
     public static final int PANEL_BORDER = 4;
-    /** Width and height of a toolbar icon button: a square, as Minecraft's button has no shadow below its face. */
+    /**
+     * Width and height of a toolbar icon button: a square, as Minecraft's button has no shadow below its face.
+     */
     public static final int ICON_BUTTON_SIZE = ICON_BUTTON_WIDTH;
-    /** Size of MUI2's check box as the plain look draws it for an on/off value. */
+    /**
+     * Size of MUI2's check box as the plain look draws it for an on/off value.
+     */
     public static final int CHECKBOX_SIZE = CHECKBOX_HEIGHT;
-    /** Pixels from the left edge of a labelled check box to its label. */
+    /**
+     * Pixels from the left edge of a labelled check box to its label.
+     */
     public static final int CHECKBOX_LABEL_X = CHECKBOX_SIZE + LABEL_PADDING * 2;
     private static final ResourceLocation CREATIVE_TABS = new ResourceLocation(
         "textures/gui/container/creative_inventory/tabs.png");

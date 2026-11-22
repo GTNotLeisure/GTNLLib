@@ -5,12 +5,6 @@ import java.util.function.Supplier;
 
 import com.cleanroommc.modularui.api.widget.Interactable.Result;
 
-/**
- * Whether a widget can be used right now, and the one rule every GTNLLib widget follows while it cannot: it swallows
- * mouse presses, so a click never reaches whatever lies below it, and runs nothing. Widgets keep one of these behind
- * {@link IAvailable} and route their presses through {@link #press(Supplier)}; widgets whose parts can be unavailable
- * one by one, like the rows of {@link IconRowList}, use {@link #press(boolean, Supplier)}.
- */
 public class Availability {
 
     private BooleanSupplier available = () -> true;

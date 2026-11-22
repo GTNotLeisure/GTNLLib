@@ -20,10 +20,6 @@ import com.cleanroommc.modularui.utils.GlStateManager;
 import com.cleanroommc.modularui.widget.Widget;
 import com.gtnllib.gui.theme.AE2Theme;
 
-/**
- * AE2 check boxes and radio buttons as drawables, the label layout of AE2's check boxes and AE2's hover rule after a
- * click.
- */
 public class AE2CheckboxPainter {
 
     private static final int CHECKBOX_LINES_Y = 1;
@@ -149,11 +145,6 @@ public class AE2CheckboxPainter {
         };
     }
 
-    /**
-     * AE2's hover rule for check boxes: once a check box flips under the pointer it shows its plain sprite until the
-     * pointer leaves it, as AE2's check box does while it keeps the focus of the click. Radio buttons always show hover
-     * in AE2. Keep one instance per check box and ask it every frame.
-     */
     public static class CheckboxHover {
 
         private @Nullable Boolean shown;

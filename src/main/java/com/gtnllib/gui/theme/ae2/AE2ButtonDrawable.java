@@ -31,7 +31,9 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
  */
 public class AE2ButtonDrawable implements IDrawable, IJsonSerializable {
 
-    /** Drawable type name in theme JSON; saved themes refer to it, so it must not change. */
+    /**
+     * Drawable type name in theme JSON; saved themes refer to it, so it must not change.
+     */
     public static final String TYPE = "gtnllib:ae2_button";
     private static final String STATE = "state", SKIN = "skin";
     private static final int TEXTURE_WIDTH = 200, TEXTURE_HEIGHT = 20, EDGE = 2, FRAME_ROWS = 4, TEXT_ROOM = 13,
@@ -166,19 +168,28 @@ public class AE2ButtonDrawable implements IDrawable, IJsonSerializable {
         return state.hashCode() * 31 + skin.hashCode();
     }
 
-    /** The visual states of a button, in every look. */
     public enum State {
 
-        /** A button that can be used and is not under the mouse. */
+        /**
+         * A button that can be used and is not under the mouse.
+         */
         NORMAL("normal", "button", 0, 0, 1, 2, 15, 16, 19),
-        /** A button under the mouse, or a selected one; AE2 draws both with its highlighted button. */
+        /**
+         * A button under the mouse, or a selected one; AE2 draws both with its highlighted button.
+         */
         HOVER("hover", "button_highlighted", 1, 1, 2, 3, 16, 17, 19),
-        /** A button that cannot be used. */
+        /**
+         * A button that cannot be used.
+         */
         DISABLED("disabled", "button_disabled", 2, 2, 3, 4, 17, 18, 19);
 
-        /** Name of the state in theme JSON, and the texture filename of the state without {@code .png}. */
+        /**
+         * Name of the state in theme JSON, and the texture filename of the state without {@code .png}.
+         */
         public final String name, file;
-        /** Pixels the shadow loses and the face sinks in this state. */
+        /**
+         * Pixels the shadow loses and the face sinks in this state.
+         */
         public final int sink;
         private final int frame, light, fill, low, dark, outline;
 

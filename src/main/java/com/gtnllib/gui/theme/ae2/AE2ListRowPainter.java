@@ -9,14 +9,11 @@ import net.minecraft.client.Minecraft;
 import com.cleanroommc.modularui.drawable.GuiDraw;
 import com.cleanroommc.modularui.utils.GlStateManager;
 
-/**
- * The parts of a list row that {@code IconRowList}'s drawn rows and {@code ListRow} widgets share, so rows of either
- * kind look the same in one list: where the text sits, the check box against the row's right end and the section
- * header. Colors and the well come from the {@link AE2Look}. Client only.
- */
 public class AE2ListRowPainter {
 
-    /** Standard height of a list row in pixels. */
+    /**
+     * Standard height of a list row in pixels.
+     */
     public static final int ROW_HEIGHT = 18;
     private static final int HEADER_LINE_ALPHA = 0x40000000, HEADER_LINE_GAP = 4;
 
