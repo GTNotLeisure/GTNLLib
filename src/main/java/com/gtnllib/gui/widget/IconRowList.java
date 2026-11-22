@@ -588,7 +588,10 @@ public class IconRowList extends ParentWidget<IconRowList> implements Interactab
         int index = hoveredRow();
         if (index < 0) return Result.ACCEPT;
         Row row = rows.get(index);
-        if (!row.available) return Result.STOP;
+        return Availability.press(row.available, () -> pressRow(row, index, mouseButton));
+    }
+
+    private Result pressRow(Row row, int index, int mouseButton) {
         if (mouseButton == 1) {
             if (row.secondary == null) return Result.ACCEPT;
             row.secondary.run();

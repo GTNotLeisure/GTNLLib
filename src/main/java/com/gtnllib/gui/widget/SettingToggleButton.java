@@ -29,7 +29,8 @@ import com.gtnllib.gui.theme.ae2.IconSource;
  * {@link #available(BooleanSupplier) available} it looks disabled and swallows every mouse button. A value without an
  * icon shows {@link AE2Icon#MORE}.
  */
-public class SettingToggleButton extends AbstractCycleButtonWidget<SettingToggleButton> {
+public class SettingToggleButton extends AbstractCycleButtonWidget<SettingToggleButton>
+    implements IAvailable<SettingToggleButton> {
 
     private IconSource[] icons = new IconSource[0];
     private final Availability availability = new Availability();
@@ -124,20 +125,9 @@ public class SettingToggleButton extends AbstractCycleButtonWidget<SettingToggle
         return state(state ? 1 : 0, icon, description);
     }
 
-    /**
-     * Sets when the button can be used; while it cannot, it looks disabled, shows no hover and swallows every mouse
-     * button.
-     *
-     * @param available supplier read every frame and on every click
-     * @return this button
-     */
-    public SettingToggleButton available(BooleanSupplier available) {
-        availability.set(available);
-        return this;
-    }
-
-    private boolean isAvailable() {
-        return availability.get();
+    @Override
+    public Availability availability() {
+        return availability;
     }
 
     private IconSource icon() {

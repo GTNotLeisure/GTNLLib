@@ -40,8 +40,8 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 
 /**
  * A dropdown whose menu stays inside the panel, follows values changed elsewhere and marks itself with a caret; after
- * {@link #wheel(boolean) wheel(true)} it also cycles with the mouse wheel while the pointer is over it. It can be built
- * on either side, so it also works in GUIs the server opens.
+ * {@link #wheel(boolean) wheel(true)} it also cycles with the mouse wheel while the pointer is over it, one choice per
+ * notch, wrapping around at the ends. It can be built on either side, so it also works in GUIs the server opens.
  * <p>
  * The shown value reads like a button label: text widgets in it that have no color of their own, and the caret, use the
  * button text color and shadow of the current state, under AE2 themes and plain ones alike. Under AE2 themes the shown
@@ -61,7 +61,8 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
  * otherwise, so no {@code AE2Theme.useMenuTheme} call is needed. A theme registered for the menu panel's name still
  * wins, as MUI2 lets registered screen themes win over a panel's own.
  */
-public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
+public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>>
+    implements IAvailable<CycleDropdown<T>>, IWheelStep<CycleDropdown<T>> {
 
     /** Height of an {@link #iconOption} row and of its icon in pixels. */
     public static final int OPTION_HEIGHT = 16;
@@ -70,9 +71,10 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
     private final IDrawable disabledLook = AE2ButtonPainter.button(this, () -> false, () -> false);
     private final List<TextWidget<?>> labels = new ObjectArrayList<>();
     private final Availability availability = new Availability();
+    private final WheelStep wheelStep = new WheelStep();
     private T shown;
     private int menuWidth;
-    private boolean wheel, centredText;
+    private boolean centredText;
 
     /**
      * Creates an empty dropdown. Set its value, its option widgets ({@code optionToWidget}) and its
@@ -85,31 +87,14 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
         super(panelName, valueType);
     }
 
-    /**
-     * Sets when the dropdown can be used.
-     *
-     * @param available supplier read every frame and on every input
-     * @return this dropdown
-     */
-    public CycleDropdown<T> available(BooleanSupplier available) {
-        availability.set(available);
-        return this;
+    @Override
+    public Availability availability() {
+        return availability;
     }
 
-    /**
-     * Sets whether the mouse wheel over the closed dropdown moves to the previous or next choice, wrapping around at
-     * the ends. Off by default, so the wheel goes to the widgets around it, such as a scrolling list.
-     *
-     * @param wheel true to cycle one choice per wheel notch
-     * @return this dropdown
-     */
-    public CycleDropdown<T> wheel(boolean wheel) {
-        this.wheel = wheel;
-        return this;
-    }
-
-    private boolean isAvailable() {
-        return availability.get();
+    @Override
+    public WheelStep wheelStep() {
+        return wheelStep;
     }
 
     @Override
@@ -239,10 +224,14 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>> {
 
     @Override
     public boolean onMouseScroll(UpOrDown scrollDirection, int amount) {
+        return wheelStep.scroll(this, isAvailable(), scrollDirection, this::cycle);
+    }
+
+    private boolean cycle(int sign) {
         IValue<T> value = getValue();
-        if (!wheel || value == null || choices.isEmpty() || !isAvailable()) return false;
+        if (value == null || choices.isEmpty()) return false;
         int index = Math.max(0, choices.indexOf(value.getValue()));
-        setValue(choices.get(Math.floorMod(index - scrollDirection.modifier, choices.size())), true);
+        setValue(choices.get(Math.floorMod(index - sign, choices.size())), true);
         return true;
     }
 

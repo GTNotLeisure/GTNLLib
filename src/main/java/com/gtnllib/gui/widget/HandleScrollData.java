@@ -1,7 +1,6 @@
 package com.gtnllib.gui.widget;
 
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.input.Mouse;
 
 import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
@@ -29,18 +28,15 @@ import com.gtnllib.gui.theme.ae2.AE2Variant;
  * shadows are never drawn. A press on the track beside the handle moves the handle's centre to the pointer at once, and
  * the same press keeps dragging from there. {@link #pageOnTrackPress(boolean) pageOnTrackPress(true)} pages like AE2
  * instead: the press moves one wheel step (MUI2's scroll speed, one row after {@link #rows(int)}) towards the pointer,
- * and inside a {@link GTNLListWidget} holding the button keeps paging, first after {@value #FIRST_REPEAT_MILLIS} ms and
- * then every {@value #REPEAT_MILLIS} ms.
+ * and inside a {@link GTNLListWidget} holding the button keeps paging ({@link PressRepeat}).
  */
 public class HandleScrollData extends VerticalScrollData implements IPersistentScrollbar {
 
-    /** Delay before a held track press pages again, and the interval between later pages, in milliseconds. */
-    public static final int FIRST_REPEAT_MILLIS = 250, REPEAT_MILLIS = 150;
     private final boolean small;
+    private final PressRepeat paging = new PressRepeat();
     private AE2Look look;
     private int rowHeight;
-    private int dragMouse, dragScroll, pageDirection;
-    private long nextPage;
+    private int dragMouse, dragScroll;
     private boolean pages;
 
     /** Creates scroll data with a large handle. */
@@ -169,15 +165,14 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
     @Override
     public boolean onMouseClicked(ScrollArea area, int mainAxisPos, int crossAxisPos, int button) {
         int track = mainAxisPos - trackTop(area);
-        pageDirection = 0;
+        paging.stop();
         if (!isScrollBarActive(area) || !super.onMouseClicked(area, track, crossAxisPos, button)) return false;
         int length = getScrollBarLength(area), visible = getFullVisibleSize(area);
         int start = getScrollBarStart(area, length, visible);
         boolean beside = track < start || track > start + length;
         if (beside && pages) {
             dragging = false;
-            pageDirection = track < start ? -1 : 1;
-            nextPage = System.currentTimeMillis() + FIRST_REPEAT_MILLIS;
+            paging.start(track < start ? -1 : 1);
             page(area);
             return true;
         }
@@ -189,33 +184,25 @@ public class HandleScrollData extends VerticalScrollData implements IPersistentS
     }
 
     /**
-     * Pages again while a track press is held, at most once per {@link #REPEAT_MILLIS}. {@link GTNLListWidget} calls it
+     * Pages again while a track press is held, as often as {@link PressRepeat} allows. {@link GTNLListWidget} calls it
      * every client tick; other scroll widgets page once per press.
      *
      * @param area owning scroll area
      */
     public void repeatPaging(ScrollArea area) {
-        if (pageDirection == 0) return;
-        if (!Mouse.isButtonDown(0)) {
-            pageDirection = 0;
-            return;
-        }
-        long now = System.currentTimeMillis();
-        if (now < nextPage) return;
-        nextPage = now + REPEAT_MILLIS;
-        page(area);
+        if (paging.due()) page(area);
     }
 
     /** Stops paging after the mouse button is released. */
     public void stopPaging() {
-        pageDirection = 0;
+        paging.stop();
     }
 
     private void page(ScrollArea area) {
         int step = Math.max(1, getScrollSpeed());
         int max = Math.max(0, getScrollSize() - getFullVisibleSize(area)),
             from = isAnimating() ? getAnimatingTo() : getScroll();
-        animateTo(area, Math.max(0, Math.min(max, from + pageDirection * step)));
+        animateTo(area, Math.max(0, Math.min(max, from + paging.direction() * step)));
     }
 
     /**

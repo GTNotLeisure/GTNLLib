@@ -17,6 +17,15 @@ import com.google.gson.JsonObject;
 import com.gtnllib.gui.theme.SkinDrawable;
 import com.gtnllib.utils.MathUtils;
 
+/**
+ * A horizontal bar filled from the left to a fraction read from a supplier every frame, drawn from theme data
+ * ({@link Theme}): a track and a fill in the theme's colors, or the theme's skins with the fill inset by one pixel. It
+ * has no input. It can be built on either side, so it also works in GUIs the server opens.
+ * <p>
+ * It does not extend MUI2's {@code ProgressWidget}: that class fixes its own type, so chained calls on a subclass
+ * would stop returning the subclass, and it draws a texture cut to the progress, which this bar would replace whole.
+ * For an AE2-styled {@code ProgressWidget} use {@link ProgressBar}.
+ */
 public class FillBar extends Widget<FillBar> {
 
     private DoubleSupplier value = () -> 0;

@@ -16,20 +16,14 @@ import com.cleanroommc.modularui.widgets.ButtonWidget;
  *
  * @param <W> the button's own type, so chained calls keep returning the subclass
  */
-public class ThemedButton<W extends ThemedButton<W>> extends ButtonWidget<W> {
+public class ThemedButton<W extends ThemedButton<W>> extends ButtonWidget<W> implements IAvailable<W> {
 
     private final Availability availability = new Availability();
     private BooleanSupplier selected = () -> false;
 
-    /**
-     * Sets when the button can be used; it looks disabled otherwise.
-     *
-     * @param available supplier read every frame and on every click
-     * @return this button
-     */
-    public W available(BooleanSupplier available) {
-        availability.set(available);
-        return getThis();
+    @Override
+    public Availability availability() {
+        return availability;
     }
 
     /**
@@ -56,10 +50,6 @@ public class ThemedButton<W extends ThemedButton<W>> extends ButtonWidget<W> {
             action.run();
             return true;
         });
-    }
-
-    protected boolean isAvailable() {
-        return availability.get();
     }
 
     protected boolean isSelected() {

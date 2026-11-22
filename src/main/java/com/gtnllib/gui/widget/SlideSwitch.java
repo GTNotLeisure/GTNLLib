@@ -35,8 +35,11 @@ import com.gtnllib.utils.TextRenderUtils;
  * skins, or, when the theme supplies sprites as the AE2 themes do, AE2's check box sprites with the label wrapped and
  * placed as in AE2's check boxes. The caller owns the value and flips it in the click handler. While it is not
  * {@link #available(BooleanSupplier) available} it is drawn faded, shows no hover and swallows clicks.
+ * <p>
+ * It does not extend MUI2's {@code ToggleButton}: that class fixes its own type, so chained calls on a subclass would
+ * stop returning the subclass, and it keeps the value itself, while this switch leaves the value to the caller.
  */
-public class SlideSwitch extends ButtonWidget<SlideSwitch> {
+public class SlideSwitch extends ButtonWidget<SlideSwitch> implements IAvailable<SlideSwitch> {
 
     private static final int LABEL_Y = 1, LABEL_END = 2;
 
@@ -81,15 +84,9 @@ public class SlideSwitch extends ButtonWidget<SlideSwitch> {
         return glowWhen(glow);
     }
 
-    /**
-     * Sets when the switch can be used. An unavailable switch is drawn faded, shows no hover and swallows clicks.
-     *
-     * @param available supplier read every frame and on every click
-     * @return this switch
-     */
-    public SlideSwitch available(BooleanSupplier available) {
-        availability.set(available);
-        return this;
+    @Override
+    public Availability availability() {
+        return availability;
     }
 
     /**
@@ -191,7 +188,7 @@ public class SlideSwitch extends ButtonWidget<SlideSwitch> {
     public void draw(ModularGuiContext context, WidgetThemeEntry<?> widgetTheme) {
         Theme colors = colors(widgetTheme.getTheme());
         LayoutTheme style = LayoutTheme.of(getPanel().getTheme());
-        boolean on = this.on.getAsBoolean(), open = availability.get(), lit = on && open && glow.getAsBoolean();
+        boolean on = this.on.getAsBoolean(), open = isAvailable(), lit = on && open && glow.getAsBoolean();
         int width = getArea().w(), height = getArea().h(), switchWidth = style.switchWidth,
             switchHeight = style.switchHeight, top = (height - switchHeight) / 2, labelX = labelX(style);
         boolean hovered = hover.lit(isHovering(), on);

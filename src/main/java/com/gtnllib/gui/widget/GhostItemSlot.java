@@ -28,6 +28,9 @@ import com.gtnewhorizon.gtnhlib.util.data.ItemId;
  * {@link #clearable(boolean)} turned on, a right-click empties it. It keeps the item and its meta without NBT, which is
  * what an icon or a filter needs, and never touches the player's inventory. Under the pointer it lights up like MUI2's
  * item slots.
+ * <p>
+ * It does not extend MUI2's item slots: they keep their item in a slot that the server syncs, which a client-only
+ * screen does not have.
  */
 public class GhostItemSlot extends Widget<GhostItemSlot>
     implements RecipeViewerGhostIngredientSlot<ItemStack>, RecipeViewerIngredientProvider, Interactable {

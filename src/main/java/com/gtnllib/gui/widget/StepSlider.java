@@ -37,10 +37,17 @@ import com.gtnllib.utils.ColorMath;
 /**
  * A slider over a fixed number of steps, drawn from theme data ({@link Theme}): a track with a fill, tick marks with
  * milestones in their own color, and a tag that shows the value in a small built-in font. Dragging or clicking selects
- * the nearest step, and holding Shift snaps to milestones. It is horizontal unless {@link #vertical(boolean)} is set.
- * While it is not {@link #available(BooleanSupplier) available} it is drawn in grey and ignores input.
+ * the nearest step, and holding Shift snaps to milestones. After {@link #wheel(boolean) wheel(true)} the mouse wheel
+ * moves it one step per notch, or one milestone while Shift is held. It is horizontal unless
+ * {@link #vertical(boolean)} is set. While it is not {@link #available(BooleanSupplier) available} it is drawn in grey
+ * (skins without a glow layer, such as AE2's, are darkened instead), shows no hover and ignores input.
+ * <p>
+ * It does not extend MUI2's {@code SliderWidget}: that class fixes its own type, so chained calls on a subclass would
+ * stop returning the subclass, and this slider would have to replace both its drawing and its input handling, which
+ * leaves nothing of it to reuse.
  */
-public class StepSlider extends Widget<StepSlider> implements Interactable {
+public class StepSlider extends Widget<StepSlider>
+    implements Interactable, IAvailable<StepSlider>, IWheelStep<StepSlider> {
 
     private static final ResourceLocation TICK_SOUND = new ResourceLocation("random.click");
     private static final float LOW_PITCH = 1.15F, HIGH_PITCH = 1.5F;
@@ -70,12 +77,13 @@ public class StepSlider extends Widget<StepSlider> implements Interactable {
     private DoubleConsumer setter = value -> {};
     private DoubleFunction<String> format = value -> String.valueOf(Math.round(value * 100) / 100D);
     private final Availability availability = new Availability();
+    private final WheelStep wheelStep = new WheelStep();
     private Runnable onRelease;
     private double min = 0, max = 1;
     private int steps = 10, milestoneEvery = 5;
     private int[] colors, tickColors;
     private int tagWidth;
-    private boolean vertical, dragging, wheel;
+    private boolean vertical, dragging;
     private long lastSound;
 
     /** Creates a slider from 0 to 1 in 10 steps with a milestone every 5. The caller sets its size and value. */
@@ -153,17 +161,14 @@ public class StepSlider extends Widget<StepSlider> implements Interactable {
         return this;
     }
 
-    /**
-     * Sets when the slider can be used. An unavailable slider is drawn in grey (skins without a glow layer, such as
-     * AE2's, are darkened instead), shows no hover, swallows clicks and leaves the mouse wheel to the widgets around
-     * it.
-     *
-     * @param available supplier read every frame and on every input
-     * @return this slider
-     */
-    public StepSlider available(BooleanSupplier available) {
-        availability.set(available);
-        return this;
+    @Override
+    public Availability availability() {
+        return availability;
+    }
+
+    @Override
+    public WheelStep wheelStep() {
+        return wheelStep;
     }
 
     /**
@@ -187,18 +192,6 @@ public class StepSlider extends Widget<StepSlider> implements Interactable {
      */
     public StepSlider onRelease(Runnable onRelease) {
         this.onRelease = onRelease;
-        return this;
-    }
-
-    /**
-     * Sets whether the mouse wheel over the slider moves it one step per notch, or one milestone while Shift is held.
-     * Off by default, so the wheel goes to the widgets around it, such as a scrolling list.
-     *
-     * @param wheel true to let the wheel move the slider
-     * @return this slider
-     */
-    public StepSlider wheel(boolean wheel) {
-        this.wheel = wheel;
         return this;
     }
 
@@ -365,10 +358,11 @@ public class StepSlider extends Widget<StepSlider> implements Interactable {
 
     @Override
     public boolean onMouseScroll(UpOrDown scrollDirection, int amount) {
-        if (!wheel || !availability.get()) return false;
-        int notches = milestoneEvery > 0 && Interactable.hasShiftDown() ? milestoneEvery : 1;
-        if (select(step() + (scrollDirection.isUp() ? notches : -notches)) && onRelease != null) onRelease.run();
-        return true;
+        return wheelStep.scroll(this, isAvailable(), scrollDirection, sign -> {
+            int notches = milestoneEvery > 0 && Interactable.hasShiftDown() ? milestoneEvery : 1;
+            if (select(step() + sign * notches) && onRelease != null) onRelease.run();
+            return true;
+        });
     }
 
     @Override
@@ -398,7 +392,7 @@ public class StepSlider extends Widget<StepSlider> implements Interactable {
     public void draw(ModularGuiContext context, WidgetThemeEntry<?> widgetTheme) {
         Theme palette = resolveColors(widgetTheme.getTheme());
         int length = length(), thickness = thickness(), current = step();
-        boolean on = availability.get();
+        boolean on = isAvailable();
         // A skin without a glow layer, like AE2's, ignores the grey colors of an unavailable slider, so its
         // textures are darkened instead; skins with a glow layer show those colors themselves.
         int tint = !on && colorless(palette.fillSkin) ? DIMMED : OPAQUE;

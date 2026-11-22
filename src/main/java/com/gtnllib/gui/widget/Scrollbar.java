@@ -5,7 +5,6 @@ import java.util.function.IntSupplier;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.input.Mouse;
 
 import com.cleanroommc.modularui.api.UpOrDown;
 import com.cleanroommc.modularui.api.widget.Interactable;
@@ -25,14 +24,16 @@ import com.gtnllib.gui.theme.ae2.PlainLook;
  * position. For a MUI2 list of child widgets use {@link HandleScrollData} instead. It can be built on either side, so
  * it also works in GUIs the server opens.
  * <p>
+ * It does not extend a MUI2 scroll widget: MUI2's scroll bars belong to a scroll area that moves its own child widgets,
+ * while this bar only reports a position to an owner that places its content itself.
+ * <p>
  * The left button drags the handle; the drag is anchored to the position at the press, so a handle held still never
  * moves long lists, and a handle pushed to either end reaches the first or last position. A press on the track beside
  * the handle moves the handle's centre to the pointer at once, and the same press keeps dragging from there.
  * {@link #pageOnTrackPress(boolean) pageOnTrackPress(true)} makes such a press page like AE2's scroll bar instead: one
- * {@link #step(int) step} towards the pointer, again after {@value HandleScrollData#FIRST_REPEAT_MILLIS} ms and then
- * every {@value HandleScrollData#REPEAT_MILLIS} ms while the button is held. The mouse wheel over the bar moves one
- * step per notch; an owner forwards the wheel over its content with {@link #scroll(UpOrDown)}. Without a range the bar
- * draws its disabled handle at the top and swallows left presses.
+ * {@link #step(int) step} towards the pointer, repeating while the button is held ({@link PressRepeat}). The mouse
+ * wheel over the bar moves one step per notch; an owner forwards the wheel over its content with
+ * {@link #scroll(UpOrDown)}. Without a range the bar draws its disabled handle at the top and swallows left presses.
  * <p>
  * The look follows the theme of the panel the bar is in, read while drawing. Under AE2 themes it is AE2's groove with
  * the fixed 12-by-15 handle ({@link AE2Theme#BIG_SCROLLER_WIDTH} pixels wide), or with {@link #small(boolean)} the
@@ -50,8 +51,8 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable {
     private final IntSupplier position, maxPosition;
     private final IntConsumer scrollTo;
     private @Nullable IntSupplier plainVisible;
-    private int step = 1, plainColor, grab = -1, pressMouse, pressPosition, pageDirection;
-    private long nextPage;
+    private final PressRepeat paging = new PressRepeat();
+    private int step = 1, plainColor, grab = -1, pressMouse, pressPosition;
     private boolean small, pages;
 
     /**
@@ -199,7 +200,7 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable {
     @Override
     public @NotNull Result onMousePressed(int mouseButton) {
         grab = -1;
-        pageDirection = 0;
+        paging.stop();
         if (mouseButton != 0) return Result.IGNORE;
         if (max() == 0) return Result.SUCCESS;
         AE2Look look = AE2Look.of(this);
@@ -209,8 +210,7 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable {
             pressMouse = mouseY;
             pressPosition = position();
         } else if (pages) {
-            pageDirection = mouseY < top ? -1 : 1;
-            nextPage = System.currentTimeMillis() + HandleScrollData.FIRST_REPEAT_MILLIS;
+            paging.start(mouseY < top ? -1 : 1);
             page();
         } else {
             int max = max(), travel = travel(look);
@@ -239,9 +239,9 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable {
 
     @Override
     public boolean onMouseRelease(int mouseButton) {
-        boolean handled = grab >= 0 || pageDirection != 0;
+        boolean handled = grab >= 0 || paging.isActive();
         grab = -1;
-        pageDirection = 0;
+        paging.stop();
         return handled;
     }
 
@@ -253,19 +253,10 @@ public class Scrollbar extends Widget<Scrollbar> implements Interactable {
     @Override
     public void onUpdate() {
         super.onUpdate();
-        if (pageDirection == 0) return;
-        // MUI2 sends the release only to widgets under the pointer, so a press held off the bar never ends here.
-        if (!Mouse.isButtonDown(0)) {
-            pageDirection = 0;
-            return;
-        }
-        long now = System.currentTimeMillis();
-        if (now < nextPage) return;
-        nextPage = now + HandleScrollData.REPEAT_MILLIS;
-        page();
+        if (paging.due()) page();
     }
 
     private void page() {
-        moveTo(position() + pageDirection * step);
+        moveTo(position() + paging.direction() * step);
     }
 }

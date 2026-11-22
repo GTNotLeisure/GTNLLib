@@ -57,7 +57,7 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
  * <p>
  * While {@link #available(BooleanSupplier)} reports false the entry looks disabled like AE2's: the buttons are drawn
  * disabled and the text field gets AE2's dark uneditable background and grey text; clicks, typing and the wheel do
- * nothing.
+ * nothing, and the text field gives up keyboard focus.
  * <p>
  * {@link #isInputValid()} describes the input. Inherited {@link #isValid()} describes the MUI2 widget lifecycle.
  * <p>
@@ -67,7 +67,8 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
  * For example, {@code new NumberEntryWidget().bounds(1, 1_000_000).value(64)} creates a bounded input with an initial
  * value of 64.
  */
-public class NumberEntryWidget extends ParentWidget<NumberEntryWidget> {
+public class NumberEntryWidget extends ParentWidget<NumberEntryWidget>
+    implements IAvailable<NumberEntryWidget>, IWheelStep<NumberEntryWidget> {
 
     /** Default widget dimensions in GUI pixels; lower entries use the single-row layout. */
     public static final int WIDTH = 138, HEIGHT = 62;
@@ -85,9 +86,10 @@ public class NumberEntryWidget extends ParentWidget<NumberEntryWidget> {
     private final List<String> messages = new ObjectArrayList<>();
     private String text = "0";
     private long min, max = Long.MAX_VALUE, value, reset;
-    private boolean inputValid = true, wheel;
+    private boolean inputValid = true;
     private LongConsumer listener = ignored -> {};
     private final Availability availability = new Availability();
+    private final WheelStep wheelStep = new WheelStep();
 
     /**
      * Creates an entry with value zero and inclusive bounds from zero to {@link Long#MAX_VALUE}. Buttons, text field
@@ -154,19 +156,14 @@ public class NumberEntryWidget extends ParentWidget<NumberEntryWidget> {
         return this;
     }
 
-    /**
-     * Sets when the entry can be used; it looks disabled and ignores input otherwise, and gives up keyboard focus.
-     *
-     * @param available supplier read every frame and on every input
-     * @return this widget
-     */
-    public NumberEntryWidget available(BooleanSupplier available) {
-        availability.set(available);
-        return this;
+    @Override
+    public Availability availability() {
+        return availability;
     }
 
-    private boolean isAvailable() {
-        return availability.get();
+    @Override
+    public WheelStep wheelStep() {
+        return wheelStep;
     }
 
     @Override
@@ -283,18 +280,6 @@ public class NumberEntryWidget extends ParentWidget<NumberEntryWidget> {
      */
     public NumberEntryWidget textAlignment(Alignment alignment) {
         field.setTextAlignment(alignment);
-        return this;
-    }
-
-    /**
-     * Sets whether the mouse wheel over the text field steps the value by 1, or by 10 while Shift is held. Off by
-     * default, so the wheel goes to the widgets around the entry, such as a scrolling list.
-     *
-     * @param wheel true to let the wheel step the value
-     * @return this widget
-     */
-    public NumberEntryWidget wheel(boolean wheel) {
-        this.wheel = wheel;
         return this;
     }
 
@@ -421,10 +406,10 @@ public class NumberEntryWidget extends ParentWidget<NumberEntryWidget> {
 
         @Override
         public boolean onMouseScroll(UpOrDown scrollDirection, int amount) {
-            // MUI2 offers the wheel to the focused field first, wherever the pointer is.
-            if (!wheel || !isAvailable() || !isHovering()) return false;
-            add(scrollDirection.modifier * fineStep());
-            return true;
+            return wheelStep.scroll(this, isAvailable(), scrollDirection, sign -> {
+                add(sign * fineStep());
+                return true;
+            });
         }
 
         @Override

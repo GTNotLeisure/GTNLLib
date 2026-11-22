@@ -20,6 +20,10 @@ import com.gtnllib.gui.theme.ae2.AE2Look;
  * opens. Unless the caller sets a size, it is as high as the box and as wide as the box and one line of label in the
  * look of its panel, measured while the panel is laid out and again whenever the label's text changes. It is a
  * {@link ThemedButton}, so {@code available} disables it.
+ * <p>
+ * It does not extend MUI2's {@code ToggleButton}: that class fixes its own type, so chained calls on a subclass would
+ * stop returning the subclass, and it would lose the disabled look and swallowed clicks that {@link ThemedButton}
+ * gives.
  */
 public class AECheckbox extends ThemedButton<AECheckbox> {
 

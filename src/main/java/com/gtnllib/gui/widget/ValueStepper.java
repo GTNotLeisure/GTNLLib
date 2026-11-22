@@ -26,14 +26,16 @@ import com.gtnllib.gui.theme.ae2.AE2Look;
  * disabled, the name is greyed out, and clicks and the wheel do nothing. It can be built on either side, so it also
  * works in GUIs the server opens.
  */
-public class ValueStepper extends ParentWidget<ValueStepper> implements Interactable, IListRowControl {
+public class ValueStepper extends ParentWidget<ValueStepper>
+    implements Interactable, IListRowControl, IAvailable<ValueStepper>, IWheelStep<ValueStepper> {
 
     /** Width of each arrow button in pixels. */
     public static final int ARROW_WIDTH = 12;
     private final IntConsumer step;
     private final TextWidget<?> name;
     private final Availability availability = new Availability();
-    private boolean wheel, inListRow;
+    private final WheelStep wheelStep = new WheelStep();
+    private boolean inListRow;
 
     /**
      * Creates a stepper; the caller sets its size, and the arrows fill its height.
@@ -50,7 +52,7 @@ public class ValueStepper extends ParentWidget<ValueStepper> implements Interact
                 .sizeRel(1f)
                 .childPadding(1)
                 .child(
-                    new AE2Button(() -> "<", () -> step.accept(-1)).available(availability::get)
+                    new AE2Button(() -> "<", () -> step.accept(-1)).available(this::isAvailable)
                         .width(ARROW_WIDTH)
                         .heightRel(1f))
                 .child(
@@ -58,32 +60,19 @@ public class ValueStepper extends ParentWidget<ValueStepper> implements Interact
                         .expanded()
                         .heightRel(1f))
                 .child(
-                    new AE2Button(() -> ">", () -> step.accept(1)).available(availability::get)
+                    new AE2Button(() -> ">", () -> step.accept(1)).available(this::isAvailable)
                         .width(ARROW_WIDTH)
                         .heightRel(1f)));
     }
 
-    /**
-     * Sets when the stepper can be used.
-     *
-     * @param available supplier read every frame and on every input
-     * @return this stepper
-     */
-    public ValueStepper available(BooleanSupplier available) {
-        availability.set(available);
-        return this;
+    @Override
+    public Availability availability() {
+        return availability;
     }
 
-    /**
-     * Sets whether the mouse wheel over the stepper steps it. Off by default, so the wheel goes to the widgets around
-     * it, such as a scrolling list.
-     *
-     * @param wheel true to step one value per wheel notch
-     * @return this stepper
-     */
-    public ValueStepper wheel(boolean wheel) {
-        this.wheel = wheel;
-        return this;
+    @Override
+    public WheelStep wheelStep() {
+        return wheelStep;
     }
 
     @Override
@@ -103,15 +92,16 @@ public class ValueStepper extends ParentWidget<ValueStepper> implements Interact
 
     @Override
     public boolean onMouseScroll(UpOrDown scrollDirection, int amount) {
-        if (!wheel || !availability.get()) return false;
-        step.accept(scrollDirection.modifier);
-        return true;
+        return wheelStep.scroll(this, isAvailable(), scrollDirection, sign -> {
+            step.accept(sign);
+            return true;
+        });
     }
 
     @Override
     public void draw(ModularGuiContext context, WidgetThemeEntry<?> widgetTheme) {
         super.draw(context, widgetTheme);
-        boolean usable = availability.get();
+        boolean usable = isAvailable();
         AE2Look look = AE2Look.of(this);
         if (inListRow) name.color(usable ? look.listText() : look.listMuted())
             .shadow(usable && look.listShadow());

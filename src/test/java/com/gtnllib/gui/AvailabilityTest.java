@@ -1,15 +1,20 @@
 package com.gtnllib.gui;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.function.IntPredicate;
+
 import org.junit.jupiter.api.Test;
 
+import com.cleanroommc.modularui.api.UpOrDown;
 import com.cleanroommc.modularui.api.widget.Interactable.Result;
 import com.cleanroommc.modularui.value.BoolValue;
 import com.cleanroommc.modularui.value.IntValue;
 import com.cleanroommc.modularui.widget.ParentWidget;
+import com.cleanroommc.modularui.widget.Widget;
 import com.gtnllib.gui.widget.AE2Button;
 import com.gtnllib.gui.widget.AECheckbox;
 import com.gtnllib.gui.widget.Availability;
@@ -20,6 +25,7 @@ import com.gtnllib.gui.widget.SlideSwitch;
 import com.gtnllib.gui.widget.StepSlider;
 import com.gtnllib.gui.widget.ValueStepper;
 import com.gtnllib.gui.widget.VerticalButtonBar;
+import com.gtnllib.gui.widget.WheelStep;
 
 public class AvailabilityTest {
 
@@ -39,6 +45,37 @@ public class AvailabilityTest {
         });
         assertEquals(Result.STOP, shut, "an unavailable widget stops the press");
         assertEquals(1, handled[0], "an unavailable widget does not run its own handling");
+        assertEquals(
+            Result.STOP,
+            Availability.press(false, () -> Result.SUCCESS),
+            "an unavailable part of a widget stops the press too");
+    }
+
+    @Test
+    public void wheelRule() {
+        Probe widget = new Probe();
+        WheelStep wheel = new WheelStep();
+        int[] steps = { 0 };
+        IntPredicate step = sign -> {
+            steps[0] += sign;
+            return true;
+        };
+        widget.below = true;
+        assertFalse(wheel.scroll(widget, true, UpOrDown.UP, step), "the wheel is off until it is turned on");
+        wheel.set(true);
+        assertFalse(
+            wheel.scroll(widget, false, UpOrDown.UP, step),
+            "an unavailable widget leaves the wheel to the widgets around it");
+        widget.below = false;
+        assertFalse(
+            wheel.scroll(widget, true, UpOrDown.UP, step),
+            "the wheel acts only while the pointer is over the widget");
+        widget.below = true;
+        assertTrue(wheel.scroll(widget, true, UpOrDown.DOWN, step), "a notch over an available widget is used");
+        assertEquals(-1, steps[0], "only the last notch stepped, and downwards");
+        assertFalse(
+            wheel.scroll(widget, true, UpOrDown.UP, sign -> false),
+            "a notch that changes nothing goes on to the widgets around it");
     }
 
     @Test
@@ -117,5 +154,15 @@ public class AvailabilityTest {
             Result.IGNORE,
             new ValueStepper(() -> "LV", step -> {}).onMousePressed(0),
             "an available stepper leaves the press to its arrow buttons");
+    }
+
+    private static class Probe extends Widget<Probe> {
+
+        private boolean below;
+
+        @Override
+        public boolean isBelowMouseFor(int ticks) {
+            return below;
+        }
     }
 }

@@ -31,9 +31,10 @@ import com.gtnllib.gui.theme.ae2.AE2Look;
  * same as the list's own rows. Use it where a list mixes MUI2 controls such as {@link NumberEntryWidget} and
  * {@link CycleDropdown} with plain rows. The row is {@link AE2ListRowPainter#ROW_HEIGHT} pixels high unless its height
  * is set; the label, check box and control stay centred in any height. It can be built on either side, so it also works
- * in GUIs the server opens.
+ * in GUIs the server opens. While it is not {@link #available(BooleanSupplier) available} it draws its label muted and
+ * its check box faded, does not highlight, and swallows clicks without running its action.
  */
-public class ListRow extends ParentWidget<ListRow> implements Interactable {
+public class ListRow extends ParentWidget<ListRow> implements Interactable, IAvailable<ListRow> {
 
     /** Pixels from the row's left edge to the label and from its right edge to the control or check box. */
     public static final int TEXT_INSET = 4, END_INSET = 3;
@@ -121,16 +122,9 @@ public class ListRow extends ParentWidget<ListRow> implements Interactable {
         return this;
     }
 
-    /**
-     * Sets when the row can be used. An unavailable row draws its label muted and its check box faded, does not
-     * highlight, and swallows clicks without running its action.
-     *
-     * @param available supplier read every frame and on every click
-     * @return this row
-     */
-    public ListRow available(BooleanSupplier available) {
-        availability.set(available);
-        return this;
+    @Override
+    public Availability availability() {
+        return availability;
     }
 
     // MUI2 lets the mouse fall through a parent widget without a theme background; this one draws its own.
@@ -153,7 +147,7 @@ public class ListRow extends ParentWidget<ListRow> implements Interactable {
     public void draw(ModularGuiContext context, WidgetThemeEntry<?> widgetTheme) {
         AE2Look look = AE2Look.of(this);
         int width = getArea().width, height = getArea().height;
-        boolean usable = availability.get(), hovered = usable && click != null && isHovering();
+        boolean usable = isAvailable(), hovered = usable && click != null && isHovering();
         if (hovered) GuiDraw.drawRect(EDGE, 0, width - 2 * EDGE, height, look.hover());
         int right = width - END_INSET;
         if (checked != null)

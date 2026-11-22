@@ -57,6 +57,7 @@ import com.gtnllib.gui.widget.SettingToggleButton;
 import com.gtnllib.gui.widget.SlideSwitch;
 import com.gtnllib.gui.widget.StepSlider;
 import com.gtnllib.gui.widget.TabButton;
+import com.gtnllib.gui.widget.ThemedButton;
 import com.gtnllib.gui.widget.UpgradesPanel;
 import com.gtnllib.gui.widget.ValueStepper;
 import com.gtnllib.gui.widget.VerticalButtonBar;
@@ -86,6 +87,7 @@ public class ServerWidgetScenario implements Runnable {
         AE2PanelPainter.panelBackground(plain, 0, 0);
         new AE2Button(() -> "Apply", () -> {}).available(() -> false)
             .selected(() -> false);
+        new ThemedButton<>().available(() -> true);
         new IconButton(() -> AE2Icon.REFRESH, () -> {});
         new NumberEntryWidget().bounds(1, 64)
             .value(3)

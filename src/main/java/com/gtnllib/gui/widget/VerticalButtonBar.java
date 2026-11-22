@@ -35,20 +35,23 @@ import com.gtnllib.gui.theme.ae2.PlainLook;
  * disabled and swallows clicks, as every GTNLLib widget's {@code available} does.
  * <p>
  * The bar stands outside the panel, so it tells NEI to keep its panels clear of it, as AE2's toolbar does. Place the
- * bar at {@code panelLeft - WIDTH + OVERLAP} and add it after the panel's other children: its right
- * {@link #OVERLAP} pixels are drawn over the panel's left border, so the strip and the panel read as one piece without
- * a dividing line. The height grows with each added button. A button that is turned off with {@code setEnabled(false)}
- * or {@code setEnabledIf} leaves no gap: the buttons below move up and the strip gets shorter, and with no button shown
- * nothing is drawn, as in AE2. Outside AE2 themes the strip uses the panel background of the current theme without its
- * right border, covering the panel's left border the same way. {@link #buttonSize(int, int)} changes the button size
+ * bar at {@code panelLeft - WIDTH + OVERLAP} and add it after the panel's other children: its right {@link #OVERLAP}
+ * pixels are drawn over the panel's left border, so the strip and the panel read as one piece without a dividing line.
+ * At the panel's top, where AE2 places it, the strip's top border continues the panel's top border; placed lower, the
+ * panel's left border runs on into the strip's top border, as it does at the strip's bottom. The height grows with each
+ * added button. A button that is turned off with {@code setEnabled(false)} or {@code setEnabledIf} leaves no gap: the
+ * buttons below move up and the strip gets shorter, and with no button shown nothing is drawn, as in AE2. Outside AE2
+ * themes the strip uses the panel background of the current theme without its right border, covering the panel's left
+ * border the same way. {@link #buttonSize(int, int)} changes the button size
  * from AE2's. It can be built on either side, so it also works in GUIs the server opens.
  */
 public class VerticalButtonBar extends ParentWidget<VerticalButtonBar> implements INotifyEnabled {
 
     /** Strip width, distance between button tops under AE2 themes and pixels drawn over the panel's left border. */
     public static final int WIDTH = 21, PITCH = 22, OVERLAP = 2;
-    private static final int BUTTON_X = 3, BUTTON_Y = 3, EDGES = 6, BUTTON_GAP = PITCH - AE2Theme.ICON_BUTTON_HEIGHT;
-    private final IDrawable plainStrip = AE2PanelPainter.panelBackground(this, 0, 0);
+    private static final int BUTTON_X = 3, BUTTON_Y = 3, EDGES = 6, BUTTON_GAP = PITCH - AE2Theme.ICON_BUTTON_HEIGHT,
+        PANEL_OUTLINE = 1, BORDER_SAMPLE = 16;
+    private final IDrawable panelBackground = AE2PanelPainter.panelBackground(this, 0, 0);
     private final List<Widget<?>> buttons = new ArrayList<>();
     private int buttonWidth = AE2Theme.ICON_BUTTON_WIDTH, buttonHeight, shownButtons;
     private Widget<?> last;
@@ -129,12 +132,12 @@ public class VerticalButtonBar extends ParentWidget<VerticalButtonBar> implement
      * @param available supplier read every frame and on every click
      * @return this bar
      * @throws IllegalStateException if no button was added yet, or the widget added last has no available state of its
-     *                               own (only GTNLLib's buttons and {@link SettingToggleButton} have one)
+     *                               own ({@link IAvailable})
      */
     public VerticalButtonBar available(BooleanSupplier available) {
-        if (last instanceof ThemedButton<?>button) button.available(available);
-        else if (last instanceof SettingToggleButton setting) setting.available(available);
-        else throw new IllegalStateException("The widget added last has no available state");
+        if (!(last instanceof IAvailable<?>widget))
+            throw new IllegalStateException("The widget added last has no available state");
+        widget.available(available);
         return this;
     }
 
@@ -204,16 +207,25 @@ public class VerticalButtonBar extends ParentWidget<VerticalButtonBar> implement
     @Override
     public void draw(ModularGuiContext context, WidgetThemeEntry<?> widgetTheme) {
         if (shownButtons == 0) return;
-        int width = getArea().width, height = getArea().height;
+        int width = getArea().width, height = getArea().height, right = width;
         AE2Variant variant = AE2Look.of(this)
             .variant();
-        if (variant != null) {
-            AE2PanelPainter.drawButtonBar(variant, 0, 0, width, height);
-            return;
+        if (variant != null) AE2PanelPainter.drawButtonBar(variant, 0, 0, width, height);
+        else {
+            right = width + PlainLook.PANEL_BORDER - OVERLAP;
+            Stencil.apply(0, 0, right, height, context);
+            panelBackground.draw(context, 0, 0, right + PlainLook.PANEL_BORDER, height, widgetTheme.getTheme());
+            Stencil.remove();
         }
-        int cover = PlainLook.PANEL_BORDER - OVERLAP;
-        Stencil.apply(0, 0, width + cover, height, context);
-        plainStrip.draw(context, 0, 0, width + cover + PlainLook.PANEL_BORDER, height, widgetTheme.getTheme());
+        if (getArea().y > getPanel().getArea().y) joinPanelBorder(context, width - OVERLAP, right, widgetTheme);
+    }
+
+    // The strip's top outline would cut across the panel's left border, so the border is drawn again over that one row,
+    // from just inside the panel's outline to the strip's right end, sampled away from the panel's corners.
+    private void joinPanelBorder(ModularGuiContext context, int panelLeft, int right, WidgetThemeEntry<?> widgetTheme) {
+        Stencil.apply(panelLeft + PANEL_OUTLINE, 0, right - panelLeft - PANEL_OUTLINE, 1, context);
+        panelBackground
+            .draw(context, panelLeft, -BORDER_SAMPLE, BORDER_SAMPLE * 2, BORDER_SAMPLE * 2, widgetTheme.getTheme());
         Stencil.remove();
     }
 }
