@@ -114,7 +114,8 @@ public class CycleDropdown<T> extends DropdownWidget<T, CycleDropdown<T>>
             if (option instanceof TextWidget<?>text) {
                 text.alignment(Alignment.CenterLeft);
                 if (forSelectedDisplay) text.heightRel(1f);
-                else text.height(OPTION_HEIGHT);
+                else if (!text.resizer()
+                    .hasHeight()) text.height(OPTION_HEIGHT);
             }
             if (forSelectedDisplay) {
                 centredText = option instanceof TextWidget<?>;
