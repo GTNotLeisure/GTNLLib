@@ -1,16 +1,20 @@
 package com.gtnllib.client.fx.world;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Predicate;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderBlocks;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.world.World;
 import net.minecraftforge.client.ForgeHooksClient;
 
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL14;
 
 import com.gtnllib.GTNLLib;
 
@@ -27,11 +31,14 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 @SideOnly(Side.CLIENT)
 public class FxBlockMesh {
 
-    public static final int MAX_BLOCKS = 250_000;
+    public static final int MAX_BLOCKS = 250_000, PART_BLOCKS = 1024;
 
     public static class Section {
 
-        /** Lowest corner of the section in source-world coordinates; the section spans 16 blocks on each axis. */
+        /**
+         * Lowest corner of the section in source-world coordinates; the section spans 16 blocks on each axis. A
+         * crowded section is split into several parts with the same corner, each compiled on its own.
+         */
         public final int x, y, z;
         public final IntArrayList cells = new IntArrayList();
         public int list = -1;
@@ -46,7 +53,7 @@ public class FxBlockMesh {
     }
 
     public final FxBlockView view = new FxBlockView();
-    private final Long2ObjectOpenHashMap<Section> sections = new Long2ObjectOpenHashMap<>();
+    private final List<Section> sections = new ArrayList<>();
     private Object key;
     private int[] xs = new int[0], ys = new int[0], zs = new int[0];
 
@@ -67,7 +74,7 @@ public class FxBlockMesh {
     }
 
     public void release() {
-        for (Section section : sections.values()) {
+        for (Section section : sections) {
             if (section.list >= 0) GL11.glDeleteLists(section.list, 1);
         }
         sections.clear();
@@ -92,12 +99,17 @@ public class FxBlockMesh {
         this.ys = ys;
         this.zs = zs;
         view.source = source;
+        Long2ObjectOpenHashMap<Section> open = new Long2ObjectOpenHashMap<>();
         for (int cell = 0; cell < xs.length; cell++) {
             view.cells.put(FxVoxelOutline.pack(xs[cell], ys[cell], zs[cell]), cell);
-            int sectionX = xs[cell] >> 4, sectionY = ys[cell] >> 4, sectionZ = zs[cell] >> 4;
-            sections.computeIfAbsent(
-                FxVoxelOutline.pack(sectionX, sectionY, sectionZ),
-                k -> new Section(sectionX << 4, sectionY << 4, sectionZ << 4)).cells.add(cell);
+            long packed = FxVoxelOutline.pack(xs[cell] >> 4, ys[cell] >> 4, zs[cell] >> 4);
+            Section section = open.get(packed);
+            if (section == null || section.cells.size() >= PART_BLOCKS) {
+                section = new Section(xs[cell] & ~15, ys[cell] & ~15, zs[cell] & ~15);
+                open.put(packed, section);
+                sections.add(section);
+            }
+            section.cells.add(cell);
         }
         return true;
     }
@@ -109,7 +121,7 @@ public class FxBlockMesh {
     public void show(boolean[] shown) {
         if (shown == null && view.shown == null) return;
         view.shown = shown;
-        for (Section section : sections.values()) {
+        for (Section section : sections) {
             long signature = 0;
             for (int i = 0; i < section.cells.size(); i++) {
                 int cell = section.cells.getInt(i);
@@ -128,11 +140,20 @@ public class FxBlockMesh {
      * @return true when every section is compiled
      */
     public boolean compile(long budgetNanos) {
+        return compile(budgetNanos, section -> true);
+    }
+
+    /**
+     * Compiles changed sections that are ready, in the order their first block was given, until the budget runs out.
+     *
+     * @return true when every section is compiled
+     */
+    public boolean compile(long budgetNanos, Predicate<Section> ready) {
         long deadline = System.nanoTime() + budgetNanos;
         boolean complete = true;
-        for (Section section : sections.values()) {
+        for (Section section : sections) {
             if (!section.dirty) continue;
-            if (System.nanoTime() > deadline) {
+            if (System.nanoTime() > deadline || !ready.test(section)) {
                 complete = false;
                 continue;
             }
@@ -145,7 +166,7 @@ public class FxBlockMesh {
      * Draws the compiled sections. The caller binds the block texture and sets the GL state.
      */
     public void draw() {
-        for (Section section : sections.values()) {
+        for (Section section : sections) {
             if (section.list >= 0) GL11.glCallList(section.list);
         }
     }
@@ -154,9 +175,49 @@ public class FxBlockMesh {
      * Draws the compiled sections that pass the test, such as a view-frustum check of each section's box.
      */
     public void draw(Predicate<Section> visible) {
-        for (Section section : sections.values()) {
+        for (Section section : sections) {
             if (section.list >= 0 && visible.test(section)) GL11.glCallList(section.list);
         }
+    }
+
+    /**
+     * Sets the GL state for drawing a mesh as ordinary solid blocks: block texture, no lighting or blending, alpha
+     * test, culling, depth writes and fog.
+     */
+    public static void solidState() {
+        Minecraft.getMinecraft()
+            .getTextureManager()
+            .bindTexture(TextureMap.locationBlocksTexture);
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+        GL11.glDisable(GL11.GL_LIGHTING);
+        GL11.glDisable(GL11.GL_BLEND);
+        GL11.glEnable(GL11.GL_ALPHA_TEST);
+        GL11.glAlphaFunc(GL11.GL_GREATER, 0.1f);
+        GL11.glEnable(GL11.GL_CULL_FACE);
+        GL11.glEnable(GL11.GL_DEPTH_TEST);
+        GL11.glDepthFunc(GL11.GL_LEQUAL);
+        GL11.glDepthMask(true);
+        GL11.glEnable(GL11.GL_FOG);
+        GL11.glColor4f(1, 1, 1, 1);
+    }
+
+    /**
+     * Adds the mesh over itself as light, right after it was drawn with {@link #solidState}; strength 0..1. The
+     * lists carry their own vertex colours, so the brightness goes through the constant blend colour.
+     */
+    public void drawFlash(float strength, Predicate<Section> visible) {
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_CONSTANT_COLOR, GL11.GL_ONE);
+        GL14.glBlendColor(strength, strength, strength, 1);
+        GL11.glDepthFunc(GL11.GL_EQUAL);
+        GL11.glDepthMask(false);
+        GL11.glDisable(GL11.GL_FOG);
+        draw(visible);
+        GL11.glEnable(GL11.GL_FOG);
+        GL11.glDepthMask(true);
+        GL11.glDepthFunc(GL11.GL_LEQUAL);
+        GL11.glDisable(GL11.GL_BLEND);
+        GL14.glBlendColor(0, 0, 0, 0);
     }
 
     private void compile(Section section) {
