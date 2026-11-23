@@ -1,9 +1,5 @@
 package com.gtnllib.text;
 
-/**
- * How each newly typed glyph appears. {@code defaultSeconds} is how long the entrance lasts when no time is written;
- * {@code id} is the name used in text, as in {@code r=decode:0.6}.
- */
 public enum TextEntrance {
 
     NONE("", 0),
@@ -20,7 +16,9 @@ public enum TextEntrance {
         this.defaultSeconds = defaultSeconds;
     }
 
-    /** Returns the entrance written as {@code id}, or null when the name is unknown or empty. */
+    /**
+     * Returns the entrance written as {@code id}, or null when the name is unknown or empty.
+     */
     public static TextEntrance byId(String id) {
         for (TextEntrance entrance : values()) {
             if (entrance != NONE && entrance.id.equals(id)) return entrance;

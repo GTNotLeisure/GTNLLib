@@ -9,7 +9,6 @@ import com.gtnllib.text.TextEffectStyle;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 
-/** Register effects during client initialization, before rendering starts. */
 public class TextEffectRegistry {
 
     private static final Map<String, TextEffect> EFFECTS = new Object2ObjectLinkedOpenHashMap<>();
@@ -23,7 +22,9 @@ public class TextEffectRegistry {
         identifiers = List.copyOf(EFFECTS.keySet());
     }
 
-    /** Returns an immutable snapshot in registration order, including effects supplied by other mods. */
+    /**
+     * Returns an immutable snapshot in registration order, including effects supplied by other mods.
+     */
     public static List<String> identifiers() {
         return identifiers;
     }

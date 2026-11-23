@@ -2,7 +2,6 @@ package com.gtnllib.client.text;
 
 import com.gtnllib.text.TextEffectColors;
 
-/** A registered effect shades an existing mask without owning text layout. */
 public interface TextEffect extends AutoCloseable {
 
     void render(TextRenderContext context);

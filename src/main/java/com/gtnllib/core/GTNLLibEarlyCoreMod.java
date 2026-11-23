@@ -5,7 +5,7 @@ import java.util.Map;
 import cpw.mods.fml.relauncher.IFMLLoadingPlugin;
 
 @IFMLLoadingPlugin.MCVersion("1.7.10")
-public final class GTNLLibEarlyCoreMod extends GTNLLibEarlyMixins implements IFMLLoadingPlugin {
+public class GTNLLibEarlyCoreMod extends GTNLLibEarlyMixins implements IFMLLoadingPlugin {
 
     @Override
     public String[] getASMTransformerClass() {

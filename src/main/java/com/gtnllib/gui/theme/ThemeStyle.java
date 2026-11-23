@@ -1,7 +1,5 @@
 package com.gtnllib.gui.theme;
 
-import com.gtnllib.gui.widget.LayoutTheme;
-
 public record ThemeStyle(int cornerLength, int cornerThickness, int cardAccentTop, int cardAccentWidth,
     int cardAccentHeight, int spacingSmall, int spacingMedium, int spacingLarge, int padding, int buttonHeight,
     int rowHeight, float textScale) {

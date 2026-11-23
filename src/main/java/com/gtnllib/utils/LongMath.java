@@ -1,8 +1,5 @@
 package com.gtnllib.utils;
 
-/**
- * The saturating long arithmetic of newer Guava versions, which the Guava shipped with Minecraft 1.7.10 lacks.
- */
 public class LongMath {
 
     public static long saturatedAdd(long a, long b) {

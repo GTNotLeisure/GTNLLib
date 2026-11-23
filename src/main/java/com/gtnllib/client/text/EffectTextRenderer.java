@@ -43,7 +43,6 @@ import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 
-/** Draws marked spans while leaving glyph generation to the current font. */
 public class EffectTextRenderer implements IResourceManagerReloadListener {
 
     public static final EffectTextRenderer INSTANCE = new EffectTextRenderer();

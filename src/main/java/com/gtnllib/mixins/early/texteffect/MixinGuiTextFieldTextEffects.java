@@ -17,7 +17,6 @@ import com.gtnllib.text.EffectTextParser;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 
-/** Retains formatting while vanilla scrolls and draws either side of an input cursor. */
 @Mixin(GuiTextField.class)
 public abstract class MixinGuiTextFieldTextEffects {
 

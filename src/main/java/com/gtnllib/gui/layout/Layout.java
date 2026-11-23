@@ -17,9 +17,9 @@ import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.ScrollingTextWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.gtnllib.gui.theme.ButtonPurpose;
-import com.gtnllib.gui.widget.CardDrawable;
+import com.gtnllib.gui.theme.CardDrawable;
+import com.gtnllib.gui.theme.LayoutTheme;
 import com.gtnllib.gui.widget.Divider;
-import com.gtnllib.gui.widget.LayoutTheme;
 import com.gtnllib.utils.TextRenderUtils;
 
 import cpw.mods.fml.relauncher.Side;

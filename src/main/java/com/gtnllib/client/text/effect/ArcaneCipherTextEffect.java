@@ -6,7 +6,6 @@ import com.gtnllib.client.text.TextRenderContext;
 import com.gtnllib.text.TextEffectFormat;
 import com.gtnllib.text.TextEffectStyle;
 
-/** Configures the rune-to-text cycle, rune changes, shards and flicker from registered style options. */
 public class ArcaneCipherTextEffect extends ShaderTextEffect {
 
     public static final float DEFAULT_HOLD = 4;

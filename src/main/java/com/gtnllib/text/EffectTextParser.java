@@ -9,7 +9,6 @@ import java.util.function.UnaryOperator;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 
-/** Parses scoped and inline effects without depending on client rendering classes. */
 public class EffectTextParser {
 
     public static final String OPEN = "\u2063[gtnl:";
@@ -63,7 +62,6 @@ public class EffectTextParser {
         return -1;
     }
 
-    /** A source-aware scanner shared by rendering and string operations. */
     public static class Cursor {
 
         private final String source;
@@ -153,7 +151,9 @@ public class EffectTextParser {
             return null;
         }
 
-        /** Restores the current native formatting and all open effect scopes after a source split. */
+        /**
+         * Restores the current native formatting and all open effect scopes after a source split.
+         */
         public String continuation() {
             StringBuilder result = new StringBuilder("\u00a7r").append(formatting);
             Iterator<Scope> iterator = scopes.iterator();
@@ -203,7 +203,6 @@ public class EffectTextParser {
 
     private record Scope(TextEffectStyle saved, TextEffectStyle opened) {}
 
-    /** {@code pause} is the typewriter hold in seconds of an empty pause token, otherwise zero. */
     public record Token(String text, TextEffectStyle style, String formatting, int start, int end,
         boolean formattingCode, float pause) {
 

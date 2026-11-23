@@ -11,11 +11,6 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.IntLists;
 
-/**
- * Immutable effect parameters shared by parsing and rendering. Animation records use {@code NONE} to disable their
- * behavior. Effect-specific options retain the renderer's defaults when absent. Times are in seconds and rounded
- * to milliseconds.
- */
 public record TextEffectStyle(String rendererId, IntList colors, float speed, Typewriter typewriter, Roll roll,
     Shake shake, SortedMap<String, Float> options) {
 
@@ -79,7 +74,9 @@ public record TextEffectStyle(String rendererId, IntList colors, float speed, Ty
         return new TextEffectStyle(rendererId, colors, speed, typewriter, roll, value, options);
     }
 
-    /** Reveals the span one glyph at a time at {@code glyphsPerSecond}; zero turns typing off. */
+    /**
+     * Reveals the span one glyph at a time at {@code glyphsPerSecond}; zero turns typing off.
+     */
     public TextEffectStyle withTyping(float glyphsPerSecond) {
         return withTypewriter(
             new Typewriter(
@@ -89,12 +86,16 @@ public record TextEffectStyle(String rendererId, IntList colors, float speed, Ty
                 typewriter.entranceSize()));
     }
 
-    /** Each typed glyph appears through {@code value} over its default time. */
+    /**
+     * Each typed glyph appears through {@code value} over its default time.
+     */
     public TextEffectStyle withEntrance(TextEntrance value) {
         return withEntrance(value, 0);
     }
 
-    /** Each typed glyph appears through {@code value} over {@code seconds}; zero uses the entrance's default. */
+    /**
+     * Each typed glyph appears through {@code value} over {@code seconds}; zero uses the entrance's default.
+     */
     public TextEffectStyle withEntrance(TextEntrance value, float seconds) {
         return withEntrance(value, seconds, 0);
     }
@@ -107,7 +108,9 @@ public record TextEffectStyle(String rendererId, IntList colors, float speed, Ty
         return withTypewriter(new Typewriter(typewriter.rate(), value, seconds, size));
     }
 
-    /** Numbers in the span count up from zero over {@code seconds} when they appear; zero turns rolling off. */
+    /**
+     * Numbers in the span count up from zero over {@code seconds} when they appear; zero turns rolling off.
+     */
     public TextEffectStyle withRoll(float seconds) {
         return withRoll(seconds, roll.mode());
     }
@@ -116,22 +119,30 @@ public record TextEffectStyle(String rendererId, IntList colors, float speed, Ty
         return withRoll(seconds, mode, roll.slot());
     }
 
-    /** Numbers spin like a slot machine and stop digit by digit in {@code slot} order, or count up for {@code NONE}. */
+    /**
+     * Numbers spin like a slot machine and stop digit by digit in {@code slot} order, or count up for {@code NONE}.
+     */
     public TextEffectStyle withRoll(float seconds, RollMode mode, SlotOrder slot) {
         return withRoll(new Roll(seconds, mode, slot, roll.blur(), roll.waits()));
     }
 
-    /** How strongly a slot machine's spinning digits smear, in percent: zero is sharp, 100 the default. */
+    /**
+     * How strongly a slot machine's spinning digits smear, in percent: zero is sharp, 100 the default.
+     */
     public TextEffectStyle withRollBlur(int percent) {
         return withRoll(new Roll(roll.seconds(), roll.mode(), roll.slot(), percent, roll.waits()));
     }
 
-    /** With {@code false} the text after a rolling number types on while it rolls instead of waiting for it. */
+    /**
+     * With {@code false} the text after a rolling number types on while it rolls instead of waiting for it.
+     */
     public TextEffectStyle withRollWait(boolean wait) {
         return withRoll(new Roll(roll.seconds(), roll.mode(), roll.slot(), roll.blur(), wait));
     }
 
-    /** The span trembles by {@code pixels} (at most {@link #MAX_SHAKE}), keeping its mode and motion; zero stops it. */
+    /**
+     * The span trembles by {@code pixels} (at most {@link #MAX_SHAKE}), keeping its mode and motion; zero stops it.
+     */
     public TextEffectStyle withShake(int pixels) {
         return withShake(pixels, shake.mode(), shake.motion());
     }
@@ -144,19 +155,25 @@ public record TextEffectStyle(String rendererId, IntList colors, float speed, Ty
         return withShake(new Shake(pixels, mode, motion));
     }
 
-    /** Sets one of the effect's own options; the declaration form checks names and ranges, this only stores it. */
+    /**
+     * Sets one of the effect's own options; the declaration form checks names and ranges, this only stores it.
+     */
     public TextEffectStyle withOption(String name, float value) {
         SortedMap<String, Float> changed = new TreeMap<>(options);
         changed.put(name, value);
         return new TextEffectStyle(rendererId, colors, speed, typewriter, roll, shake, changed);
     }
 
-    /** Each neon glyph fails in a round with {@code percent} chance. */
+    /**
+     * Each neon glyph fails in a round with {@code percent} chance.
+     */
     public TextEffectStyle withFault(int percent) {
         return withOption(TextEffectFormat.FAULT, percent);
     }
 
-    /** The option's value, or {@code fallback} when the declaration leaves it out. */
+    /**
+     * The option's value, or {@code fallback} when the declaration leaves it out.
+     */
     public float option(String name, float fallback) {
         Float value = options.get(name);
         return value == null ? fallback : value;
@@ -196,12 +213,16 @@ public record TextEffectStyle(String rendererId, IntList colors, float speed, Ty
             entranceSize = toThousandths(entranceSize) == DEFAULT_SLAM_SIZE ? 0 : toThousandths(entranceSize);
         }
 
-        /** How long each typed glyph's entrance lasts, falling back to the entrance's default. */
+        /**
+         * How long each typed glyph's entrance lasts, falling back to the entrance's default.
+         */
         public float entranceDuration() {
             return entranceSeconds > 0 ? entranceSeconds : entrance.defaultSeconds;
         }
 
-        /** How many times its size a slammed glyph starts at, falling back to the default. */
+        /**
+         * How many times its size a slammed glyph starts at, falling back to the default.
+         */
         public float slamSize() {
             return entranceSize > 0 ? entranceSize : DEFAULT_SLAM_SIZE;
         }
@@ -232,7 +253,6 @@ public record TextEffectStyle(String rendererId, IntList colors, float speed, Ty
         }
     }
 
-    /** The span trembles by {@code pixels}, zero meaning it stays still; mode and motion say how. */
     public record Shake(int pixels, ShakeMode mode, ShakeMotion motion) {
 
         public static final Shake NONE = new Shake(0, ShakeMode.EACH, ShakeMotion.SMOOTH);

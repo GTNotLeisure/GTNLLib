@@ -6,7 +6,6 @@ import org.lwjgl.opengl.GL20;
 
 import com.gtnllib.client.text.TextRenderContext;
 
-/** Keeps rare source-tick flashes independent of GPU float hashes and the number of draw calls. */
 public class BurnishedAuricTextEffect extends ShaderTextEffect {
 
     private final TickFlashTimeline flashes = new TickFlashTimeline(0.005, 13, 216000, 0x4155524943L);

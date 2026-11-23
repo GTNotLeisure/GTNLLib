@@ -31,9 +31,11 @@ import com.cleanroommc.modularui.utils.GlStateManager;
 import com.cleanroommc.modularui.utils.JsonHelper;
 import com.cleanroommc.modularui.widget.Widget;
 import com.google.gson.JsonObject;
+import com.gtnllib.gui.theme.SkinDrawable;
 import com.gtnllib.utils.ColorMath;
 
-public class StepSlider extends Widget<StepSlider> implements Interactable {
+public class StepSlider extends Widget<StepSlider>
+    implements Interactable, IAvailable<StepSlider>, IWheelStep<StepSlider> {
 
     private static final ResourceLocation TICK_SOUND = new ResourceLocation("random.click");
     private static final float LOW_PITCH = 1.15F, HIGH_PITCH = 1.5F;
@@ -54,7 +56,7 @@ public class StepSlider extends Widget<StepSlider> implements Interactable {
         0b101_101_010_010_010, 0b111_001_010_100_111, 0, 0b001_001_010_100_100, 0b000_100_000_100_000,
         0b010_100_100_100_010, 0b010_001_001_001_010, 0b000_111_000_111_000, 0b001_010_100_010_001,
         0b100_010_001_010_100, 0b100_100_100_000_100, 0b110_001_010_000_010 };
-    // Why: the track is six pixels across, so an even tag overhangs it by the same amount on both sides.
+    // The track is six pixels across, so an even tag overhangs it by the same amount on both sides.
     private static final int COMPACT_HEIGHT = 5, COMPACT_TAG_HEIGHT = 10, COMPACT_TAG_PADDING = 2;
     private static final int INACTIVE_FILL = 0xFF4A4A50, INACTIVE_TAG = 0xFF707078, INACTIVE_TEXT = 0xFF2A2A2E,
         OPAQUE = 0xFFFFFFFF, DIMMED = 0xFFA0A0A0;
@@ -62,72 +64,103 @@ public class StepSlider extends Widget<StepSlider> implements Interactable {
     private DoubleSupplier getter = () -> 0;
     private DoubleConsumer setter = value -> {};
     private DoubleFunction<String> format = value -> String.valueOf(Math.round(value * 100) / 100D);
-    private BooleanSupplier available = () -> true;
+    private final Availability availability = new Availability();
+    private final WheelStep wheelStep = new WheelStep();
     private Runnable onRelease;
     private double min = 0, max = 1;
     private int steps = 10, milestoneEvery = 5;
     private int[] colors, tickColors;
+    private Theme resolvedBase, resolvedColors;
     private int tagWidth;
-    private boolean vertical, dragging, wheel;
+    private boolean vertical, dragging;
     private long lastSound;
 
+    /**
+     * Creates a slider from 0 to 1 in 10 steps with a milestone every 5. The caller sets its size and value.
+     */
     public StepSlider() {
         disableThemeBackground(true);
         disableHoverThemeBackground(true);
         listenGuiAction((IGuiAction.MouseReleased) button -> {
-            if (dragging) release();
+            if (button == 0 && dragging) release();
             return false;
         });
     }
 
+    /**
+     * Sets where the slider reads and writes its value.
+     *
+     * @param getter supplier of the current value, read every frame
+     * @param setter receives the value of every step the player selects
+     */
     public StepSlider value(DoubleSupplier getter, DoubleConsumer setter) {
         this.getter = getter;
         this.setter = setter;
         return this;
     }
 
+    /**
+     * Sets the MUI2 value the slider reads and writes; integer values receive rounded numbers clamped to the int range.
+     *
+     * @param value value holder, possibly a synced one
+     */
     public StepSlider value(IDoubleValue<?> value) {
-        if (value instanceof IIntValue<?>integer)
-            return value(value::getDoubleValue, number -> integer.setIntValue((int) Math.round(number)));
+        if (value instanceof IIntValue<?>integer) return value(
+            value::getDoubleValue,
+            number -> integer
+                .setIntValue((int) Math.max(Integer.MIN_VALUE, Math.min(Integer.MAX_VALUE, Math.round(number)))));
         return value(value::getDoubleValue, value::setDoubleValue);
     }
 
+    /**
+     * Sets the range and how many steps divide it.
+     *
+     * @param min   finite value of the first step
+     * @param max   finite value of the last step, greater than {@code min}
+     * @param steps number of steps between them, at least one
+     * @throws IllegalArgumentException if either bound is not finite, the range is empty, or {@code steps} is below one
+     */
     public StepSlider range(double min, double max, int steps) {
-        if (!(max > min) || steps < 1) throw new IllegalArgumentException("Bad slider range " + min + ".." + max);
+        if (!Double.isFinite(min) || !Double.isFinite(max) || max <= min || steps < 1)
+            throw new IllegalArgumentException("Bad slider range " + min + ".." + max);
         this.min = min;
         this.max = max;
         this.steps = steps;
         return this;
     }
 
+    /**
+     * Sets how often a step is a milestone, which is drawn in the milestone tick color and is what Shift snaps to.
+     *
+     * @param every steps between milestones; zero for none
+     */
     public StepSlider milestones(int every) {
         this.milestoneEvery = Math.max(0, every);
         return this;
     }
 
+    /**
+     * Sets how the value tag writes a value; see {@link #decimals(int)} and {@link #whole()}. The tag's font has
+     * digits, capital letters, the space and a few signs only.
+     *
+     * @param format turns a value into the tag text
+     */
     public StepSlider format(DoubleFunction<String> format) {
         this.format = format;
         return this;
     }
 
-    /**
-     * Sets when the slider can be used. An unavailable slider is drawn in grey (skins without a glow layer, such as
-     * AE2's, are darkened instead), shows no hover, swallows clicks and leaves the mouse wheel to the widgets around
-     * it.
-     *
-     * @param available supplier read every frame and on every input
-     * @return this slider
-     */
-    public StepSlider available(BooleanSupplier available) {
-        this.available = available;
-        return this;
+    @Override
+    public Availability availability() {
+        return availability;
+    }
+
+    @Override
+    public WheelStep wheelStep() {
+        return wheelStep;
     }
 
     /**
-     * Same as {@link #available(BooleanSupplier)}.
-     *
-     * @param active supplier read every frame and on every input
-     * @return this slider
      * @deprecated use {@link #available(BooleanSupplier)}, the name every GTNLLib widget uses
      */
     @Deprecated
@@ -135,57 +168,115 @@ public class StepSlider extends Widget<StepSlider> implements Interactable {
         return available(active);
     }
 
+    /**
+     * Sets what runs once when a drag ends, and after every wheel step that changed the value, such as sending the
+     * final value to the server.
+     *
+     * @param onRelease action to run
+     */
     public StepSlider onRelease(Runnable onRelease) {
         this.onRelease = onRelease;
         return this;
     }
 
     /**
-     * Sets whether the mouse wheel over the slider moves it one step per notch, or one milestone while Shift is held.
-     * Off by default, so the wheel goes to the widgets around it, such as a scrolling list.
+     * Sets whether the slider runs bottom to top instead of left to right.
      *
-     * @param wheel true to let the wheel move the slider
-     * @return this slider
+     * @param vertical true for a vertical slider
      */
-    public StepSlider wheel(boolean wheel) {
-        this.wheel = wheel;
-        return this;
-    }
-
     public StepSlider vertical(boolean vertical) {
         this.vertical = vertical;
         return this;
     }
 
+    /**
+     * Replaces the theme's colors for this slider.
+     *
+     * @param track      ARGB color of the empty track
+     * @param fill       ARGB color of the filled part
+     * @param cursor     ARGB color of the value tag
+     * @param cursorText ARGB color of the text on the value tag
+     */
     public StepSlider colors(int track, int fill, int cursor, int cursorText) {
         this.colors = new int[] { track, fill, cursor, cursorText };
+        resolvedColors = null;
         return this;
     }
 
+    /**
+     * Sets a fixed width for the value tag, so it does not change size with its text.
+     *
+     * @param width tag width in pixels; zero fits the tag to its text
+     */
     public StepSlider tagWidth(int width) {
         this.tagWidth = Math.max(0, width);
         return this;
     }
 
+    /**
+     * Replaces the theme's tick colors for this slider.
+     *
+     * @param tick      ARGB color of ordinary ticks
+     * @param milestone ARGB color of milestone ticks
+     */
     public StepSlider tickColors(int tick, int milestone) {
         this.tickColors = new int[] { tick, milestone };
+        resolvedColors = null;
         return this;
     }
 
+    /**
+     * Returns the step nearest to the current value.
+     *
+     * @return step index from zero to the number of steps
+     */
     public int step() {
-        long step = Math.round((getter.getAsDouble() - min) / (max - min) * steps);
+        double current = getter.getAsDouble();
+        if (current <= min) return 0;
+        if (current >= max) return steps;
+        double span = max - min;
+        double fraction = Double.isFinite(span) ? (current - min) / span
+            : (current / 2 - min / 2) / (max / 2 - min / 2);
+        long step = Math.round(fraction * steps);
         return (int) Math.max(0, Math.min(steps, step));
     }
 
+    /**
+     * Returns the value of a step.
+     *
+     * @param step step index; values outside the range are clamped
+     * @return the value at that step
+     */
     public double valueAt(int step) {
-        return min + (max - min) * Math.max(0, Math.min(steps, step)) / steps;
+        if (step <= 0) return min;
+        if (step >= steps) return max;
+        double fraction = step / (double) steps, span = max - min;
+        return Double.isFinite(span) ? min + span * fraction : min * (1 - fraction) + max * fraction;
     }
 
+    /**
+     * Returns where a step lies along the slider.
+     *
+     * @param step     step index
+     * @param steps    number of steps
+     * @param length   slider length in pixels
+     * @param vertical whether the slider runs bottom to top
+     * @return offset from the slider's start (left, or top when vertical) in pixels
+     */
     public static float notchPosition(int step, int steps, int length, boolean vertical) {
         float along = (length - 3F) * Math.max(0, Math.min(steps, step)) / steps;
         return vertical ? length - 2F - along : 1F + along;
     }
 
+    /**
+     * Returns the step nearest to a pointer position along the slider.
+     *
+     * @param mouse    pointer offset from the slider's start (left, or top when vertical) in pixels
+     * @param steps    number of steps
+     * @param length   slider length in pixels
+     * @param vertical whether the slider runs bottom to top
+     * @return step index from zero to {@code steps}
+     */
     public static int nearestStep(int mouse, int steps, int length, boolean vertical) {
         float along = vertical ? length - 2F - mouse : mouse - 1F;
         return Math.max(0, Math.min(steps, Math.round(along / Math.max(1F, length - 3F) * steps)));
@@ -206,7 +297,7 @@ public class StepSlider extends Widget<StepSlider> implements Interactable {
     private int stepAt(int mouse) {
         int step = nearestStep(mouse, steps, length(), vertical);
         if (milestoneEvery > 0 && Interactable.hasShiftDown())
-            step = Math.min(steps, Math.round(step / (float) milestoneEvery) * milestoneEvery);
+            step = (int) Math.min(steps, Math.round(step / (double) milestoneEvery) * milestoneEvery);
         return step;
     }
 
@@ -214,10 +305,12 @@ public class StepSlider extends Widget<StepSlider> implements Interactable {
         return milestoneEvery > 0 && (step % milestoneEvery == 0 || step == steps);
     }
 
-    private boolean select(int step) {
-        step = Math.max(0, Math.min(steps, step));
-        if (Math.abs(valueAt(step) - getter.getAsDouble()) < (max - min) / steps * 1.0E-3) return false;
-        setter.accept(valueAt(step));
+    private boolean select(long target) {
+        int step = (int) Math.max(0, Math.min(steps, target));
+        double next = valueAt(step), current = getter.getAsDouble();
+        double tolerance = (max * 1.0E-3 - min * 1.0E-3) / steps;
+        if (next == current || Math.abs(next - current) < tolerance) return false;
+        setter.accept(next);
         long now = Minecraft.getSystemTime();
         if (now - lastSound < SOUND_GAP_MILLIS) return true;
         lastSound = now;
@@ -225,7 +318,7 @@ public class StepSlider extends Widget<StepSlider> implements Interactable {
         return true;
     }
 
-    // Why: the JVM checks playSound's ISound argument when it loads the class that makes the call; ISound is
+    // The JVM checks playSound's ISound argument when it loads the class that makes the call; ISound is
     // client-only, so the call lives here, where a dedicated server building a GUI never loads it.
     private static class TickSound {
 
@@ -242,25 +335,44 @@ public class StepSlider extends Widget<StepSlider> implements Interactable {
     }
 
     @Override
+    public void onUpdate() {
+        super.onUpdate();
+        if (dragging && (!isAvailable() || !isValid() || !areAncestorsEnabled())) release();
+    }
+
+    @Override
+    public void dispose() {
+        if (dragging) release();
+        super.dispose();
+    }
+
+    @Override
     public @NotNull Result onMousePressed(int mouseButton) {
-        if (!available.getAsBoolean()) return Result.STOP;
-        if (mouseButton != 0) return Result.IGNORE;
-        dragging = true;
-        select(stepAt(mouse(getContext())));
-        return Result.SUCCESS;
+        return availability.press(() -> {
+            if (mouseButton != 0) return Result.IGNORE;
+            dragging = true;
+            select(stepAt(mouse(getContext())));
+            return Result.SUCCESS;
+        });
     }
 
     @Override
     public void onMouseDrag(int mouseButton, long timeSinceClick) {
-        if (dragging) select(stepAt(mouse(getContext())));
+        if (mouseButton != 0 || !dragging) return;
+        if (!isAvailable() || !areAncestorsEnabled()) {
+            release();
+            return;
+        }
+        select(stepAt(mouse(getContext())));
     }
 
     @Override
     public boolean onMouseScroll(UpOrDown scrollDirection, int amount) {
-        if (!wheel || !available.getAsBoolean()) return false;
-        int notches = milestoneEvery > 0 && Interactable.hasShiftDown() ? milestoneEvery : 1;
-        if (select(step() + (scrollDirection.isUp() ? notches : -notches)) && onRelease != null) onRelease.run();
-        return true;
+        return wheelStep.scroll(this, isAvailable(), scrollDirection, sign -> {
+            int notches = milestoneEvery > 0 && Interactable.hasShiftDown() ? milestoneEvery : 1;
+            if (select(step() + (long) sign * notches) && onRelease != null) onRelease.run();
+            return true;
+        });
     }
 
     @Override
@@ -272,26 +384,27 @@ public class StepSlider extends Widget<StepSlider> implements Interactable {
     private Theme resolveColors(WidgetTheme theme) {
         Theme base = theme instanceof Theme slider ? slider : Theme.KEY.getDefaultValue();
         if (colors == null && tickColors == null) return base;
-        int[] main = colors != null ? colors : new int[] { base.track, base.fill, base.cursor, base.cursorText };
-        int[] ticks = tickColors != null ? tickColors : new int[] { base.tick, base.milestone };
-        return new Theme(
-            main[0],
-            main[1],
-            main[2],
-            main[3],
-            ticks[0],
-            ticks[1],
+        if (resolvedBase == base && resolvedColors != null) return resolvedColors;
+        resolvedBase = base;
+        resolvedColors = new Theme(
+            colors == null ? base.track : colors[0],
+            colors == null ? base.fill : colors[1],
+            colors == null ? base.cursor : colors[2],
+            colors == null ? base.cursorText : colors[3],
+            tickColors == null ? base.tick : tickColors[0],
+            tickColors == null ? base.milestone : tickColors[1],
             base.trackSkin,
             base.fillSkin,
             base.tagSkin);
+        return resolvedColors;
     }
 
     @Override
     public void draw(ModularGuiContext context, WidgetThemeEntry<?> widgetTheme) {
         Theme palette = resolveColors(widgetTheme.getTheme());
         int length = length(), thickness = thickness(), current = step();
-        boolean on = available.getAsBoolean();
-        // Why: a skin without a glow layer, like AE2's, ignores the grey colors of an unavailable slider, so its
+        boolean on = isAvailable();
+        // A skin without a glow layer, like AE2's, ignores the grey colors of an unavailable slider, so its
         // textures are darkened instead; skins with a glow layer show those colors themselves.
         int tint = !on && colorless(palette.fillSkin) ? DIMMED : OPAQUE;
         float trackStart = Math.round((thickness - TRACK_THICKNESS) / 2F);
@@ -307,17 +420,13 @@ public class StepSlider extends Widget<StepSlider> implements Interactable {
         else skin(palette.fillSkin, fillStart, trackStart, fillLength, TRACK_THICKNESS, fill, tint);
         float tickStart = trackStart + TRACK_THICKNESS + TICK_GAP;
         boolean minorTicks = (length - 3F) / steps >= MIN_TICK_SPACING;
-        for (int step = 0; step <= steps; step++) {
-            boolean major = milestone(step);
-            if (!major && !minorTicks) continue;
-            int color = step <= current && on ? light : major ? palette.milestone : palette.tick;
-            bar(
-                notchPosition(step, steps, length, vertical),
-                tickStart,
-                1,
-                major ? MAJOR_TICK : MINOR_TICK,
-                color,
-                color);
+        if (minorTicks || milestoneEvery > 0) {
+            long minStep = Math.max(1L, (long) Math.ceil((double) steps * MIN_TICK_SPACING / Math.max(1, length - 3)));
+            long stride = minorTicks ? 1 : (minStep + milestoneEvery - 1) / milestoneEvery * milestoneEvery;
+            // Sample dense milestones at visible spacing instead of traversing the entire value range.
+            for (long tick = 0; tick < steps; tick += stride)
+                drawTick((int) tick, tickStart, current, on, light, palette);
+            drawTick(steps, tickStart, current, on, light, palette);
         }
         if (on && isHovering() && !dragging) {
             int hovered = stepAt(mouse(context));
@@ -333,6 +442,12 @@ public class StepSlider extends Widget<StepSlider> implements Interactable {
         drawTag(format.apply(valueAt(current)), cursor, trackStart + TRACK_THICKNESS / 2F, on, palette);
     }
 
+    private void drawTick(int step, float top, int current, boolean on, int light, Theme palette) {
+        boolean major = milestone(step);
+        int color = step <= current && on ? light : major ? palette.milestone : palette.tick;
+        bar(notchPosition(step, steps, length(), vertical), top, 1, major ? MAJOR_TICK : MINOR_TICK, color, color);
+    }
+
     private void skin(SkinDrawable skin, float along, float across, float alongSize, float acrossSize, int glow,
         int tint) {
         int start = Math.round(along), side = Math.round(across), length = Math.round(alongSize),
@@ -341,7 +456,7 @@ public class StepSlider extends Widget<StepSlider> implements Interactable {
             skin.draw(start, side, length, thickness, glow, tint);
             return;
         }
-        // Why: skin textures are made for a horizontal slider; a quarter turn left puts their start at the bottom,
+        // Skin textures are made for a horizontal slider; a quarter turn left puts their start at the bottom,
         // where a vertical slider's lowest value is.
         GlStateManager.pushMatrix();
         GlStateManager.translate(side, start + length, 0);
@@ -404,20 +519,42 @@ public class StepSlider extends Widget<StepSlider> implements Interactable {
         return index < 0 ? 0 : COMPACT_GLYPHS[index];
     }
 
+    /**
+     * Creates a tag format with a fixed number of decimals and a point as the decimal sign in every locale.
+     *
+     * @param digits digits after the decimal point
+     * @return the format
+     */
     public static DoubleFunction<String> decimals(int digits) {
         String pattern = "%." + digits + "f";
-        // Why: the compact font has no comma, which many locales write as the decimal point.
+        // The compact font has no comma, which many locales write as the decimal point.
         return value -> String.format(Locale.ROOT, pattern, value);
     }
 
+    /**
+     * Creates a tag format that rounds to a whole number.
+     *
+     * @return the format
+     */
     public static DoubleFunction<String> whole() {
         return value -> String.valueOf(Math.round(value));
     }
 
+    /**
+     * Returns the width of a value tag fitted to a text.
+     *
+     * @param text tag text
+     * @return tag width in pixels, padding included
+     */
     public static int fittedTagWidth(String text) {
         return compactWidth(text) + COMPACT_TAG_PADDING * 2;
     }
 
+    /**
+     * Measures a text in the small built-in font of the value tag.
+     *
+     * @return width in pixels
+     */
     public static int compactWidth(String text) {
         int width = 0;
         for (int i = 0; i < text.length(); i++) width += glyphWidth(text.charAt(i)) + (i > 0 ? 1 : 0);

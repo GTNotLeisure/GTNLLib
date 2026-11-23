@@ -23,12 +23,6 @@ import com.cleanroommc.modularui.theme.SlotTheme;
 import com.cleanroommc.modularui.widget.Widget;
 import com.gtnewhorizon.gtnhlib.util.data.ItemId;
 
-/**
- * An item slot for client-only screens: drag an item from NEI onto it and it shows and keeps that item. With
- * {@link #clearable(boolean)} turned on, a right-click empties it. It keeps the item and its meta without NBT, which is
- * what an icon or a filter needs, and never touches the player's inventory. Under the pointer it lights up like MUI2's
- * item slots.
- */
 public class GhostItemSlot extends Widget<GhostItemSlot>
     implements RecipeViewerGhostIngredientSlot<ItemStack>, RecipeViewerIngredientProvider, Interactable {
 
@@ -68,7 +62,6 @@ public class GhostItemSlot extends Widget<GhostItemSlot>
      * {@code onClear}, or reads {@link #item()} when it saves.
      *
      * @param clearable whether a right-click empties the slot
-     * @return this slot
      */
     public GhostItemSlot clearable(boolean clearable) {
         this.clearable = clearable;
@@ -79,7 +72,6 @@ public class GhostItemSlot extends Widget<GhostItemSlot>
      * Sets what runs after a right-click emptied the slot.
      *
      * @param onClear action run once per emptying
-     * @return this slot
      */
     public GhostItemSlot onClear(Runnable onClear) {
         this.onClear = onClear;

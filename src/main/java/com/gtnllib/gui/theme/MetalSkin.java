@@ -4,7 +4,6 @@ import net.minecraft.util.ResourceLocation;
 
 import com.gtnllib.GTNLLib;
 import com.gtnllib.gui.theme.ThemeSkin.Part;
-import com.gtnllib.gui.widget.SkinDrawable;
 
 public class MetalSkin {
 

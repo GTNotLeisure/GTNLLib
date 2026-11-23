@@ -25,8 +25,9 @@ import com.gtnllib.client.hud.HudElement.Setting;
 import com.gtnllib.gui.layout.Layout;
 import com.gtnllib.gui.layout.Size;
 import com.gtnllib.gui.theme.ButtonPurpose;
+import com.gtnllib.gui.theme.LayoutTheme;
+import com.gtnllib.gui.theme.MUI2Fixes;
 import com.gtnllib.gui.widget.CloseButton;
-import com.gtnllib.gui.widget.LayoutTheme;
 import com.gtnllib.gui.widget.SlideSwitch;
 import com.gtnllib.gui.widget.StepSlider;
 
@@ -112,6 +113,7 @@ public class HudSettingsCard extends ParentWidget<HudSettingsCard> {
         ListWidget<IWidget, ?> list = new ListWidget<>().pos(0, header)
             .width(WIDTH)
             .height(() -> cardHeight() - header, Unit.Measure.PIXEL);
+        MUI2Fixes.noScrollShadows(list);
         lines.forEach(list::child);
         child(list);
     }

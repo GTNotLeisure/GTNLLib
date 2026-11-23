@@ -19,7 +19,7 @@ import com.gtnllib.gui.layout.Layout;
 import com.gtnllib.gui.layout.LayoutMath;
 import com.gtnllib.gui.layout.Size;
 import com.gtnllib.gui.theme.ButtonPurpose;
-import com.gtnllib.gui.widget.LayoutTheme;
+import com.gtnllib.gui.theme.LayoutTheme;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;

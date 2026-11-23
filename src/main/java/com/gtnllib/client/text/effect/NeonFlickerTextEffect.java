@@ -5,7 +5,6 @@ import net.minecraft.util.ResourceLocation;
 import com.gtnllib.client.text.TextRenderContext;
 import com.gtnllib.text.TextEffectFormat;
 
-/** A neon sign whose glyphs fail at random; the style's fault chance picks how many sputter in each round. */
 public class NeonFlickerTextEffect extends ShaderTextEffect {
 
     public static final int DEFAULT_FAULT = 20;

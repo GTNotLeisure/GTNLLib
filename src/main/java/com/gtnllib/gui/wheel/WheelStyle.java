@@ -2,9 +2,12 @@ package com.gtnllib.gui.wheel;
 
 import java.util.Objects;
 
+import com.gtnllib.gui.theme.ae2.AE2Variant;
+
 public class WheelStyle {
 
     public static final WheelStyle DEFAULT = builder().build();
+    private static final int AE2_DISC_ALPHA = 0xE6000000;
 
     public final float innerRadiusScale;
     public final float outerRadiusScale;
@@ -155,6 +158,18 @@ public class WheelStyle {
         public Builder highlightColor(int highlightColor) {
             this.highlightColor = highlightColor;
             return this;
+        }
+
+        /**
+         * Applies an AE2 skin's disc, line, text and highlight colors, without a text shadow.
+         *
+         * @param variant AE2 skin to take the colors from
+         */
+        public Builder skin(AE2Variant variant) {
+            return discColor(AE2_DISC_ALPHA | variant.colors.panel() & 0xFFFFFF).lineColor(variant.colors.line())
+                .textColor(variant.colors.text())
+                .textShadow(false)
+                .highlightColor(variant.highlight);
         }
 
         public Builder deadZone(float deadZone) {

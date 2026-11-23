@@ -25,43 +25,56 @@ import com.cleanroommc.modularui.utils.JsonHelper;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.google.gson.JsonObject;
 import com.gtnllib.gui.theme.AE2Theme;
+import com.gtnllib.gui.theme.LayoutTheme;
+import com.gtnllib.gui.theme.SkinDrawable;
+import com.gtnllib.gui.theme.ae2.AE2CheckboxPainter;
 import com.gtnllib.utils.TextRenderUtils;
 
-public class SlideSwitch extends ButtonWidget<SlideSwitch> {
+public class SlideSwitch extends ButtonWidget<SlideSwitch> implements IAvailable<SlideSwitch> {
 
     private static final int LABEL_Y = 1, LABEL_END = 2;
-    private static final float INACTIVE_ALPHA = 0.5F;
 
-    private final AE2Theme.SwitchHover hover = new AE2Theme.SwitchHover();
-    private BooleanSupplier on = () -> false, live = () -> true, available = () -> true;
+    private final AE2CheckboxPainter.CheckboxHover hover = new AE2CheckboxPainter.CheckboxHover();
+    private final Availability availability = new Availability();
+    private BooleanSupplier on = () -> false, glow = () -> true;
     private IKey label = IKey.EMPTY;
 
+    /**
+     * Sets the value the switch shows.
+     *
+     * @param on supplier of the on state, read every frame
+     */
     public SlideSwitch value(BooleanSupplier on) {
         this.on = on;
         return this;
     }
 
-    public SlideSwitch liveWhen(BooleanSupplier live) {
-        this.live = live;
-        return this;
-    }
-
     /**
-     * Sets when the switch can be used. An unavailable switch is drawn faded, shows no hover and swallows clicks.
+     * Sets when a switch that is on shows its bright look; otherwise it is drawn on but dimmed, such as a module that
+     * is switched on but not running. It does not change whether the switch can be used.
      *
-     * @param available supplier read every frame and on every click
-     * @return this switch
+     * @param glow supplier read every frame
      */
-    public SlideSwitch available(BooleanSupplier available) {
-        this.available = available;
+    public SlideSwitch glowWhen(BooleanSupplier glow) {
+        this.glow = glow;
         return this;
     }
 
     /**
-     * Same as {@link #available(BooleanSupplier)}.
-     *
-     * @param available supplier read every frame and on every click
-     * @return this switch
+     * @deprecated use {@link #glowWhen(BooleanSupplier)}; this name reads like "can be used", which
+     *             {@link #available(BooleanSupplier)} sets
+     */
+    @Deprecated
+    public SlideSwitch liveWhen(BooleanSupplier glow) {
+        return glowWhen(glow);
+    }
+
+    @Override
+    public Availability availability() {
+        return availability;
+    }
+
+    /**
      * @deprecated use {@link #available(BooleanSupplier)}, the name every GTNLLib widget uses
      */
     @Deprecated
@@ -71,9 +84,14 @@ public class SlideSwitch extends ButtonWidget<SlideSwitch> {
 
     @Override
     public @NotNull Result onMousePressed(int mouseButton) {
-        return available.getAsBoolean() ? super.onMousePressed(mouseButton) : Result.STOP;
+        return availability.press(() -> super.onMousePressed(mouseButton));
     }
 
+    /**
+     * Sets the label drawn right of the switch.
+     *
+     * @param label label text, read every frame
+     */
     public SlideSwitch label(IKey label) {
         this.label = label;
         return this;
@@ -85,14 +103,33 @@ public class SlideSwitch extends ButtonWidget<SlideSwitch> {
         return entry != null ? entry : theme.getFallback();
     }
 
+    /**
+     * Returns the switch theme data behind a widget theme.
+     *
+     * @param theme widget theme a switch is drawn with
+     * @return the theme itself if it is switch theme data, else the default switch theme
+     */
     public static Theme colors(WidgetTheme theme) {
         return theme instanceof Theme colors ? colors : Theme.KEY.getDefaultValue();
     }
 
+    /**
+     * Returns the width a switch needs for a label of the given width, with the default layout.
+     *
+     * @param textWidth label width in pixels
+     * @return widget width in pixels
+     */
     public static int widthFor(int textWidth) {
         return widthFor(LayoutTheme.DEFAULT, textWidth);
     }
 
+    /**
+     * Returns the width a switch needs for a label of the given width: the switch, the gap and the label.
+     *
+     * @param style     layout of the theme the switch is drawn with, which sets the switch width and gap
+     * @param textWidth label width in pixels
+     * @return widget width in pixels
+     */
     public static int widthFor(LayoutTheme style, int textWidth) {
         return labelX(style) + textWidth + LABEL_END;
     }
@@ -101,10 +138,27 @@ public class SlideSwitch extends ButtonWidget<SlideSwitch> {
         return style.switchWidth + style.switchGap;
     }
 
+    /**
+     * Picks the track color for a switch state.
+     *
+     * @param colors switch theme data
+     * @param on     whether the switch is on
+     * @param lit    whether an on switch shows its bright look
+     * @return ARGB color
+     */
     public static int trackColor(Theme colors, boolean on, boolean lit) {
         return !on ? colors.track : lit ? colors.trackOn : colors.trackDim;
     }
 
+    /**
+     * Picks the label color for a switch state.
+     *
+     * @param colors    switch theme data
+     * @param on        whether the switch is on
+     * @param lit       whether an on switch shows its bright look
+     * @param available whether the switch can be used
+     * @return ARGB color
+     */
     public static int textColor(Theme colors, boolean on, boolean lit, boolean available) {
         if (!on) return available ? colors.textOff : colors.textDim;
         return lit ? colors.textOn : colors.textDim;
@@ -113,14 +167,14 @@ public class SlideSwitch extends ButtonWidget<SlideSwitch> {
     @Override
     public void draw(ModularGuiContext context, WidgetThemeEntry<?> widgetTheme) {
         Theme colors = colors(widgetTheme.getTheme());
-        LayoutTheme style = LayoutTheme.of(context.getTheme());
-        boolean on = this.on.getAsBoolean(), open = available.getAsBoolean(), lit = on && open && live.getAsBoolean();
+        LayoutTheme style = LayoutTheme.of(getPanel().getTheme());
+        boolean on = this.on.getAsBoolean(), open = isAvailable(), lit = on && open && glow.getAsBoolean();
         int width = getArea().w(), height = getArea().h(), switchWidth = style.switchWidth,
             switchHeight = style.switchHeight, top = (height - switchHeight) / 2, labelX = labelX(style);
         boolean hovered = hover.lit(isHovering(), on);
         UITexture sprite = colors.sprite(on, open && hovered);
         if (sprite != null) {
-            GlStateManager.color(1, 1, 1, open ? 1 : INACTIVE_ALPHA);
+            GlStateManager.color(1, 1, 1, open ? 1 : AE2Theme.INACTIVE_ALPHA);
             sprite.draw(0, top, switchWidth, switchHeight);
             GlStateManager.color(1, 1, 1, 1);
         } else {
@@ -133,7 +187,7 @@ public class SlideSwitch extends ButtonWidget<SlideSwitch> {
         }
         int color = textColor(colors, on, lit, open);
         boolean shadow = lit && colors.getTextShadow();
-        if (sprite != null) AE2Theme.checkboxLabel(label.get(), labelX, top, width - labelX, color, shadow);
+        if (sprite != null) AE2CheckboxPainter.checkboxLabel(label.get(), labelX, top, width - labelX, color, shadow);
         else TextRenderUtils.drawTextFitted(
             label.get(),
             labelX,
