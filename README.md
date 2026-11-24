@@ -8,3 +8,9 @@
 ## 🔧 Optional Dependencies
 
 *   [Angelica (>= 2.2.43)](https://github.com/GTNewHorizons/Angelica)
+
+## 📜 License
+
+GTNLLib is licensed under [GPL-3.0](LICENSE.txt) with additional terms under section 7(b): any mod that
+contains or is based on GTNLLib code must keep the author attribution in its legal notices (normally the in-game
+mod information). See [LICENSE-ADDITIONAL-TERMS.md](LICENSE-ADDITIONAL-TERMS.md) ([中文](ADDITIONAL_TERMS.zh_CN.md)).
