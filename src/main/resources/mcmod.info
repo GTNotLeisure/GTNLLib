@@ -7,6 +7,7 @@
     "mcversion": "1.7.10",
     "url": "https://github.com/ABKQPO/GT-Not-Leisure",
     "authorList": ["HFstudio"],
+    "credits": "Copyright (C) 2026 HFstudio, LineBroke and contributors. GTNLLib is free software: you can redistribute and modify it under the GNU General Public License version 3, with additional terms under section 7(b). It comes with ABSOLUTELY NO WARRANTY. See LICENSE.txt and LICENSE-ADDITIONAL-TERMS.md in META-INF of the jar, or the repository. Works that contain this code must keep: Contains code from GTNLLib. Project authors include HFstudio, LineBroke and other contributors.",
     "requiredMods": ["gtnhlib", "modularui2", "Baubles"],
     "useDependencyInformation": false
   }
