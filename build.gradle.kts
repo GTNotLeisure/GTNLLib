@@ -13,6 +13,10 @@ tasks.withType<JavaCompile>().configureEach {
     options.annotationProcessorPath = configurations.annotationProcessor.get()
 }
 
+tasks.named<Jar>("jar") {
+    from(files("LICENSE.txt", "LICENSE-ADDITIONAL-TERMS.md", "ADDITIONAL_TERMS.zh_CN.md")) { into("META-INF") }
+}
+
 tasks.withType<Javadoc>().configureEach {
     (options as StandardJavadocDocletOptions).apply {
         encoding = "UTF-8"
