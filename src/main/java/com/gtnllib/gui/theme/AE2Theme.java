@@ -1,9 +1,15 @@
 package com.gtnllib.gui.theme;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
@@ -32,6 +38,7 @@ import com.gtnllib.gui.theme.ae2.AE2Look;
 import com.gtnllib.gui.theme.ae2.AE2PanelPainter;
 import com.gtnllib.gui.theme.ae2.AE2ScrollbarPainter;
 import com.gtnllib.gui.theme.ae2.AE2ThemeDefinitions;
+import com.gtnllib.gui.theme.ae2.AE2ThemeLoader;
 import com.gtnllib.gui.theme.ae2.AE2UpgradePainter;
 import com.gtnllib.gui.theme.ae2.AE2Variant;
 import com.gtnllib.gui.theme.ae2.ButtonText;
@@ -170,26 +177,33 @@ public class AE2Theme {
         1F);
 
     /**
-     * Registers fresh definitions for the three panel themes and their menu themes.
+     * Registers fresh definitions for built-in and resource pack panel and menu themes.
      * <p>
      * GTNLLib installs the themes during client initialization and invokes this method on theme reload. Consumers
      * select a theme identifier without registering these definitions themselves.
      */
     @SideOnly(Side.CLIENT)
     public static void register() {
-        for (AE2Variant variant : AE2Variant.values()) {
-            replace(variant.id, AE2ThemeDefinitions.panelTheme(variant));
-            replace(variant.menuId, AE2ThemeDefinitions.menuTheme(variant));
+        List<AE2Variant> variants = AE2ThemeLoader.load(
+            Minecraft.getMinecraft()
+                .getResourceManager());
+        for (ThemeBuilder<?> definition : Variants.REGISTERED) IThemeApi.get()
+            .getJavaDefaultThemes(definition.getId())
+            .removeIf(registered -> registered == definition);
+        Variants.REGISTERED.clear();
+        Variants.ALL = List.copyOf(variants);
+        Variants.BY_ID = index(variants);
+        for (AE2Variant variant : variants) {
+            install(AE2ThemeDefinitions.panelTheme(variant));
+            install(AE2ThemeDefinitions.menuTheme(variant));
         }
     }
 
-    private static void replace(String id, ThemeBuilder<?> theme) {
-        // ThemeManager writes "background": "none" into the registered json on every reload, so register a fresh copy.
-        IThemeApi.get()
-            .getJavaDefaultThemes(id)
-            .clear();
+    private static void install(ThemeBuilder<?> theme) {
+        // ThemeManager mutates registered JSON while parsing; every reload needs a fresh definition.
         IThemeApi.get()
             .registerTheme(theme);
+        Variants.REGISTERED.add(theme);
     }
 
     /**
@@ -212,16 +226,33 @@ public class AE2Theme {
      * @return the matching variant, or {@code null} for an unrecognized identifier
      */
     public static @Nullable AE2Variant variant(@Nullable String themeId) {
-        for (AE2Variant variant : Variants.ALL)
-            if (variant.id.equals(themeId) || variant.menuId.equals(themeId)) return variant;
-        return null;
+        return themeId == null ? null : Variants.BY_ID.get(themeId);
     }
 
-    // Widgets in plain panels look this up every frame; a holder keeps the array from being copied each time and is
-    // only read once the skins exist, since the skins themselves load this class.
+    /**
+     * Returns the active skins, with built-ins first and custom skins in parent-before-child order.
+     *
+     * @return an immutable snapshot replaced on theme reload
+     */
+    public static Collection<AE2Variant> variants() {
+        return Variants.ALL;
+    }
+
+    private static Map<String, AE2Variant> index(Collection<AE2Variant> variants) {
+        Map<String, AE2Variant> indexed = new HashMap<>();
+        for (AE2Variant variant : variants) {
+            indexed.put(variant.id, variant);
+            indexed.put(variant.menuId, variant);
+        }
+        return Map.copyOf(indexed);
+    }
+
+    // The holder avoids initializing the skin registry while the built-in skins initialize this class.
     private static class Variants {
 
-        private static final AE2Variant[] ALL = AE2Variant.values();
+        private static List<AE2Variant> ALL = List.of(AE2Variant.values());
+        private static Map<String, AE2Variant> BY_ID = index(ALL);
+        private static final List<ThemeBuilder<?>> REGISTERED = new ArrayList<>();
     }
 
     /**

@@ -4,6 +4,8 @@ import static com.gtnllib.gui.theme.AE2Theme.BIG_SCROLLER_WIDTH;
 import static com.gtnllib.gui.theme.AE2Theme.CHECKBOX_HEIGHT;
 import static com.gtnllib.gui.theme.AE2Theme.CHECKBOX_WIDTH;
 
+import java.util.Objects;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
@@ -29,7 +31,6 @@ import com.gtnllib.gui.theme.ae2.AE2ButtonDrawable.State;
 
 public class AE2Look {
 
-    private static final AE2Variant[] VARIANTS = AE2Variant.values();
     /**
      * Theme data entry that names the AE2 skin of a theme; themes without it get the plain look.
      */
@@ -40,7 +41,6 @@ public class AE2Look {
     public static final int WELL_EDGE = 1;
     private static final int LIGHT_SHADE = 0x18000000, DARK_SHADE = 0x18FFFFFF;
     private static final AE2Look PLAIN = new AE2Look(null, new PlainLook(null));
-    private static final AE2Look[] SKINNED = skinned();
     private static AE2Look lastPlain = PLAIN;
 
     private final @Nullable AE2Variant variant;
@@ -49,6 +49,15 @@ public class AE2Look {
     private AE2Look(@Nullable AE2Variant variant, @Nullable PlainLook plain) {
         this.variant = variant;
         this.plain = plain;
+    }
+
+    /**
+     * Creates a drawing look for a skin. Prefer {@link #of(AE2Variant)} to reuse its cached look.
+     *
+     * @param variant AE2 skin
+     */
+    public AE2Look(AE2Variant variant) {
+        this(Objects.requireNonNull(variant), null);
     }
 
     /**
@@ -67,7 +76,7 @@ public class AE2Look {
      * @return the shared look of that skin
      */
     public static AE2Look of(@Nullable AE2Variant variant) {
-        return variant == null ? PLAIN : SKINNED[variant.ordinal()];
+        return variant == null ? PLAIN : variant.look();
     }
 
     /**
@@ -123,20 +132,23 @@ public class AE2Look {
             : entry.getTheme()
                 .variant();
         AE2Variant skin = marked != null ? marked : AE2Theme.variant(theme.getId());
-        if (skin != null) return SKINNED[skin.ordinal()];
+        if (skin != null) return of(skin);
         AE2Look cached = lastPlain;
         if (!cached.plain.reads(theme)) lastPlain = cached = new AE2Look(null, new PlainLook(theme));
         return cached;
     }
 
     /**
-     * Finds the AE2 skin stored under a texture folder name.
+     * Finds an active AE2 skin by its panel or menu identifier, or a built-in texture folder name.
      *
-     * @param folder skin folder name below {@code textures/gui/skin/}, such as {@code ae2_dark}
+     * @param folder registered skin identifier or built-in folder, such as {@code ae2_dark}
      * @return the matching skin, or {@code null} for an empty or unknown name
      */
     public static @Nullable AE2Variant skin(@Nullable String folder) {
-        for (AE2Variant variant : VARIANTS) if (variant.folder.equals(folder)) return variant;
+        if (folder == null || folder.isEmpty()) return null;
+        AE2Variant named = AE2Theme.variant(folder);
+        if (named != null) return named;
+        for (AE2Variant variant : AE2Variant.values()) if (variant.folder.equals(folder)) return variant;
         return null;
     }
 
@@ -347,7 +359,7 @@ public class AE2Look {
      * @param height height in pixels
      */
     public void drawButton(GuiContext context, State state, int x, int y, int width, int height) {
-        if (variant != null) AE2ButtonDrawable.draw(variant.folder, state, x, y, width, height);
+        if (variant != null) AE2ButtonDrawable.draw(variant.texture(state.file), state, x, y, width, height);
         else plain.drawButton(context, state, x, y, width, height);
     }
 
@@ -429,16 +441,10 @@ public class AE2Look {
         else PlainLook.drawSmallScrollbar(x, y, height, handleY, enabled);
     }
 
-    private static AE2Look[] skinned() {
-        AE2Look[] looks = new AE2Look[VARIANTS.length];
-        for (AE2Variant variant : VARIANTS) looks[variant.ordinal()] = new AE2Look(variant, null);
-        return looks;
-    }
-
     public static class Marker extends WidgetTheme {
 
         /**
-         * JSON key holding the skin folder name.
+         * JSON key holding a registered skin identifier or built-in folder name.
          */
         public static final String SKIN = "skin";
         private static final Logger LOG = LogManager.getLogger(GTNLLib.MODID);
@@ -448,7 +454,7 @@ public class AE2Look {
         /**
          * Creates the entry of a theme.
          *
-         * @param skin skin folder name, such as {@code ae2_dark}, or an empty string for the plain look
+         * @param skin registered skin identifier, built-in folder, or an empty string for the plain look
          */
         public Marker(String skin) {
             super(0, 0, null, Color.WHITE.main, Color.WHITE.main, false, Color.WHITE.main);
@@ -472,16 +478,16 @@ public class AE2Look {
         }
 
         /**
-         * Returns the skin folder name.
+         * Returns the stored skin name.
          *
-         * @return skin folder name, or an empty string for the plain look
+         * @return registered skin identifier, built-in folder, or an empty string for the plain look
          */
         public String skin() {
             return skin;
         }
 
         /**
-         * Returns the AE2 skin the folder name stands for, found once when the theme is read.
+         * Returns the AE2 skin this entry names, found once when the theme is read.
          *
          * @return the skin, or {@code null} for the plain look or an unknown name
          */
@@ -504,7 +510,7 @@ public class AE2Look {
             /**
              * Names the skin.
              *
-             * @param folder skin folder name, such as {@code ae2_dark}
+             * @param folder registered skin identifier or built-in folder, such as {@code ae2_dark}
              */
             public Builder skin(String folder) {
                 add(SKIN, folder);

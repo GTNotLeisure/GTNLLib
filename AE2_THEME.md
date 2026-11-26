@@ -1,10 +1,10 @@
 # AE2 Theme API
 
-GTNLLib provides light, dark and purple-highlighted dark AE2 themes for ModularUI 2. Their source Javadoc defines parameter units, return values, null handling and lifecycle requirements.
+GTNLLib provides light, dark and purple-highlighted dark AE2 themes for ModularUI 2, plus resource-pack-defined skins. Their source Javadoc defines parameter units, return values, null handling and lifecycle requirements.
 
 Every AE2 widget decides its look while drawing, from the theme of the panel it is in (`AE2Look.of(widget)`), so a dialog that uses a theme of its own is drawn in that theme's look, not the screen's. A theme names its AE2 skin in its `gtnllibAE2Look` theme data entry, which the AE2 themes write and themes based on them inherit; a theme without the entry is recognised by its identifier. Nothing has to be passed to a widget when it is created.
 
-`AE2Look` is the one way to say which look to draw: one of the three AE2 skins (light, dark, purple dark) or the plain look of every other theme. Whatever exists in every look is asked of the look itself: `listText()`, `panelText(available)`, `buttonText(state, height)`, `error()`, `drawWell`, `drawSelectedRow`, `drawButton`, `drawCheckbox`, `drawScrollbar`, `scrollbarWidth()` and so on. Parts only AE2 has (the toolbar strip, tables, the upgrade panel) take the skin, `look.variant()`, which is `null` in the plain look. Drawables made for a widget, such as `AE2ButtonPainter.button(widget, ...)`, resolve their widget's look themselves. `AE2Look.of(context)` gives the look of the whole screen and is only for drawing code that has no widget at hand.
+`AE2Look` is the one way to say which look to draw: a registered AE2 skin or the plain look of every other theme. Whatever exists in every look is asked of the look itself: `listText()`, `panelText(available)`, `buttonText(state, height)`, `error()`, `drawWell`, `drawSelectedRow`, `drawButton`, `drawCheckbox`, `drawScrollbar`, `scrollbarWidth()` and so on. Parts only AE2 has (the toolbar strip, tables, the upgrade panel) take the skin, `look.variant()`, which is `null` in the plain look. Drawables made for a widget, such as `AE2ButtonPainter.button(widget, ...)`, resolve their widget's look themselves. `AE2Look.of(context)` gives the look of the whole screen and is only for drawing code that has no widget at hand.
 
 The plain look's colors and drawing rules are all in `PlainLook`: Minecraft's sunken slot box and creative-inventory scroll bar, MUI2's button, check box and icons, and the theme's own text style. The painters of the `ae2` package only draw the AE2 skins.
 
@@ -155,7 +155,7 @@ The toolbar and the upgrade panel are added after the panel's other children, so
 | --- | --- |
 | [AE2Theme](src/main/java/com/gtnllib/gui/theme/AE2Theme.java) | Theme identifiers, AE2's widget dimensions, the skin texture folders, theme registration and lookup. `polish` and `menu` fit MUI2's own widgets to an AE2 screen (see Which Widget To Use). Its drawing methods are deprecated forwarders to the classes below. |
 | [MUI2Fixes](src/main/java/com/gtnllib/gui/theme/MUI2Fixes.java) | Every workaround for a part of MUI2 a theme cannot reach: scroll shadows and track color, menu themes, menu padding, slider handles. The one class to check after a MUI2 upgrade. |
-| [AE2Variant](src/main/java/com/gtnllib/gui/theme/ae2/AE2Variant.java) | The three AE2 skins (light, dark, purple dark) as data: their palette (`AE2Colors`, built by name with `AE2Colors.builder()`), selection colors and textures. The purple dark skin ships only the textures it recolours (`AE2Theme.PURPLE_TEXTURES`) and takes the rest from the dark skin. |
+| [AE2Variant](src/main/java/com/gtnllib/gui/theme/ae2/AE2Variant.java) | Built-in and resource-pack AE2 skins as data: their palette (`AE2Colors`, built by name with `AE2Colors.builder()`), selection colors and textures. The purple dark skin ships only the textures it recolours (`AE2Theme.PURPLE_TEXTURES`) and takes the rest from the dark skin. |
 | [AE2ThemeDefinitions](src/main/java/com/gtnllib/gui/theme/ae2/AE2ThemeDefinitions.java) | The MUI2 panel and menu theme of each skin (`panelTheme(variant)`, `menuTheme(variant)`). Client only; `AE2Theme.register` uses it, and other code selects a theme by its identifier. |
 | [AE2Icon](src/main/java/com/gtnllib/gui/theme/ae2/AE2Icon.java) | The built-in toolbar icons, drawn from the AE2 skin's sheet or MUI2's icons outside AE2 themes; the three MUI2 has no equivalent for (`FLIP_VERTICAL`, `MOVE_TO_UP`, `MOVE_TO_DOWN`) use the light skin's sprite there, which is white like MUI2's. |
 | [AE2Look](src/main/java/com/gtnllib/gui/theme/ae2/AE2Look.java) | The look a panel gives GTNLLib's AE2 widgets: one of the three AE2 skins or the plain look. `AE2Look.of(widget)` reads the theme of the widget's panel; every AE2 widget asks it while drawing. It answers colors and draws wells, selected rows, buttons, check boxes and scroll bars in either look. |
@@ -322,11 +322,73 @@ GTNLLib registers these themes during client initialization. Apply the selected 
 
 ### Themes Of Your Own
 
-There are three AE2 skins and no way yet to add a fourth: the skins are the `AE2Variant` enum, and `AE2Look` only knows those three. What a theme of your own can change depends on the mechanism a widget uses (see the table above):
+Third-party resource packs can add AE2 skins without Java code. The loader combines every enabled index at `assets/gtnllib/themes/ae2/themes.json`:
 
-- A MUI2 theme JSON whose parent is an AE2 theme keeps that skin for every widget that follows `AE2Look` (buttons, icon buttons, lists, check boxes, scroll bars, number entries, dropdowns). Colors set in the JSON do not reach them; they read the skin's palette (`AE2Variant.colors`).
-- The same JSON can recolor MUI2's own widgets and the theme-data widgets (`SlideSwitch`, `StepSlider`, `FillBar`, `Divider`, `LayoutTheme`). `PaletteThemes.register` builds such theme data from one palette.
-- A theme can name a skin in its `gtnllibAE2Look` entry, `{"gtnllibAE2Look": {"skin": "ae2_dark"}}`, with one of the folder names `ae2_light`, `ae2_dark` or `ae2_dark_purple`. An unknown name gives the plain look and logs a warning.
+```json
+{
+  "themes": ["my_pack:amethyst"]
+}
+```
+
+Each identifier `namespace:path` names a panel theme and resolves to `assets/namespace/themes/ae2/path.json`. Paths may contain subdirectories. Identifiers must be lowercase and namespaced. Built-in panel and menu identifiers are reserved. Minecraft selects the highest-priority definition file for each identifier; indexes are additive. To override a pack's definition, provide the same resource path in a higher-priority pack.
+
+A minimal definition inherits every value and texture from its parent:
+
+```json
+{
+  "parent": "gtnllib:ae2_dark_purple",
+  "colors": {
+    "text": "#FFDCCFF2",
+    "hoverText": "#FFFFFFFF"
+  },
+  "textures": {
+    "icons": "my_pack:textures/gui/amethyst/icons.png"
+  }
+}
+```
+
+The example above requires its icon PNG. For a complete installable pack that uses only built-in artwork, copy `examples/resourcepacks/ae2-amethyst` into `.minecraft/resourcepacks` and enable it. It adds `example:amethyst`.
+
+A definition supports these optional fields:
+
+| Field | Meaning | Default |
+| --- | --- | --- |
+| `parent` | Built-in or indexed custom **panel** theme ID; parent order in the index does not matter | `gtnllib:ae2_dark` |
+| `menu` | Generated context-menu theme ID | Panel ID followed by `_menu` |
+| `dark` | Whether row overlays lighten rather than darken their background | Parent value |
+| `colors` | Object containing semantic colors listed below | Parent values |
+| `highlight`, `highlightTop`, `highlightShadow`, `highlightText` | Selection fill, top edge, shadow and text color | Parent values |
+| `textures` | Object mapping sheet names to full, namespaced PNG resource locations | Parent sheets |
+
+Colors use `#RRGGBB` for opaque RGB or `#AARRGGBB` for explicit ARGB, including transparent colors. Semantic color names are `text`, `muted`, `secondary`, `buttonText`, `hoverText`, `disabledText`, `fieldText`, `placeholder`, `line`, `edge`, `panel`, `well`, `outline`, `raised`, `good`, `bad`, `info`, `warning` and `error`.
+
+The loader builds both MUI2's widget theme data and GTNLLib's drawing skin from the same definition. A skin's panel, buttons, check boxes, lists, icons, scroll bars, number entries, progress bars, slider handles and legacy AE2 sheets therefore resolve the same texture overrides. Colors do not recolor PNG pixels: when changing selection colors, also supply the selected sprites you want, or inherit artwork with matching colors. Replacement sheets keep the parent's dimensions and sprite layout:
+
+| Sheets | Dimensions in pixels |
+| --- | --- |
+| `panel`, `states`, `icons`, `legacy_states`, `legacy_terminal` | 256 × 256 |
+| `button`, `button_highlighted`, `button_disabled` | 200 × 20 |
+| `text_field` | 128 × 128 |
+| `checkbox` | 64 × 64 |
+| `slot_item`, `slot_fluid` | 18 × 18 |
+| `scroller`, `scroller_disabled` | 7 × 15 |
+| `big_scroller`, `big_scroller_disabled` | 12 × 15 |
+| `inset` | 8 × 9 |
+| `list_row` | 67 × 44 |
+| `button_bar` | 21 × 26 |
+| `progress` | 12 × 18 |
+| `slider_track` | 8 × 6 |
+| `slider_fill` | 4 × 4 |
+| `slider_tag` | 6 × 9 |
+| `divider` | 4 × 2 |
+
+Reload with F3+T after enabling, disabling or editing a pack, then reopen the screen so widgets that retain their theme are rebuilt. Invalid JSON, missing parents, inheritance cycles, conflicting menu IDs and missing replacement textures are logged with their theme ID and skipped; unrelated valid themes still load. `AE2Theme.variants()` exposes an immutable snapshot of available built-in and custom skins, and `AE2Theme.variant(id)` resolves either their panel or menu ID. Disabling a pack removes its skins from that snapshot. Consumers should retain the configured ID and choose their normal fallback when it is unavailable, so re-enabling the pack restores the selection.
+
+Apply a custom panel ID with `ModularScreen.useTheme(id)`. The generated menu theme and inherited `gtnllibAE2Look` marker make dialogs and `CycleDropdown` menus follow it. Ordinary MUI2 JSON can still extend or override the generated theme through MUI2's own `themes.json` mechanism. A theme can explicitly select a registered skin with `{"gtnllibAE2Look": {"skin": "my_pack:amethyst"}}`; the original folder names `ae2_light`, `ae2_dark` and `ae2_dark_purple` also remain valid.
+
+GT-Not-Leisure keeps its original enum selections and adds `celestweaveCustomTheme`, `railgunCustomTheme`, `portalGunCustomTheme`, `wirelessCardCustomTheme` and `miniTerminalCustomTheme` in its `screen_theme` client configuration. A nonempty, available panel ID overrides the corresponding enum; an empty or unavailable ID uses the enum without overwriting the custom setting.
+
+`AE2Variant` is now a data class rather than an enum. The three built-in constants, fields and `values()` remain; `values()` deliberately returns only built-ins. Enum-specific operations such as `ordinal()`, `EnumMap`, `EnumSet`, `valueOf()` and enum switches must be migrated. Use `variant.dark` for brightness, `variant.texture(name)` or its instance `sprite(...)` for texture overrides, and `AE2Theme.variants()` for discovery. Caches should follow skin instances rather than fixed ordinal arrays. GT-Not-Leisure's mini-terminal cache and wireless-card brightness check are adapted accordingly; deploy the updated consumer together with this library.
 
 The purple dark theme shares the dark palette and replaces AE2's light-blue selection with fluix purple. Custom selection drawing should read `AE2Variant.highlight`, `highlightTop`, `highlightShadow` and `highlightText` instead of the `AE2Theme.HIGHLIGHT` constants, so it matches every variant.
 

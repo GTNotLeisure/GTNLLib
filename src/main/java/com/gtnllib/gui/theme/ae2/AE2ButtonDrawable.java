@@ -1,8 +1,11 @@
 package com.gtnllib.gui.theme.ae2;
 
 import java.util.Map;
+import java.util.Objects;
 
 import net.minecraft.util.ResourceLocation;
+
+import org.jetbrains.annotations.Nullable;
 
 import com.cleanroommc.modularui.api.IJsonSerializable;
 import com.cleanroommc.modularui.api.drawable.IDrawable;
@@ -26,7 +29,7 @@ public class AE2ButtonDrawable implements IDrawable, IJsonSerializable {
      * Drawable type name in theme JSON; saved themes refer to it, so it must not change.
      */
     public static final String TYPE = "gtnllib:ae2_button";
-    private static final String STATE = "state", SKIN = "skin";
+    private static final String STATE = "state", SKIN = "skin", TEXTURE = "texture";
     private static final int TEXTURE_WIDTH = 200, TEXTURE_HEIGHT = 20, EDGE = 2, FRAME_ROWS = 4, TEXT_ROOM = 13,
         MIN_SHADOW = 1, MAX_SHADOW = 3, FACE_TOP = 2, FACE_BOTTOM = 3, LABEL_HEIGHT = 8;
     private static final Map<String, ResourceLocation[]> TEXTURES = new Object2ObjectOpenHashMap<>();
@@ -40,6 +43,7 @@ public class AE2ButtonDrawable implements IDrawable, IJsonSerializable {
 
     private State state;
     private String skin;
+    private @Nullable ResourceLocation texture;
 
     /**
      * Creates the button background of one state.
@@ -50,6 +54,17 @@ public class AE2ButtonDrawable implements IDrawable, IJsonSerializable {
     public AE2ButtonDrawable(State state, String skin) {
         this.state = state;
         this.skin = skin;
+    }
+
+    /**
+     * Creates a serializable button background from an explicitly resolved sheet.
+     *
+     * @param state   visual state
+     * @param texture button sheet with the standard AE2 dimensions and row layout
+     */
+    public AE2ButtonDrawable(State state, ResourceLocation texture) {
+        this(state, AE2Variant.LIGHT.folder);
+        this.texture = Objects.requireNonNull(texture);
     }
 
     /**
@@ -95,10 +110,24 @@ public class AE2ButtonDrawable implements IDrawable, IJsonSerializable {
      * @param height button height in pixels
      */
     public static void draw(String skin, State state, int x, int y, int width, int height) {
+        draw(texture(skin, state), state, x, y, width, height);
+    }
+
+    /**
+     * Draws a button from a resolved sheet. Client only.
+     *
+     * @param texture button sheet location
+     * @param state   button state
+     * @param x       left edge
+     * @param y       top edge
+     * @param width   button width
+     * @param height  button height
+     */
+    public static void draw(ResourceLocation texture, State state, int x, int y, int width, int height) {
         if (width <= 0 || height <= 0) return;
         int shadow = shadow(state, height), sunk = baseShadow(height) - shadow;
         int fill = Math.max(0, height - sunk - FRAME_ROWS - shadow);
-        Platform.setupDrawTex(texture(skin, state), true);
+        Platform.setupDrawTex(texture, true);
         GlStateManager.color(1, 1, 1, 1);
         Platform.startDrawing(Platform.DrawMode.QUADS, Platform.VertexFormat.POS_TEX, buffer -> {
             int row = y + sunk;
@@ -133,30 +162,35 @@ public class AE2ButtonDrawable implements IDrawable, IJsonSerializable {
 
     @Override
     public void draw(GuiContext context, int x, int y, int width, int height, WidgetTheme widgetTheme) {
-        draw(skin, state, x, y, width, height);
+        draw(texture == null ? texture(skin, state) : texture, state, x, y, width, height);
     }
 
     @Override
     public void loadFromJson(JsonObject json) {
         state = State.byName(JsonHelper.getString(json, state.name, STATE));
         skin = JsonHelper.getString(json, skin, SKIN);
+        String location = JsonHelper.getString(json, "", TEXTURE);
+        texture = location.isEmpty() ? null : new ResourceLocation(location);
     }
 
     @Override
     public boolean saveToJson(JsonObject json) {
         json.addProperty(STATE, state.name);
-        json.addProperty(SKIN, skin);
+        if (texture == null) json.addProperty(SKIN, skin);
+        else json.addProperty(TEXTURE, texture.toString());
         return true;
     }
 
     @Override
     public boolean equals(Object other) {
-        return other instanceof AE2ButtonDrawable drawable && drawable.state == state && drawable.skin.equals(skin);
+        return other instanceof AE2ButtonDrawable drawable && drawable.state == state
+            && drawable.skin.equals(skin)
+            && Objects.equals(drawable.texture, texture);
     }
 
     @Override
     public int hashCode() {
-        return state.hashCode() * 31 + skin.hashCode();
+        return (state.hashCode() * 31 + skin.hashCode()) * 31 + Objects.hashCode(texture);
     }
 
     public enum State {

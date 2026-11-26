@@ -103,7 +103,6 @@ public enum AE2SettingIcon implements IconSource {
      * Position of the icon in AE2's {@code states.png}, in pixels.
      */
     public final int x, y;
-    private final UITexture[] skins = new UITexture[AE2Variant.values().length];
 
     AE2SettingIcon(int x, int y) {
         this.x = x;
@@ -118,10 +117,7 @@ public enum AE2SettingIcon implements IconSource {
      */
     public UITexture texture(AE2Look look) {
         AE2Variant variant = look.isAE2() ? look.variant() : AE2Variant.LIGHT;
-        UITexture skin = skins[variant.ordinal()];
-        if (skin == null) skin = skins[variant.ordinal()] = AE2Variant
-            .sprite(variant.folder, SHEET_NAME, SHEET, x, y, ICON_SIZE, ICON_SIZE);
-        return skin;
+        return variant.sprite(SHEET_NAME, SHEET, x, y, ICON_SIZE, ICON_SIZE);
     }
 
     @Override

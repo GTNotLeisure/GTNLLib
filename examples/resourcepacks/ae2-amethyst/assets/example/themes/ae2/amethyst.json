@@ -1,0 +1,32 @@
+{
+  "parent": "gtnllib:ae2_dark_purple",
+  "dark": true,
+  "colors": {
+    "text": "#FFDCCFF2",
+    "muted": "#FF9A86AE",
+    "secondary": "#FFB7A4CD",
+    "buttonText": "#FFF1E8FF",
+    "hoverText": "#FFFFFFFF",
+    "disabledText": "#FF756283",
+    "fieldText": "#FFF1E8FF",
+    "placeholder": "#FFB7A4CD",
+    "line": "#FF14151D",
+    "edge": "#FF8E8E8E",
+    "panel": "#FF42434B",
+    "well": "#FF242631",
+    "outline": "#FF0A090E",
+    "raised": "#FF2D2F3C",
+    "good": "#FF8FE0AD",
+    "bad": "#FFF494A4",
+    "info": "#FFC0AAFF",
+    "warning": "#FFFFD492",
+    "error": "#FFFF7C8C"
+  },
+  "highlight": "#FF644595",
+  "highlightTop": "#FFE2A3E3",
+  "highlightShadow": "#FF212040",
+  "highlightText": "#FFFFFFFF",
+  "textures": {
+    "icons": "gtnllib:textures/gui/skin/ae2_dark/icons.png"
+  }
+}

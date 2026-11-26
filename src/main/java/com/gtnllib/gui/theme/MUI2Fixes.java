@@ -109,7 +109,7 @@ public class MUI2Fixes {
      * @param variant AE2 skin
      */
     public static void sliderHandle(SliderWidget slider, AE2Variant variant) {
-        slider.sliderTexture(new AE2ButtonDrawable(State.NORMAL, variant.folder));
+        slider.sliderTexture(new AE2ButtonDrawable(State.NORMAL, variant.texture(State.NORMAL.file)));
     }
 
     private static String menuTheme(AE2Look look) {

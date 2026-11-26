@@ -71,8 +71,8 @@ public class AE2ThemeDefinitions {
      */
     public static ThemeBuilder<?> panelTheme(AE2Variant variant) {
         AE2Colors colors = variant.colors;
-        IDrawable button = new AE2ButtonDrawable(State.NORMAL, variant.folder),
-            lit = new AE2ButtonDrawable(State.HOVER, variant.folder);
+        IDrawable button = new AE2ButtonDrawable(State.NORMAL, variant.texture(State.NORMAL.file)),
+            lit = new AE2ButtonDrawable(State.HOVER, variant.texture(State.HOVER.file));
         int normal = colors.buttonText(), hover = colors.hoverText();
         ThemeBuilder<?> theme = PaletteThemes
             .build(variant.id, ThemeAPI.DEFAULT_ID, variant.palette, STYLE, variant.skin)
@@ -116,7 +116,7 @@ public class AE2ThemeDefinitions {
                         variant.checkboxOn,
                         variant.checkboxOnHover))
             .hoverBackground(SlideSwitch.Theme.KEY, IDrawable.EMPTY)
-            .widgetTheme(AE2Look.KEY, new AE2Look.Marker.Builder().skin(variant.folder))
+            .widgetTheme(AE2Look.KEY, new AE2Look.Marker.Builder().skin(variant.id))
             .widgetTheme(
                 LayoutTheme.KEY,
                 new LayoutTheme.Builder().values(STYLE.layout())

@@ -145,7 +145,6 @@ public enum AE2Icon implements IconSource {
      * MUI2 fallback texture used outside AE2 themes, or {@code null} to use the light AE2 sprite there.
      */
     public final @Nullable UITexture vanilla;
-    private final UITexture[] skins = new UITexture[AE2Variant.values().length];
 
     AE2Icon(int x, int y, @Nullable UITexture vanilla) {
         this.x = x;
@@ -166,10 +165,7 @@ public enum AE2Icon implements IconSource {
             if (vanilla != null) return vanilla;
             variant = AE2Variant.LIGHT;
         }
-        UITexture skin = skins[variant.ordinal()];
-        if (skin == null) skin = skins[variant.ordinal()] = AE2Variant
-            .sprite(variant.folder, "icons", SHEET, x, y, ICON_SIZE, ICON_SIZE);
-        return skin;
+        return variant.sprite("icons", SHEET, x, y, ICON_SIZE, ICON_SIZE);
     }
 
     @Override
