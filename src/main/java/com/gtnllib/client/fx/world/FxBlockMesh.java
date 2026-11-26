@@ -252,10 +252,15 @@ public class FxBlockMesh {
             }
         } finally {
             ForgeHooksClient.setRenderPass(-1);
-            tessellator.draw();
-            GL11.glEndList();
-            mc.gameSettings.ambientOcclusion = ambientOcclusion;
-            if (player != null) player.worldObj = playerWorld;
+            try {
+                tessellator.draw();
+            } catch (RuntimeException e) {
+                GTNLLib.LOG.debug("Could not finish a block mesh section", e);
+            } finally {
+                GL11.glEndList();
+                mc.gameSettings.ambientOcclusion = ambientOcclusion;
+                if (player != null) player.worldObj = playerWorld;
+            }
         }
     }
 }
