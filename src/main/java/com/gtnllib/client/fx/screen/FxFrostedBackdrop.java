@@ -134,7 +134,7 @@ public class FxFrostedBackdrop implements AutoCloseable {
         return target;
     }
 
-    private static boolean pass(Framebuffer target, int input, float stepU, float stepV) {
+    public static boolean pass(Framebuffer target, int input, float stepU, float stepV) {
         ShaderEffect shader = FxShaders.BLUR;
         if (!shader.begin()) return false;
         try {

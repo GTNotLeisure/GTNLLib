@@ -10,6 +10,7 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL20;
 
 import com.gtnllib.GTNLLib;
+import com.gtnllib.utils.ColorMath;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
@@ -65,6 +66,14 @@ public class ShaderEffect {
 
     public void uniform2f(String uniform, float x, float y) {
         if (program != null) program.uniform2f(uniform, x, y);
+    }
+
+    public void uniform3f(String uniform, float x, float y, float z) {
+        if (program != null) program.uniform3f(uniform, x, y, z);
+    }
+
+    public void uniformRgb(String uniform, int rgb) {
+        if (program != null) program.uniform3f(uniform, ColorMath.red(rgb), ColorMath.green(rgb), ColorMath.blue(rgb));
     }
 
     private GlslProgram program() {

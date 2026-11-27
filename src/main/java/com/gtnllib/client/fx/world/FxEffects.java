@@ -16,6 +16,9 @@ public class FxEffects {
         MinecraftForge.EVENT_BUS.register(new FxArcRenderer());
         MinecraftForge.EVENT_BUS.register(new FxShockwaveRenderer());
         MinecraftForge.EVENT_BUS.register(new FxMoteRenderer());
+        MinecraftForge.EVENT_BUS.register(new FxSpatialLens());
+        MinecraftForge.EVENT_BUS.register(new FxMistWave());
+        MinecraftForge.EVENT_BUS.register(new FxFractalLightning.WorldRenderer());
     }
 
     @SubscribeEvent
@@ -24,10 +27,15 @@ public class FxEffects {
         FxArcRenderer.clear();
         FxShockwaveRenderer.clear();
         FxMoteRenderer.clear();
+        FxSpatialLens.clear();
+        FxSpatialLens.release();
+        FxMistWave.clear();
+        FxFractalLightning.clearWorld();
     }
 
     @SubscribeEvent
     public void reload(TextureStitchEvent.Post event) {
         FxRenderHelper.clearSprites();
+        FxSpatialLens.release();
     }
 }

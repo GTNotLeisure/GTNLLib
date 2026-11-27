@@ -62,6 +62,10 @@ public class GlslProgram implements AutoCloseable {
         GL20.glUniform2f(uniform(name), x, y);
     }
 
+    public void uniform3f(String name, float x, float y, float z) {
+        GL20.glUniform3f(uniform(name), x, y, z);
+    }
+
     public void uniform1fv(String name, FloatBuffer values) {
         GL20.glUniform1(uniform(name), values);
     }
