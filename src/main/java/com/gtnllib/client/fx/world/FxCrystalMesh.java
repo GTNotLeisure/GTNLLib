@@ -65,8 +65,8 @@ public class FxCrystalMesh {
 
         private final Runnable drawMesh;
         private double translateX, translateY, translateZ;
-        private float localCenterY, sizeY = 1F;
-        private float timeSec, fill = 1F, whiteout, sheen = 1F;
+        private float localCenterX, localCenterY, localCenterZ, sizeX = 1F, sizeY = 1F, sizeZ = 1F;
+        private float timeSec, fill = 1F, whiteout, sheen = 1F, reveal = 1F;
         private int shadowRgb = DEFAULT_SHADOW_RGB, primaryRgb = DEFAULT_PRIMARY_RGB,
             highlightRgb = DEFAULT_HIGHLIGHT_RGB;
         private ResourceLocation texture = TextureMap.locationBlocksTexture;
@@ -90,11 +90,27 @@ public class FxCrystalMesh {
         }
 
         /**
-         * Sets the mesh's vertical center and height in local blocks; the whiteout surges strongest at mid-height.
+         * Sets the mesh's center and size in local blocks; {@link #reveal(float) reveal} grows from this center and
+         * the whiteout surges strongest at its height.
          */
-        public Surface boundsY(float localCenterY, float sizeY) {
+        public Surface bounds(float localCenterX, float localCenterY, float localCenterZ, float sizeX, float sizeY,
+            float sizeZ) {
+            this.localCenterX = localCenterX;
             this.localCenterY = localCenterY;
+            this.localCenterZ = localCenterZ;
+            this.sizeX = sizeX;
             this.sizeY = sizeY;
+            this.sizeZ = sizeZ;
+            return this;
+        }
+
+        /**
+         * Limits the crystal to an ellipsoid growing from the {@link #bounds bounds} center, in [0, 1] (default 1, no
+         * limit). Its front is drawn as a bright band that fades out near 1; at 1 it has passed every corner. Without
+         * shader support the whole surface is drawn regardless.
+         */
+        public Surface reveal(float reveal) {
+            this.reveal = reveal;
             return this;
         }
 
@@ -254,6 +270,7 @@ public class FxCrystalMesh {
     public static void drawSurface(Surface spec) {
         if (spec == null || spec.drawMesh == null || !(spec.fill > 0.01F)) return;
         float sheen = Float.isFinite(spec.sheen) ? Math.max(0F, Math.min(1F, spec.sheen)) : 1F;
+        float reveal = Float.isFinite(spec.reveal) ? Math.max(0F, Math.min(1F, spec.reveal)) : 1F;
         float peak = Float.isFinite(spec.whiteout) ? Math.max(0F, Math.min(1F, spec.whiteout)) : 0F;
         GL11.glPushAttrib(
             GL11.GL_ENABLE_BIT | GL11.GL_COLOR_BUFFER_BIT
@@ -289,6 +306,9 @@ public class FxCrystalMesh {
                     SURFACE.uniform1f("sheen", sheen);
                     SURFACE.uniform1f("centerY", spec.localCenterY);
                     SURFACE.uniform1f("sizeY", spec.sizeY);
+                    SURFACE.uniform1f("reveal", reveal);
+                    SURFACE.uniform3f("revealCenter", spec.localCenterX, spec.localCenterY, spec.localCenterZ);
+                    SURFACE.uniform3f("revealHalf", spec.sizeX * 0.5F, spec.sizeY * 0.5F, spec.sizeZ * 0.5F);
                     SURFACE.uniformRgb("shadowColor", spec.shadowRgb);
                     SURFACE.uniformRgb("primaryColor", spec.primaryRgb);
                     SURFACE.uniformRgb("highlightColor", spec.highlightRgb);

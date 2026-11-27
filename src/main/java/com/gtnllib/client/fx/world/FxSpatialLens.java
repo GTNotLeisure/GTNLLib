@@ -284,7 +284,7 @@ public class FxSpatialLens {
     }
 
     /**
-     * Lensing hole: a dark disc ringed by a bright corona, bending the scene around it.
+     * Lensing hole: a dark disc with a thin white rim inside a pale mist band, bending the scene around it.
      */
     public static class Wormhole {
 
@@ -323,7 +323,8 @@ public class FxSpatialLens {
         }
 
         /**
-         * Sets the refraction and corona strength: 0.01 or below draws nothing, 1 is the normal look, up to about 1.5.
+         * Sets the refraction, rim and mist strength: 0.01 or below draws nothing, 1 is the normal look, up to about
+         * 1.5.
          */
         public Wormhole strength(float strength) {
             this.strength = strength;

@@ -8,6 +8,9 @@ uniform float whiteout;
 uniform float sheen;
 uniform float centerY;
 uniform float sizeY;
+uniform float reveal;
+uniform vec3 revealCenter;
+uniform vec3 revealHalf;
 uniform vec3 shadowColor;
 uniform vec3 primaryColor;
 uniform vec3 highlightColor;
@@ -30,6 +33,16 @@ void main() {
     float ndotv = abs(dot(N, V));
     float fresnel = pow(clamp(1.0 - ndotv, 0.0, 1.0), 1.9);
 
+    float revealMask = 1.0;
+    float front = 0.0;
+    if (reveal < 1.0) {
+        float dist = length((vLocal - revealCenter) / max(vec3(1.0), revealHalf));
+        float radius = reveal * 1.85;
+        revealMask = 1.0 - smoothstep(radius - 0.06, radius, dist);
+        float band = (dist - radius) / 0.10;
+        front = reveal > 0.001 ? exp(-band * band) * (1.0 - smoothstep(0.85, 1.0, reveal)) : 0.0;
+    }
+
     vec3 solidCol = tex.rgb * vColor.rgb;
     float texLum = dot(solidCol, vec3(0.299, 0.587, 0.114));
 
@@ -48,7 +61,6 @@ void main() {
     float threshold = 1.06 - fill * 1.32;
     float weaveMask = smoothstep(threshold, threshold + 0.18, nFlow * 0.62 + nFacet * 0.38 + 0.14);
     float surfaceAlpha = clamp(weaveMask * fill + sheenMask * 0.35 * smoothstep(0.0, 0.22, fill), 0.0, 1.0);
-    if (surfaceAlpha < 0.04) discard;
 
     vec3 pureWhite = vec3(1.0, 1.0, 1.0);
     float relief = clamp(texLum * 0.75 + nFacet * 0.55 - 0.15, 0.0, 1.0);
@@ -59,7 +71,12 @@ void main() {
     float earlyReveal = smoothstep(0.48, 0.88, fill) * 0.28 * (1.0 - whiteout);
     vec3 col = mix(crystal, solidCol * mix(vec3(1.0), highlightColor, 0.35) + crystal * 0.48, earlyReveal);
     col = mix(col, pureWhite, clamp(whiteout * (0.78 + 0.32 * bodySurge + fresnel * 0.25), 0.0, 1.0));
+    float alpha = clamp(surfaceAlpha * (0.46 + 0.50 * fill + whiteout * 0.35), 0.0, 0.98) * revealMask;
 
-    float outAlpha = clamp(surfaceAlpha * (0.46 + 0.50 * fill + whiteout * 0.35), 0.0, 0.98);
-    gl_FragColor = vec4(col, outAlpha);
+    float frontMix = clamp(front, 0.0, 1.0) * 0.9;
+    col = mix(col, mix(highlightColor, pureWhite, 0.55), frontMix);
+    alpha = max(alpha, frontMix * 0.85);
+
+    if (alpha < 0.04) discard;
+    gl_FragColor = vec4(col, alpha);
 }
