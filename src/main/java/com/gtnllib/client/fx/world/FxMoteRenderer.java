@@ -54,7 +54,7 @@ public class FxMoteRenderer {
         private final int glow, core;
         private Vec3d origin, velocity = Vec3d.ZERO, normal = new Vec3d(0, 1, 0);
         private double drag = 1, gravity, delay, hover, born;
-        private boolean twinkle, bounces, untilSecondLanding;
+        private boolean twinkle, bounces, untilSecondLanding, smooth;
         private double restitution, friction, settleTicks;
         private float phase;
         private Vec3d position, previous, current;
@@ -104,6 +104,11 @@ public class FxMoteRenderer {
         public Mote twinkle(float phase) {
             twinkle = true;
             this.phase = phase;
+            return this;
+        }
+
+        public Mote smooth() {
+            smooth = true;
             return this;
         }
 
@@ -296,6 +301,13 @@ public class FxMoteRenderer {
             case DOT -> {
                 float scale = (mote.bounces ? Math.min(mote.settle(age), 1 - FxEasing.smoothStep(0.7F, 1, progress))
                     : 1 - FxEasing.smoothStep(0.35F, 1, progress)) * remaining;
+                if (mote.smooth) {
+                    if (sprite != Sprite.RADIAL) return;
+                    quad(at, mote.size * 2.6 * scale, mote.glow, 0.3F * twinkle * scale);
+                    quad(at, mote.size * 1.3 * scale, mote.core, twinkle * remaining);
+                    quad(at, mote.size * 0.6 * scale, WHITE, 0.9F * twinkle * remaining);
+                    return;
+                }
                 if (sprite == Sprite.RADIAL) quad(at, mote.size * 3.4 * scale, mote.glow, 0.34F * twinkle * scale);
                 if (sprite == Sprite.PIXEL_DOT) {
                     quad(at, mote.size * scale, mote.core, twinkle * remaining);
